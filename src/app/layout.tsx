@@ -41,10 +41,22 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let userEmail: string | null = null;
+
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userEmail = user?.email ?? null;
+    } catch {
+      // Keep public pages renderable even if auth is misconfigured in production.
+    }
+  }
 
   return (
     <html
@@ -59,7 +71,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar userEmail={user?.email} />
+          <Navbar userEmail={userEmail} />
           <main className="flex-1">{children}</main>
           <Footer />
           <Toaster richColors position="top-right" />
