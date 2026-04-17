@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, CheckCircle2, Clock, AlertCircle, ExternalLink } from "lucide-react";
+import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, ExternalLink, Search, Pencil, ImageIcon } from "lucide-react";
+import type { PortfolioPhoto } from "@/lib/supabase/types";
 
 function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -21,34 +23,19 @@ function LeadStatusBadge({ status }: { status: string }) {
   return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>{s.label}</span>;
 }
 
-function ListingStatusBanner({ status }: { status: string }) {
-  if (status === "active") return (
-    <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-      <CheckCircle2 className="h-4 w-4 shrink-0" />
-      <span>Your listing is <strong>live</strong> — customers can find your business on Trade Source.</span>
-      <Link href="/contractors" className="ml-auto flex items-center gap-1 text-green-700 underline-offset-4 hover:underline">View listing <ExternalLink className="h-3 w-3" /></Link>
-    </div>
-  );
-  if (status === "pending") return (
-    <div className="flex items-center gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-      <Clock className="h-4 w-4 shrink-0" />
-      <span>Your listing is <strong>under review</strong> — we'll activate it within 24 hours.</span>
-    </div>
-  );
-  return (
-    <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-      <AlertCircle className="h-4 w-4 shrink-0" />
-      <span>Your listing is <strong>suspended</strong>. Contact us at <a href="mailto:hello@sourceatrade.com" className="underline">hello@sourceatrade.com</a>.</span>
-    </div>
-  );
-}
 
 async function ContractorDashboard({ userId }: { userId: string }) {
   const supabase = await createClient();
   const [{ data: contractor }, { data: allLeads }] = await Promise.all([
-    supabase.from("contractors").select("*, categories(name)").eq("user_id", userId).maybeSingle(),
+    supabase
+      .from("contractors")
+      .select("*, categories(name), portfolio_photos(*)")
+      .eq("user_id", userId)
+      .order("sort_order", { referencedTable: "portfolio_photos", ascending: true })
+      .maybeSingle(),
     supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(50),
   ]);
+  const portfolioPhotos: PortfolioPhoto[] = (contractor as any)?.portfolio_photos ?? [];
   const myLeads = contractor ? (allLeads ?? []).filter((l: any) => l.contractor_id === contractor.id) : [];
   const newLeads = myLeads.filter((l: any) => l.status === "new").length;
 
@@ -57,21 +44,82 @@ async function ContractorDashboard({ userId }: { userId: string }) {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Business Dashboard</h1>
-          <p className="mt-1 text-sm text-neutral-500">{contractor?.business_name ?? "Your Trade Source listing"}</p>
+          <div className="mt-1 flex items-center gap-2">
+            <p className="text-sm text-neutral-500">{contractor?.business_name ?? "Your Trade Source listing"}</p>
+            {contractor?.status === "active" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                Live
+              </span>
+            )}
+          </div>
         </div>
         <Link href={`/profile/${userId}`}>
           <Button variant="outline" size="sm" className="gap-1.5">View My Profile <ExternalLink className="h-3.5 w-3.5" /></Button>
         </Link>
       </div>
 
-      {contractor ? (
-        <ListingStatusBanner status={contractor.status} />
-      ) : (
-        <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 px-6 py-8 text-center">
-          <Building2 className="mx-auto mb-3 h-8 w-8 text-neutral-400" />
-          <h3 className="font-medium text-neutral-900">No listing yet</h3>
-          <p className="mt-1 text-sm text-neutral-500">Get in front of homeowners on the 30A corridor — free to list.</p>
-          <Link href="/join"><Button className="mt-4 bg-neutral-900 hover:bg-neutral-800" size="sm">List Your Business</Button></Link>
+      {!contractor && (
+        <div className="space-y-8">
+          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-6 py-12 text-center">
+            <Building2 className="mx-auto mb-4 h-10 w-10 text-neutral-400" />
+            <h2 className="text-xl font-semibold tracking-tight text-neutral-900">
+              List Your Business — It&apos;s Free
+            </h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-500">
+              Reach homeowners and property managers searching for local tradesmen on the 30A corridor.
+            </p>
+            <Link href="/join">
+              <Button className="mt-6 bg-neutral-900 px-6 hover:bg-neutral-800">
+                Get Started — Free
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card className="border-neutral-200">
+              <CardHeader className="pb-3">
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100">
+                  <Search className="h-4 w-4 text-neutral-700" />
+                </div>
+                <CardTitle className="text-sm font-semibold text-neutral-900">Get Found Locally</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <CardDescription className="text-sm leading-relaxed text-neutral-500">
+                  Homeowners and property managers in 30A search here first. Show up when they need you.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="border-neutral-200">
+              <CardHeader className="pb-3">
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100">
+                  <Star className="h-4 w-4 text-neutral-700" />
+                </div>
+                <CardTitle className="text-sm font-semibold text-neutral-900">Build Your Reputation</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <CardDescription className="text-sm leading-relaxed text-neutral-500">
+                  Collect verified reviews from real local customers and stand out from the competition.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="border-neutral-200">
+              <CardHeader className="pb-3">
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100">
+                  <TrendingUp className="h-4 w-4 text-neutral-700" />
+                </div>
+                <CardTitle className="text-sm font-semibold text-neutral-900">Grow for Free</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <CardDescription className="text-sm leading-relaxed text-neutral-500">
+                  No subscription required to get started. List your services, show your work, and get more calls.
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
@@ -133,27 +181,103 @@ async function ContractorDashboard({ userId }: { userId: string }) {
 
       {contractor && (
         <Card className="border-neutral-200">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-semibold text-neutral-900">{contractor.business_name}</CardTitle>
-                <CardDescription className="mt-0.5 text-xs">{(contractor.categories as any)?.name} · {contractor.city}, {contractor.state}</CardDescription>
+          <CardHeader className="pb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4">
+                {contractor.logo_url ? (
+                  <Image
+                    src={contractor.logo_url}
+                    alt={contractor.business_name}
+                    width={56}
+                    height={56}
+                    className="h-14 w-14 rounded-lg object-cover border border-neutral-200 shrink-0"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50 shrink-0">
+                    <Building2 className="h-6 w-6 text-neutral-400" />
+                  </div>
+                )}
+                <div>
+                  <CardTitle className="text-base font-semibold text-neutral-900">{contractor.business_name}</CardTitle>
+                  <CardDescription className="mt-0.5 text-xs">{(contractor.categories as any)?.name} · {contractor.city}, {contractor.state}</CardDescription>
+                  {contractor.tagline && <p className="mt-1 text-xs text-neutral-500 italic">&ldquo;{contractor.tagline}&rdquo;</p>}
+                </div>
               </div>
-              <Link href="/join"><Button variant="outline" size="sm" className="text-xs">Edit Listing</Button></Link>
+              <Link href="/dashboard/edit">
+                <Button variant="outline" size="sm" className="gap-1.5 shrink-0 text-xs">
+                  <Pencil className="h-3.5 w-3.5" />Edit Listing
+                </Button>
+              </Link>
             </div>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-            {[
-              { label: "Licensed",         value: contractor.is_licensed ? "Yes" : "No" },
-              { label: "Insured",          value: contractor.is_insured ? "Yes" : "No" },
-              { label: "Years in Business",value: contractor.years_in_business ?? "—" },
-              { label: "Service Areas",    value: contractor.service_areas?.join(", ") || "30A" },
-            ].map((item) => (
-              <div key={item.label}>
-                <p className="text-xs text-neutral-500">{item.label}</p>
-                <p className="mt-0.5 font-medium text-neutral-900">{item.value}</p>
+
+          <CardContent className="space-y-5 pt-0">
+            {/* Details grid */}
+            <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+              {[
+                { label: "Licensed",          value: contractor.is_licensed ? "Yes" : "No" },
+                { label: "Insured",           value: contractor.is_insured ? "Yes" : "No" },
+                { label: "Years in Business", value: contractor.years_in_business ?? "—" },
+                { label: "Service Areas",     value: contractor.service_areas?.join(", ") || "30A" },
+              ].map((item) => (
+                <div key={item.label}>
+                  <p className="text-xs text-neutral-500">{item.label}</p>
+                  <p className="mt-0.5 font-medium text-neutral-900 text-sm">{item.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Contact details */}
+            <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 border-t border-neutral-100 pt-4">
+              {[
+                { label: "Phone",   value: contractor.phone   ?? "—" },
+                { label: "Email",   value: contractor.email   ?? "—" },
+                { label: "Website", value: contractor.website ?? "—" },
+              ].map((item) => (
+                <div key={item.label}>
+                  <p className="text-xs text-neutral-500">{item.label}</p>
+                  <p className="mt-0.5 font-medium text-neutral-900 text-sm truncate">{item.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Description preview */}
+            {contractor.description && (
+              <div className="border-t border-neutral-100 pt-4">
+                <p className="text-xs text-neutral-500 mb-1">About</p>
+                <p className="text-sm text-neutral-700 line-clamp-3">{contractor.description}</p>
               </div>
-            ))}
+            )}
+
+            {/* Portfolio photos */}
+            {portfolioPhotos.length > 0 ? (
+              <div className="border-t border-neutral-100 pt-4">
+                <p className="text-xs text-neutral-500 mb-2">Portfolio ({portfolioPhotos.length} photo{portfolioPhotos.length !== 1 ? "s" : ""})</p>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                  {portfolioPhotos.slice(0, 6).map((photo) => (
+                    <div key={photo.id} className="relative aspect-square rounded-md overflow-hidden bg-neutral-100">
+                      <Image
+                        src={photo.url}
+                        alt={photo.caption ?? `${contractor.business_name} photo`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 25vw, 16vw"
+                      />
+                    </div>
+                  ))}
+                  {portfolioPhotos.length > 6 && (
+                    <div className="relative aspect-square rounded-md overflow-hidden bg-neutral-100 flex items-center justify-center">
+                      <span className="text-xs font-medium text-neutral-500">+{portfolioPhotos.length - 6}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="border-t border-neutral-100 pt-4 flex items-center gap-2 text-xs text-neutral-400">
+                <ImageIcon className="h-4 w-4" />
+                <span>No portfolio photos yet — <Link href="/dashboard/edit" className="text-neutral-700 underline underline-offset-4">add some</Link> to stand out.</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

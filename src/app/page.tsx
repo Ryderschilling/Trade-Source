@@ -1,30 +1,9 @@
 import Link from "next/link";
-import {
-  HardHat, Home, Zap, Droplets, Wind, Paintbrush,
-  Leaf, Waves, Grid3x3, Box, Building2, DoorOpen,
-  Bug, Sparkles, Truck, ArrowRight,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Hero } from "@/components/hero";
-
-const FEATURED_CATEGORIES = [
-  { name: "General Contractor", slug: "general-contractor", icon: HardHat },
-  { name: "Roofing", slug: "roofing", icon: Home },
-  { name: "Electrical", slug: "electrical", icon: Zap },
-  { name: "Plumbing", slug: "plumbing", icon: Droplets },
-  { name: "HVAC", slug: "hvac", icon: Wind },
-  { name: "Painting", slug: "painting", icon: Paintbrush },
-  { name: "Landscaping", slug: "landscaping", icon: Leaf },
-  { name: "Pool & Spa", slug: "pool-spa", icon: Waves },
-  { name: "Flooring", slug: "flooring", icon: Grid3x3 },
-  { name: "Cabinetry & Millwork", slug: "cabinetry-millwork", icon: Box },
-  { name: "Concrete & Masonry", slug: "concrete-masonry", icon: Building2 },
-  { name: "Windows & Doors", slug: "windows-doors", icon: DoorOpen },
-  { name: "Pest Control", slug: "pest-control", icon: Bug },
-  { name: "Cleaning", slug: "cleaning", icon: Sparkles },
-  { name: "Moving", slug: "moving", icon: Truck },
-];
+import { TradeCategoriesGrid } from "@/components/home/trade-categories-grid";
+import { HowItWorksSteps } from "@/components/home/how-it-works-steps";
 
 const HOW_IT_WORKS = [
   {
@@ -53,41 +32,19 @@ export default function HomePage() {
       <Hero />
 
       {/* Category Grid */}
-      <section id="categories" className="py-20 bg-background">
+      <section id="categories" className="py-12 sm:py-20 bg-background">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
               Browse by trade
             </h2>
-            <p className="mt-3 text-muted-foreground text-lg">
+            <p className="mt-2 text-muted-foreground text-base sm:mt-3 sm:text-lg">
               From emergency repairs to full remodels — find the right pro for
               any job.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {FEATURED_CATEGORIES.map((cat) => {
-              const Icon = cat.icon;
-              return (
-                <Link
-                  key={cat.slug}
-                  href={`/contractors?category=${cat.slug}`}
-                  className="group"
-                >
-                  <Card className="h-full transition-all hover:shadow-md hover:border-primary/40 cursor-pointer">
-                    <CardContent className="flex flex-col items-center justify-center gap-3 p-5 text-center">
-                      <div className="rounded-xl bg-primary/10 p-3 transition-colors group-hover:bg-primary/20">
-                        <Icon className="h-6 w-6 text-primary" />
-                      </div>
-                      <span className="text-sm font-medium leading-tight">
-                        {cat.name}
-                      </span>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
+          <TradeCategoriesGrid />
 
           <div className="mt-8 text-center">
             <Link href="/contractors">
@@ -103,41 +60,29 @@ export default function HomePage() {
       {/* How it works */}
       <section
         id="how-it-works"
-        className="py-20 bg-muted/40 border-y border-border"
+        className="py-12 sm:py-20 bg-muted/40 border-y border-border"
       >
         <div className="container mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
               How it works
             </h2>
-            <p className="mt-3 text-muted-foreground text-lg">
+            <p className="mt-2 text-muted-foreground text-base sm:mt-3 sm:text-lg">
               Getting connected with the right pro takes less than 2 minutes.
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3">
-            {HOW_IT_WORKS.map((item) => (
-              <div key={item.step} className="relative flex flex-col items-center text-center">
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground text-xl font-bold">
-                  {item.step}
-                </div>
-                <h3 className="text-xl font-semibold mb-3">{item.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {item.description}
-                </p>
-              </div>
-            ))}
-          </div>
+          <HowItWorksSteps steps={HOW_IT_WORKS} />
         </div>
       </section>
 
       {/* CTA — tradesmen */}
-      <section className="py-20 bg-background">
+      <section className="py-12 sm:py-20 bg-background">
         <div className="container mx-auto max-w-4xl px-4 sm:px-6 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Are you a local tradesman?
           </h2>
-          <p className="mt-4 text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-3 text-muted-foreground text-base max-w-2xl mx-auto leading-relaxed sm:mt-4 sm:text-lg">
             Get your business in front of homeowners across 30A and the
             Emerald Coast. Free to list — we built this for the community.
           </p>

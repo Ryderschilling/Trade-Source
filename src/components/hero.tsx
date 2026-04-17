@@ -1,15 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+const ANIM = "heroFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both";
+
 export function Hero() {
   const router = useRouter();
   const [trade, setTrade] = useState("");
   const [zip, setZip] = useState("");
+  const [baseDelay, setBaseDelay] = useState<number | null>(null);
+
+  useEffect(() => {
+    const seen = sessionStorage.getItem("ts-intro-v1") !== null;
+    setBaseDelay(seen ? 0 : 3000);
+  }, []);
+
+  function anim(offsetMs: number): React.CSSProperties {
+    if (baseDelay === null) return { opacity: 0 };
+    return { animation: ANIM, animationDelay: `${baseDelay + offsetMs}ms` };
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -20,50 +33,56 @@ export function Hero() {
   }
 
   return (
-    <section className="bg-white pt-32 pb-24 sm:pt-36 md:pt-40 md:pb-32">
+    <section className="bg-white pt-10 pb-14 sm:pt-[4.5rem] sm:pb-24 md:pt-20 md:pb-32">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6">
         <div className="max-w-3xl">
           {/* Eyebrow */}
-          <p className="mb-6 text-sm font-medium uppercase tracking-widest text-neutral-500">
+          <p
+            className="mb-4 text-xs font-medium uppercase tracking-widest text-neutral-500 sm:mb-6 sm:text-sm"
+            style={anim(0)}
+          >
             Northwest Florida · 30A
           </p>
 
           {/* Headline */}
           <h1
-            className="text-5xl font-semibold tracking-tight text-neutral-900 sm:text-6xl lg:text-7xl"
-            style={{ lineHeight: "1.05" }}
+            className="text-[2.25rem] font-semibold tracking-tight text-neutral-900 sm:text-6xl lg:text-7xl"
+            style={{ lineHeight: "1.08", ...anim(80) }}
           >
             Find a trusted local tradesman.
           </h1>
 
           {/* Subcopy */}
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-neutral-600 sm:text-xl">
+          <p
+            className="mt-4 max-w-xl text-base leading-relaxed text-neutral-600 sm:mt-6 sm:text-xl"
+            style={anim(160)}
+          >
             Vetted electricians, plumbers, HVAC pros, and handymen serving the
             30A corridor. One search. Real reviews. No lead-gen spam.
           </p>
 
           {/* Search form */}
-          <form onSubmit={handleSubmit} className="mt-10">
+          <form onSubmit={handleSubmit} className="mt-7 sm:mt-10" style={anim(240)}>
             {/* Mobile — stacked */}
-            <div className="flex flex-col gap-3 sm:hidden">
+            <div className="flex flex-col gap-2.5 sm:hidden">
               <Input
                 type="text"
                 value={trade}
                 onChange={(e) => setTrade(e.target.value)}
                 placeholder="Trade or contractor name…"
-                className="h-12 border-neutral-200 px-4 text-base shadow-sm"
+                className="h-10 border-neutral-200 px-3.5 text-sm shadow-sm"
               />
               <Input
                 type="text"
                 value={zip}
                 onChange={(e) => setZip(e.target.value)}
                 placeholder="ZIP code"
-                className="h-12 border-neutral-200 px-4 text-base shadow-sm"
+                className="h-10 border-neutral-200 px-3.5 text-sm shadow-sm"
                 maxLength={10}
               />
               <Button
                 type="submit"
-                className="h-12 w-full rounded-lg bg-neutral-900 text-base font-semibold text-white hover:bg-neutral-800"
+                className="h-10 w-full rounded-lg bg-neutral-900 text-sm font-semibold text-white hover:bg-neutral-800"
               >
                 <Search className="mr-2 h-4 w-4" />
                 Search
@@ -112,7 +131,7 @@ export function Hero() {
           </form>
 
           {/* Tagline */}
-          <p className="mt-4 text-sm text-neutral-500">
+          <p className="mt-4 text-sm text-neutral-500" style={anim(300)}>
             Free to use.{" "}
             <span className="font-medium text-neutral-900">
               Pros pay nothing to list.

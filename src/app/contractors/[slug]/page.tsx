@@ -96,13 +96,13 @@ export default async function ContractorProfilePage({ params }: PageProps) {
         </div>
       )}
 
-      <div className="container mx-auto max-w-7xl px-4 sm:px-6 py-8">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 pt-14 pb-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
           {/* Left — main content */}
           <div className="space-y-8">
             {/* Business header */}
             <div className="flex gap-4 items-start">
-              <Avatar className="h-20 w-20 rounded-2xl border flex-shrink-0">
+              <Avatar className="h-20 w-20 rounded-2xl flex-shrink-0">
                 <AvatarImage src={c.logo_url ?? undefined} alt={c.business_name} />
                 <AvatarFallback className="rounded-2xl bg-primary/10 text-primary font-bold text-xl">
                   {initials}
@@ -116,12 +116,6 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                   </h1>
                   {c.is_featured && (
                     <Badge>Featured</Badge>
-                  )}
-                  {c.is_claimed && (
-                    <Badge variant="outline" className="text-green-600 border-green-200">
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                      Claimed
-                    </Badge>
                   )}
                 </div>
 

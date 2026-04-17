@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { IntroAnimation } from "@/components/intro-animation";
 import { createClient } from "@/lib/supabase/server";
 import { APP_NAME, APP_TAGLINE, APP_URL } from "@/lib/constants";
 
@@ -73,9 +74,11 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar userEmail={userEmail} userId={userId} />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <IntroAnimation>
+            <Navbar userEmail={userEmail} userId={userId} />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </IntroAnimation>
           <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>

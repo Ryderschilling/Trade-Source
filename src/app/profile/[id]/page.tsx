@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Star, MapPin, Pencil, ExternalLink, ShieldCheck, Building2 } from "lucide-react";
+import { AvatarUpload } from "@/components/profile/avatar-upload";
+import { NearbyBusinesses } from "@/components/profile/nearby-businesses";
 
 function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -47,7 +49,14 @@ export default async function ProfilePage({ params }: Props) {
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex items-start gap-5">
-          {profile.avatar_url ? (
+          {isOwner ? (
+            <AvatarUpload
+              userId={id}
+              initialAvatarUrl={profile.avatar_url}
+              name={profile.full_name}
+              email={profile.email}
+            />
+          ) : profile.avatar_url ? (
             <img src={profile.avatar_url} alt={profile.full_name ?? ""} className="h-16 w-16 rounded-full object-cover ring-2 ring-neutral-100 sm:h-20 sm:w-20" />
           ) : (
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-900 text-lg font-semibold text-white ring-2 ring-neutral-100 sm:h-20 sm:w-20 sm:text-xl">
@@ -144,6 +153,8 @@ export default async function ProfilePage({ params }: Props) {
             </div>
           )}
         </div>
+
+        <NearbyBusinesses profileCity={(profile as any).city ?? null} />
       </div>
     </main>
   );
