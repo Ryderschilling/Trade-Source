@@ -61,12 +61,14 @@ export async function signUp(
     return { error: firstError ?? "Please fix the errors above." };
   }
 
+  const role = (formData.get("role") as string) || "homeowner";
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: { full_name: parsed.data.full_name },
+      data: { full_name: parsed.data.full_name, role },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
     },
   });

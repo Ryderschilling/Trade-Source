@@ -16,6 +16,10 @@ export type Database = {
           full_name: string | null;
           avatar_url: string | null;
           role: "homeowner" | "contractor" | "admin";
+          phone: string | null;
+          city: string | null;
+          bio: string | null;
+          is_public: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -25,6 +29,10 @@ export type Database = {
           full_name?: string | null;
           avatar_url?: string | null;
           role?: "homeowner" | "contractor" | "admin";
+          phone?: string | null;
+          city?: string | null;
+          bio?: string | null;
+          is_public?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -34,6 +42,10 @@ export type Database = {
           full_name?: string | null;
           avatar_url?: string | null;
           role?: "homeowner" | "contractor" | "admin";
+          phone?: string | null;
+          city?: string | null;
+          bio?: string | null;
+          is_public?: boolean;
           created_at?: string;
           updated_at?: string;
         };

@@ -2,11 +2,11 @@ import Link from "next/link";
 import {
   HardHat, Home, Zap, Droplets, Wind, Paintbrush,
   Leaf, Waves, Grid3x3, Box, Building2, DoorOpen,
-  Bug, Sparkles, Truck, ArrowRight, Star, Shield, MapPin,
+  Bug, Sparkles, Truck, ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Hero } from "@/components/hero";
 
 const FEATURED_CATEGORIES = [
   { name: "General Contractor", slug: "general-contractor", icon: HardHat },
@@ -50,64 +50,7 @@ const HOW_IT_WORKS = [
 export default function HomePage() {
   return (
     <>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(59,130,246,0.15),_transparent_60%)]" />
-        <div className="relative container mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:py-40">
-          <div className="max-w-3xl">
-            <Badge
-              variant="secondary"
-              className="mb-6 bg-white/10 text-white border-white/20 hover:bg-white/20"
-            >
-              <MapPin className="mr-1.5 h-3 w-3" />
-              Serving 30A &amp; Northwest Florida
-            </Badge>
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-              Find trusted local{" "}
-              <span className="text-blue-400">tradesmen</span>{" "}
-              on 30A
-            </h1>
-            <p className="mt-6 text-xl text-slate-300 leading-relaxed max-w-2xl">
-              The hyper-local directory built by and for the 30A community.
-              Every contractor is vetted, reviewed by neighbors, and actually
-              based here.
-            </p>
-            <div className="mt-10 flex flex-col sm:flex-row gap-4">
-              <Link href="/contractors">
-                <Button size="lg" className="w-full sm:w-auto text-base px-8">
-                  Find a Pro
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/join">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto text-base px-8 border-white/30 text-white hover:bg-white/10 bg-transparent"
-                >
-                  List Your Business
-                </Button>
-              </Link>
-            </div>
-
-            {/* Trust indicators */}
-            <div className="mt-12 flex flex-wrap gap-6 text-sm text-slate-400">
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                <span>Verified reviews</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-green-400" />
-                <span>Licensed &amp; insured contractors</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-blue-400" />
-                <span>Truly local businesses</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <Hero />
 
       {/* Category Grid */}
       <section id="categories" className="py-20 bg-background">

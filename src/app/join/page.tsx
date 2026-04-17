@@ -40,6 +40,7 @@ export default async function JoinPage() {
         <JoinForm
           categories={(categories ?? []) as Pick<Category, "id" | "name" | "slug">[]}
           userEmail={user?.email}
+          userId={user?.id}
         />
       </div>
     </div>

@@ -7,6 +7,11 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const LOGO_BUCKET = "contractor-logos";
+const PORTFOLIO_BUCKET = "portfolio-photos";
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+const MAX_PHOTO_COUNT = 8;
 
 const joinSchema = z.object({
   business_name: z.string().min(2, "Business name is required"),
@@ -34,6 +39,30 @@ export type JoinFormState = {
   slug?: string;
 };
 
+function getFileExtension(file: File) {
+  const fromName = file.name.split(".").pop()?.toLowerCase();
+  if (fromName && /^[a-z0-9]+$/.test(fromName)) {
+    return fromName;
+  }
+
+  switch (file.type) {
+    case "image/png":
+      return "png";
+    case "image/jpeg":
+      return "jpg";
+    case "image/webp":
+      return "webp";
+    case "image/svg+xml":
+      return "svg";
+    default:
+      return "bin";
+  }
+}
+
+function normalizeFile(file: FormDataEntryValue | null) {
+  return file instanceof File && file.size > 0 ? file : null;
+}
+
 export async function joinAsContractor(
   _prev: JoinFormState,
   formData: FormData
@@ -44,13 +73,25 @@ export async function joinAsContractor(
   } = await supabase.auth.getUser();
 
   const serviceAreasRaw = formData.get("service_areas") as string | null;
+  const logoFile = normalizeFile(formData.get("logo"));
+  const photoFiles = formData
+    .getAll("photos")
+    .map((file) => normalizeFile(file))
+    .filter((file): file is File => file !== null);
 
   const raw = {
     business_name: formData.get("business_name") as string,
     owner_name: (formData.get("owner_name") as string) || undefined,
     category_id: formData.get("category_id") as string,
     tagline: (formData.get("tagline") as string) || undefined,
-    description: (formData.get("description") as string) || undefined,
+    description: (() => {
+      const base = (formData.get("description") as string) || "";
+      const customTrade = (formData.get("custom_trade") as string) || "";
+      if (customTrade) {
+        return customTrade + (base ? `\n\n${base}` : "");
+      }
+      return base || undefined;
+    })(),
     phone: (formData.get("phone") as string) || undefined,
     email: formData.get("email") as string,
     website: (formData.get("website") as string) || undefined,
@@ -73,9 +114,32 @@ export async function joinAsContractor(
     return { error: firstError ?? "Please fix the form errors." };
   }
 
+  if (logoFile) {
+    if (!logoFile.type.startsWith("image/")) {
+      return { error: "Logo must be an image file." };
+    }
+    if (logoFile.size > MAX_LOGO_BYTES) {
+      return { error: "Logo must be 5MB or smaller." };
+    }
+  }
+
+  if (photoFiles.length > MAX_PHOTO_COUNT) {
+    return { error: `You can upload up to ${MAX_PHOTO_COUNT} photos.` };
+  }
+
+  for (const photo of photoFiles) {
+    if (!photo.type.startsWith("image/")) {
+      return { error: "Only image files are accepted for portfolio photos." };
+    }
+    if (photo.size > MAX_PHOTO_BYTES) {
+      return { error: "Each photo must be 10MB or smaller." };
+    }
+  }
+
   // Generate unique slug
   const baseSlug = slugify(parsed.data.business_name, { lower: true, strict: true });
   const serviceClient = await createServiceClient();
+  const contractorId = crypto.randomUUID();
 
   let slug = baseSlug;
   let attempt = 0;
@@ -97,9 +161,49 @@ export async function joinAsContractor(
         .filter(Boolean)
     : [];
 
+  let logoUrl: string | null = null;
+
+  if (logoFile) {
+    const logoPath = `${contractorId}/${Date.now()}-logo.${getFileExtension(logoFile)}`;
+    const { error: uploadError } = await serviceClient.storage
+      .from(LOGO_BUCKET)
+      .upload(logoPath, await logoFile.arrayBuffer(), {
+        contentType: logoFile.type || "application/octet-stream",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Logo upload error:", uploadError);
+      return { error: `Logo upload failed: ${uploadError.message}` };
+    }
+
+    const { data } = serviceClient.storage.from(LOGO_BUCKET).getPublicUrl(logoPath);
+    logoUrl = data.publicUrl;
+  }
+
+  const uploadedPhotoUrls: string[] = [];
+  for (const [index, photo] of photoFiles.entries()) {
+    const photoPath = `${contractorId}/${Date.now()}-${index + 1}.${getFileExtension(photo)}`;
+    const { error: uploadError } = await serviceClient.storage
+      .from(PORTFOLIO_BUCKET)
+      .upload(photoPath, await photo.arrayBuffer(), {
+        contentType: photo.type || "application/octet-stream",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Portfolio photo upload error:", uploadError);
+      return { error: "We couldn't upload your photos. Please try again." };
+    }
+
+    const { data } = serviceClient.storage.from(PORTFOLIO_BUCKET).getPublicUrl(photoPath);
+    uploadedPhotoUrls.push(data.publicUrl);
+  }
+
   const { data: contractor, error: insertError } = await serviceClient
     .from("contractors")
     .insert({
+      id: contractorId,
       user_id: user?.id ?? null,
       slug,
       business_name: parsed.data.business_name,
@@ -115,6 +219,7 @@ export async function joinAsContractor(
       state: parsed.data.state,
       zip: parsed.data.zip ?? null,
       service_areas: serviceAreasList,
+      logo_url: logoUrl,
       license_number: parsed.data.license_number ?? null,
       is_licensed: parsed.data.is_licensed,
       is_insured: parsed.data.is_insured,
@@ -128,6 +233,23 @@ export async function joinAsContractor(
   if (insertError || !contractor) {
     console.error("Contractor insert error:", insertError);
     return { error: "Failed to submit listing. Please try again." };
+  }
+
+  if (uploadedPhotoUrls.length > 0) {
+    const { error: photoInsertError } = await serviceClient
+      .from("portfolio_photos")
+      .insert(
+        uploadedPhotoUrls.map((url, index) => ({
+          contractor_id: contractorId,
+          url,
+          sort_order: index,
+        }))
+      );
+
+    if (photoInsertError) {
+      console.error("Portfolio photo insert error:", photoInsertError);
+      return { error: "Your listing was created, but we couldn't save the photos." };
+    }
   }
 
   // Update profile role to contractor if logged in

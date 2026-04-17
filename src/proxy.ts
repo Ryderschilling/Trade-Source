@@ -10,7 +10,7 @@ function getSupabaseEnv() {
   return { url, anonKey };
 }
 
-export async function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const env = getSupabaseEnv();
 
   // Allow the public site to render even when auth env vars are not set yet.

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
@@ -8,8 +8,8 @@ import { Footer } from "@/components/layout/footer";
 import { createClient } from "@/lib/supabase/server";
 import { APP_NAME, APP_TAGLINE, APP_URL } from "@/lib/constants";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -42,6 +42,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   let userEmail: string | null = null;
+  let userId: string | null = null;
 
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -53,6 +54,7 @@ export default async function RootLayout({
         data: { user },
       } = await supabase.auth.getUser();
       userEmail = user?.email ?? null;
+      userId = user?.id ?? null;
     } catch {
       // Keep public pages renderable even if auth is misconfigured in production.
     }
@@ -62,7 +64,7 @@ export default async function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider
@@ -71,7 +73,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar userEmail={userEmail} />
+          <Navbar userEmail={userEmail} userId={userId} />
           <main className="flex-1">{children}</main>
           <Footer />
           <Toaster richColors position="top-right" />

@@ -1,261 +1,248 @@
-import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  MessageSquare, Star, Eye, TrendingUp, ArrowRight,
-  Clock, CheckCircle, XCircle,
-} from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, CheckCircle2, Clock, AlertCircle, ExternalLink } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Dashboard",
-};
+function formatDate(ts: string) {
+  return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
-function statusBadge(status: string) {
-  switch (status) {
-    case "new":
-      return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400">New</Badge>;
-    case "viewed":
-      return <Badge variant="secondary">Viewed</Badge>;
-    case "contacted":
-      return <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200 dark:bg-green-950/30 dark:text-green-400">Contacted</Badge>;
-    case "closed":
-      return <Badge variant="outline" className="text-muted-foreground">Closed</Badge>;
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
+function LeadStatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    new:       { label: "New",       cls: "bg-blue-50 text-blue-700 border-blue-200" },
+    viewed:    { label: "Viewed",    cls: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+    contacted: { label: "Contacted", cls: "bg-green-50 text-green-700 border-green-200" },
+    closed:    { label: "Closed",    cls: "bg-neutral-100 text-neutral-500 border-neutral-200" },
+  };
+  const s = map[status] ?? map["new"];
+  return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>{s.label}</span>;
+}
+
+function ListingStatusBanner({ status }: { status: string }) {
+  if (status === "active") return (
+    <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+      <CheckCircle2 className="h-4 w-4 shrink-0" />
+      <span>Your listing is <strong>live</strong> — customers can find your business on Trade Source.</span>
+      <Link href="/contractors" className="ml-auto flex items-center gap-1 text-green-700 underline-offset-4 hover:underline">View listing <ExternalLink className="h-3 w-3" /></Link>
+    </div>
+  );
+  if (status === "pending") return (
+    <div className="flex items-center gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+      <Clock className="h-4 w-4 shrink-0" />
+      <span>Your listing is <strong>under review</strong> — we'll activate it within 24 hours.</span>
+    </div>
+  );
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+      <AlertCircle className="h-4 w-4 shrink-0" />
+      <span>Your listing is <strong>suspended</strong>. Contact us at <a href="mailto:hello@sourceatrade.com" className="underline">hello@sourceatrade.com</a>.</span>
+    </div>
+  );
+}
+
+async function ContractorDashboard({ userId }: { userId: string }) {
+  const supabase = await createClient();
+  const [{ data: contractor }, { data: allLeads }] = await Promise.all([
+    supabase.from("contractors").select("*, categories(name)").eq("user_id", userId).maybeSingle(),
+    supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(50),
+  ]);
+  const myLeads = contractor ? (allLeads ?? []).filter((l: any) => l.contractor_id === contractor.id) : [];
+  const newLeads = myLeads.filter((l: any) => l.status === "new").length;
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Business Dashboard</h1>
+          <p className="mt-1 text-sm text-neutral-500">{contractor?.business_name ?? "Your Trade Source listing"}</p>
+        </div>
+        <Link href={`/profile/${userId}`}>
+          <Button variant="outline" size="sm" className="gap-1.5">View My Profile <ExternalLink className="h-3.5 w-3.5" /></Button>
+        </Link>
+      </div>
+
+      {contractor ? (
+        <ListingStatusBanner status={contractor.status} />
+      ) : (
+        <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 px-6 py-8 text-center">
+          <Building2 className="mx-auto mb-3 h-8 w-8 text-neutral-400" />
+          <h3 className="font-medium text-neutral-900">No listing yet</h3>
+          <p className="mt-1 text-sm text-neutral-500">Get in front of homeowners on the 30A corridor — free to list.</p>
+          <Link href="/join"><Button className="mt-4 bg-neutral-900 hover:bg-neutral-800" size="sm">List Your Business</Button></Link>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          { label: "Total Leads",  value: myLeads.length, icon: <Inbox className="h-4 w-4" /> },
+          { label: "New Leads",    value: newLeads,        icon: <TrendingUp className="h-4 w-4" />, hi: newLeads > 0 },
+          { label: "Avg Rating",   value: contractor?.avg_rating ? Number(contractor.avg_rating).toFixed(1) : "—", icon: <Star className="h-4 w-4" /> },
+          { label: "Reviews",      value: contractor?.review_count ?? 0, icon: <Users className="h-4 w-4" /> },
+        ].map((s) => (
+          <Card key={s.label} className="border-neutral-200">
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-1.5 text-xs">{s.icon}{s.label}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className={`text-2xl font-semibold tracking-tight ${"hi" in s && s.hi ? "text-blue-600" : "text-neutral-900"}`}>{s.value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="border-neutral-200">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold text-neutral-900">Recent Leads</CardTitle>
+          <CardDescription className="text-xs">Customer inquiries sent to your listing</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {myLeads.length === 0 ? (
+            <div className="px-6 py-10 text-center text-sm text-neutral-500">No leads yet — your first inquiry will appear here.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-neutral-200 text-xs">
+                  <TableHead>Name</TableHead>
+                  <TableHead className="hidden sm:table-cell">Service</TableHead>
+                  <TableHead className="hidden md:table-cell">Contact</TableHead>
+                  <TableHead className="hidden md:table-cell">Date</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {myLeads.slice(0, 20).map((lead: any) => (
+                  <TableRow key={lead.id} className="border-neutral-100">
+                    <TableCell>
+                      <p className="font-medium text-neutral-900">{lead.name}</p>
+                      <p className="text-xs text-neutral-500">{lead.email}</p>
+                    </TableCell>
+                    <TableCell className="hidden text-sm text-neutral-600 sm:table-cell">{lead.service_type ?? "—"}</TableCell>
+                    <TableCell className="hidden text-sm text-neutral-600 md:table-cell">{lead.phone ?? lead.preferred_contact}</TableCell>
+                    <TableCell className="hidden text-xs text-neutral-400 md:table-cell">{formatDate(lead.created_at)}</TableCell>
+                    <TableCell><LeadStatusBadge status={lead.status} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {contractor && (
+        <Card className="border-neutral-200">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-semibold text-neutral-900">{contractor.business_name}</CardTitle>
+                <CardDescription className="mt-0.5 text-xs">{(contractor.categories as any)?.name} · {contractor.city}, {contractor.state}</CardDescription>
+              </div>
+              <Link href="/join"><Button variant="outline" size="sm" className="text-xs">Edit Listing</Button></Link>
+            </div>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+            {[
+              { label: "Licensed",         value: contractor.is_licensed ? "Yes" : "No" },
+              { label: "Insured",          value: contractor.is_insured ? "Yes" : "No" },
+              { label: "Years in Business",value: contractor.years_in_business ?? "—" },
+              { label: "Service Areas",    value: contractor.service_areas?.join(", ") || "30A" },
+            ].map((item) => (
+              <div key={item.label}>
+                <p className="text-xs text-neutral-500">{item.label}</p>
+                <p className="mt-0.5 font-medium text-neutral-900">{item.value}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+async function HomeownerDashboard({ userId, name }: { userId: string; email: string; name: string }) {
+  const supabase = await createClient();
+  const { data: reviews } = await supabase
+    .from("reviews").select("*, contractors(business_name, slug)")
+    .eq("user_id", userId).order("created_at", { ascending: false }).limit(20);
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Welcome back, {name.split(" ")[0]}</h1>
+        <p className="mt-1 text-sm text-neutral-500">Find and manage your connections with local tradesmen.</p>
+      </div>
+      <Card className="border-neutral-200">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-semibold text-neutral-900">Your Reviews</CardTitle>
+              <CardDescription className="text-xs">Reviews you've left for local businesses</CardDescription>
+            </div>
+            <Link href="/contractors"><Button variant="outline" size="sm" className="gap-1 text-xs">Find a Pro <ArrowRight className="h-3 w-3" /></Button></Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!reviews || reviews.length === 0 ? (
+            <div className="py-8 text-center text-sm text-neutral-500">
+              No reviews yet. <Link href="/contractors" className="text-neutral-900 underline underline-offset-4">Find a pro to review.</Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-neutral-100">
+              {reviews.map((review: any) => (
+                <div key={review.id} className="py-4 first:pt-0 last:pb-0">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/contractors/${review.contractors?.slug ?? ""}`} className="font-medium text-neutral-900 hover:underline underline-offset-4">
+                        {review.contractors?.business_name ?? "Business"}
+                      </Link>
+                      {review.title && <p className="mt-0.5 text-sm font-medium text-neutral-700">{review.title}</p>}
+                      {review.body && <p className="mt-1 text-sm text-neutral-500 line-clamp-2">{review.body}</p>}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className={`h-3.5 w-3.5 ${i < review.rating ? "fill-amber-400 text-amber-400" : "fill-neutral-200 text-neutral-200"}`} />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-neutral-400">{formatDate(review.created_at)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <Card className="border-neutral-200 bg-neutral-50">
+        <CardContent className="flex items-center justify-between gap-6 p-6">
+          <div>
+            <h3 className="font-semibold text-neutral-900">Are you a local tradesman?</h3>
+            <p className="mt-1 text-sm text-neutral-500">List your business free — no lead fees, no commission.</p>
+          </div>
+          <Link href="/join" className="shrink-0">
+            <Button className="bg-neutral-900 hover:bg-neutral-800 gap-1.5">List Your Business <ArrowRight className="h-4 w-4" /></Button>
+          </Link>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login?redirect=/dashboard");
-
-  // Fetch contractor owned by this user
-  const { data: contractor } = await supabase
-    .from("contractors")
-    .select("*, categories(name)")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  // Fetch leads if contractor exists
-  const { data: leads } = contractor
-    ? await supabase
-        .from("leads")
-        .select("*")
-        .eq("contractor_id", contractor.id)
-        .order("created_at", { ascending: false })
-        .limit(20)
-    : { data: [] };
-
-  const newLeadCount = leads?.filter((l) => l.status === "new").length ?? 0;
-  const totalLeads = leads?.length ?? 0;
-
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  if (!profile) redirect("/login");
+  const isContractor = profile.role === "contractor" || profile.role === "admin";
   return (
-    <div className="min-h-screen bg-background">
-      <div className="bg-muted/40 border-b border-border py-8">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Welcome back, {user.email}
-          </p>
-        </div>
+    <main className="min-h-screen bg-white">
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+        {isContractor
+          ? <ContractorDashboard userId={user.id} />
+          : <HomeownerDashboard userId={user.id} email={user.email ?? ""} name={profile.full_name ?? user.email ?? "there"} />
+        }
       </div>
-
-      <div className="container mx-auto max-w-7xl px-4 sm:px-6 py-8 space-y-8">
-        {/* No listing yet */}
-        {!contractor && (
-          <Card className="border-dashed">
-            <CardContent className="py-12 text-center space-y-4">
-              <p className="text-muted-foreground">
-                You don&apos;t have a contractor listing yet.
-              </p>
-              <Link href="/join">
-                <Button>
-                  List Your Business
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-
-        {contractor && (
-          <>
-            {/* Listing status banner */}
-            {contractor.status !== "active" && (
-              <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 flex items-center gap-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-400">
-                <Clock className="h-4 w-4 shrink-0" />
-                <span>
-                  Your listing is <strong>{contractor.status}</strong> — under
-                  review. We&apos;ll notify you by email once it&apos;s approved.
-                </span>
-              </div>
-            )}
-
-            {/* Stats */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="rounded-xl bg-blue-100 p-3 dark:bg-blue-950/30">
-                    <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{totalLeads}</p>
-                    <p className="text-sm text-muted-foreground">Total Leads</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="rounded-xl bg-orange-100 p-3 dark:bg-orange-950/30">
-                    <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{newLeadCount}</p>
-                    <p className="text-sm text-muted-foreground">New Leads</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="rounded-xl bg-yellow-100 p-3 dark:bg-yellow-950/30">
-                    <Star className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">
-                      {contractor.avg_rating !== null
-                        ? Number(contractor.avg_rating).toFixed(1)
-                        : "—"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Avg Rating</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="rounded-xl bg-green-100 p-3 dark:bg-green-950/30">
-                    <Eye className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{contractor.review_count}</p>
-                    <p className="text-sm text-muted-foreground">Reviews</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Listing summary */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle className="text-base">Your Listing</CardTitle>
-                <div className="flex items-center gap-2">
-                  {contractor.status === "active" ? (
-                    <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-950/30 dark:text-green-400">
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                      Live
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">
-                      <XCircle className="mr-1 h-3 w-3" />
-                      {contractor.status}
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <Separator />
-              <CardContent className="pt-4 space-y-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-semibold">{contractor.business_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {(contractor.categories as { name: string } | null)?.name} ·{" "}
-                      {contractor.city}, {contractor.state}
-                    </p>
-                  </div>
-                  {contractor.status === "active" && (
-                    <Link href={`/contractors/${contractor.slug}`}>
-                      <Button variant="outline" size="sm">
-                        View Listing
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Leads table */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Recent Leads</CardTitle>
-              </CardHeader>
-              <Separator />
-              {leads && leads.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left px-4 py-3 text-muted-foreground font-medium">
-                          Name
-                        </th>
-                        <th className="text-left px-4 py-3 text-muted-foreground font-medium hidden sm:table-cell">
-                          Contact
-                        </th>
-                        <th className="text-left px-4 py-3 text-muted-foreground font-medium hidden md:table-cell">
-                          Service
-                        </th>
-                        <th className="text-left px-4 py-3 text-muted-foreground font-medium">
-                          Status
-                        </th>
-                        <th className="text-left px-4 py-3 text-muted-foreground font-medium hidden lg:table-cell">
-                          Date
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {leads.map((lead) => (
-                        <tr key={lead.id} className="hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-3 font-medium">{lead.name}</td>
-                          <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
-                            <div>{lead.email}</div>
-                            {lead.phone && (
-                              <div className="text-xs">{lead.phone}</div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
-                            {lead.service_type ?? (
-                              <span className="text-muted-foreground/50">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">{statusBadge(lead.status)}</td>
-                          <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
-                            {new Date(lead.created_at).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                  No leads yet. Once your listing is live, quote requests will
-                  appear here.
-                </CardContent>
-              )}
-            </Card>
-          </>
-        )}
-      </div>
-    </div>
+    </main>
   );
 }

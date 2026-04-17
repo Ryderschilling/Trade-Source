@@ -24,6 +24,7 @@ export function SignupForm() {
 
   return (
     <form action={action} className="space-y-4">
+      <input type="hidden" name="role" value="homeowner" />
       {state.error && (
         <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">
           {state.error}

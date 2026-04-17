@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Menu, X, ChevronDown, User, LayoutDashboard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { APP_NAME, NAV_LINKS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
@@ -11,9 +11,83 @@ import { cn } from "@/lib/utils";
 
 interface NavbarProps {
   userEmail?: string | null;
+  userId?: string | null;
 }
 
-export function Navbar({ userEmail }: NavbarProps) {
+function AvatarInitials({ email }: { email: string }) {
+  const letter = email[0]?.toUpperCase() ?? "?";
+  return (
+    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
+      {letter}
+    </div>
+  );
+}
+
+function UserMenu({ userEmail, userId, onSignOut }: { userEmail: string; userId: string | null | undefined; onSignOut: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 rounded-full p-0.5 hover:ring-2 hover:ring-primary/30 transition-all"
+        aria-label="User menu"
+        aria-expanded={open}
+      >
+        <AvatarInitials email={userEmail} />
+        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-52 rounded-lg border border-border bg-background shadow-md py-1 z-50">
+          <div className="px-3 py-2 border-b border-border mb-1">
+            <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+          </div>
+          <Link
+            href="/dashboard"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent transition-colors"
+          >
+            <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+            Dashboard
+          </Link>
+          {userId && (
+            <Link
+              href={`/profile/${userId}`}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent transition-colors"
+            >
+              <User className="h-4 w-4 text-muted-foreground" />
+              My Profile
+            </Link>
+          )}
+          <div className="border-t border-border mt-1 pt-1">
+            <button
+              onClick={() => { setOpen(false); onSignOut(); }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+            >
+              <LogOut className="h-4 w-4 text-muted-foreground" />
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Navbar({ userEmail, userId }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -59,16 +133,7 @@ export function Navbar({ userEmail }: NavbarProps) {
         {/* Desktop actions */}
         <div className="hidden md:flex items-center gap-2">
           {userEmail ? (
-            <>
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm">
-                  Dashboard
-                </Button>
-              </Link>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                Sign out
-              </Button>
-            </>
+            <UserMenu userEmail={userEmail} userId={userId} onSignOut={handleSignOut} />
           ) : (
             <>
               <Link href="/login">
@@ -117,9 +182,18 @@ export function Navbar({ userEmail }: NavbarProps) {
                 <>
                   <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
                     <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
                       Dashboard
                     </Button>
                   </Link>
+                  {userId && (
+                    <Link href={`/profile/${userId}`} onClick={() => setMobileOpen(false)}>
+                      <Button variant="ghost" size="sm" className="w-full justify-start">
+                        <User className="mr-2 h-4 w-4" />
+                        My Profile
+                      </Button>
+                    </Link>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
