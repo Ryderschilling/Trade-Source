@@ -69,8 +69,8 @@ export function TradeCategoriesGrid() {
           const Icon = cat.icon;
           const wrapperStyle: React.CSSProperties = hasAnimated
             ? {
-                animation: `cardDropIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both`,
-                animationDelay: `${index * 70}ms`,
+                animation: `cardDropIn 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) both`,
+                animationDelay: `${index * 100}ms`,
               }
             : { opacity: 0 };
 
@@ -99,7 +99,7 @@ export function TradeCategoriesGrid() {
         <Link
           href="/contractors"
           className="shrink-0"
-          style={hasAnimated ? { animation: `cardDropIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both`, animationDelay: `${POPULAR.length * 70}ms` } : { opacity: 0 }}
+          style={hasAnimated ? { animation: `cardDropIn 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) both`, animationDelay: `${POPULAR.length * 100}ms` } : { opacity: 0 }}
         >
           <Card className="w-[88px] h-full transition-all duration-200 active:scale-95 cursor-pointer border-dashed">
             <CardContent className="flex flex-col items-center justify-center gap-2 p-3 text-center h-full">
@@ -122,8 +122,8 @@ export function TradeCategoriesGrid() {
           const Icon = cat.icon;
           const wrapperStyle: React.CSSProperties = hasAnimated
             ? {
-                animation: `cardDropIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both, cardFloat 2.8s ease-in-out infinite alternate`,
-                animationDelay: `${index * 60}ms, ${(index * 0.18) % 2.8}s`,
+                animation: `cardDropIn 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) both, cardFloat 4s ease-in-out infinite alternate`,
+                animationDelay: `${index * 80}ms, ${(index * 0.24) % 4}s`,
               }
             : { opacity: 0 };
 

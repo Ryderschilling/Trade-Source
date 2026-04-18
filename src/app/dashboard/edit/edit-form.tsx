@@ -303,8 +303,7 @@ export function EditListingForm({ contractor, portfolioPhotos, categories }: Edi
             defaultValue={contractor.service_areas?.join(", ") ?? ""}
             placeholder="30A, Rosemary Beach, WaterColor, Seaside, Destin"
           />
-          <p className="text-xs text-muted-foreground">Common areas: {SERVICE_AREAS.slice(0, 5).join(", ")}...</p>
-        </div>
+                 </div>
       </section>
 
       <Separator />

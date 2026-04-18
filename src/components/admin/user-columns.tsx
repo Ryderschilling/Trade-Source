@@ -1,0 +1,52 @@
+'use client';
+
+import { type ColumnDef } from '@tanstack/react-table';
+import type { Profile } from '@/lib/supabase/types';
+import { Badge } from '@/components/ui/badge';
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export const userColumns: ColumnDef<Profile, unknown>[] = [
+  {
+    accessorKey: 'email',
+    header: 'Email',
+    cell: ({ getValue }) => (
+      <span className="font-medium text-neutral-900">{getValue() as string}</span>
+    ),
+  },
+  {
+    accessorKey: 'full_name',
+    header: 'Full Name',
+    cell: ({ getValue }) => (
+      <span className="text-neutral-700">{(getValue() as string | null) ?? '—'}</span>
+    ),
+  },
+  {
+    accessorKey: 'role',
+    header: 'Role',
+    cell: ({ getValue }) => {
+      const role = getValue() as string;
+      return (
+        <Badge
+          variant={role === 'admin' ? 'default' : 'secondary'}
+          className="text-xs capitalize"
+        >
+          {role}
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: 'created_at',
+    header: 'Joined',
+    cell: ({ getValue }) => (
+      <span className="text-neutral-500 text-xs">{formatDate(getValue() as string)}</span>
+    ),
+  },
+];

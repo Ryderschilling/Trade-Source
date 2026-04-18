@@ -37,22 +37,22 @@ export function HowItWorksSteps({ steps }: Props) {
       {steps.map((item, i) => {
         const bubbleStyle: React.CSSProperties = hasAnimated
           ? {
-              animation: `howBubblePop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both`,
-              animationDelay: `${i * 220}ms`,
+              animation: `howBubblePop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both`,
+              animationDelay: `${i * 300}ms`,
             }
           : { opacity: 0 };
 
         const titleStyle: React.CSSProperties = hasAnimated
           ? {
-              animation: `howFadeDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) both`,
-              animationDelay: `${i * 220 + 120}ms`,
+              animation: `howFadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both`,
+              animationDelay: `${i * 300 + 160}ms`,
             }
           : { opacity: 0 };
 
         const descStyle: React.CSSProperties = hasAnimated
           ? {
-              animation: `howFadeDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) both`,
-              animationDelay: `${i * 220 + 200}ms`,
+              animation: `howFadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both`,
+              animationDelay: `${i * 300 + 280}ms`,
             }
           : { opacity: 0 };
 

@@ -77,9 +77,16 @@ export async function signUp(
     return { error: error.message };
   }
 
-  return {
-    success: true,
-  };
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
+
+  if (signInError) {
+    return { error: signInError.message };
+  }
+
+  redirect("/dashboard");
 }
 
 export async function resetPassword(

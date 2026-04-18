@@ -6,7 +6,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-const ANIM = "heroFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both";
+const ANIM = "heroFadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) both";
 
 export function Hero() {
   const router = useRouter();
@@ -47,7 +47,7 @@ export function Hero() {
           {/* Headline */}
           <h1
             className="text-[2.25rem] font-semibold tracking-tight text-neutral-900 sm:text-6xl lg:text-7xl"
-            style={{ lineHeight: "1.08", ...anim(80) }}
+            style={{ lineHeight: "1.08", ...anim(140) }}
           >
             Find a trusted local tradesman.
           </h1>
@@ -55,14 +55,14 @@ export function Hero() {
           {/* Subcopy */}
           <p
             className="mt-4 max-w-xl text-base leading-relaxed text-neutral-600 sm:mt-6 sm:text-xl"
-            style={anim(160)}
+            style={anim(300)}
           >
             Vetted electricians, plumbers, HVAC pros, and handymen serving the
             30A corridor. One search. Real reviews. No lead-gen spam.
           </p>
 
           {/* Search form */}
-          <form onSubmit={handleSubmit} className="mt-7 sm:mt-10" style={anim(240)}>
+          <form onSubmit={handleSubmit} className="mt-7 sm:mt-10" style={anim(460)}>
             {/* Mobile — stacked */}
             <div className="flex flex-col gap-2.5 sm:hidden">
               <Input
@@ -82,7 +82,7 @@ export function Hero() {
               />
               <Button
                 type="submit"
-                className="h-10 w-full rounded-lg bg-neutral-900 text-sm font-semibold text-white hover:bg-neutral-800"
+                className="h-10 w-full rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
               >
                 <Search className="mr-2 h-4 w-4" />
                 Search
@@ -122,7 +122,7 @@ export function Hero() {
               <span className="flex shrink-0 items-center pr-1.5">
                 <Button
                   type="submit"
-                  className="h-11 rounded-full bg-neutral-900 px-6 text-sm font-semibold text-white hover:bg-neutral-800"
+                  className="h-11 rounded-full bg-blue-600 px-6 text-sm font-semibold text-white hover:bg-blue-700"
                 >
                   Search
                 </Button>
@@ -131,7 +131,7 @@ export function Hero() {
           </form>
 
           {/* Tagline */}
-          <p className="mt-4 text-sm text-neutral-500" style={anim(300)}>
+          <p className="mt-4 text-sm text-neutral-500" style={anim(580)}>
             Free to use.{" "}
             <span className="font-medium text-neutral-900">
               Pros pay nothing to list.

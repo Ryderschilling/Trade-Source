@@ -56,21 +56,34 @@ export default async function ContractorProfilePage({ params }: PageProps) {
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data: contractor } = await supabase
-    .from("contractors")
-    .select(`
-      *,
-      categories(*),
-      reviews(*, profiles(full_name, avatar_url)),
-      portfolio_photos(*)
-    `)
-    .eq("slug", slug)
-    .eq("status", "active")
-    .order("created_at", { referencedTable: "reviews", ascending: false })
-    .order("sort_order", { referencedTable: "portfolio_photos", ascending: true })
-    .single();
+  const [{ data: contractor }, { data: { user } }] = await Promise.all([
+    supabase
+      .from("contractors")
+      .select(`
+        *,
+        categories(*),
+        reviews(*, profiles(full_name, avatar_url)),
+        portfolio_photos(*)
+      `)
+      .eq("slug", slug)
+      .eq("status", "active")
+      .order("created_at", { referencedTable: "reviews", ascending: false })
+      .order("sort_order", { referencedTable: "portfolio_photos", ascending: true })
+      .single(),
+    supabase.auth.getUser(),
+  ]);
 
   if (!contractor) notFound();
+
+  let userProfile: { full_name: string | null; email: string; phone: string | null } | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, email, phone")
+      .eq("id", user.id)
+      .single();
+    userProfile = profile ?? null;
+  }
 
   const c = contractor as unknown as FullContractor;
 
@@ -340,6 +353,9 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                 <LeadForm
                   contractorId={c.id}
                   businessName={c.business_name}
+                  defaultName={userProfile?.full_name ?? undefined}
+                  defaultEmail={userProfile?.email ?? undefined}
+                  defaultPhone={userProfile?.phone ?? undefined}
                 />
               </CardContent>
             </Card>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState, useRef, type ChangeEvent } from "react";
+import { useActionState, useState, useRef, useEffect, type ChangeEvent } from "react";
 import Link from "next/link";
+import { Upload, ImageIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +36,7 @@ const CLIENT_MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 const CLIENT_MAX_PHOTO_COUNT = 8;
 const CLIENT_LOGO_MAX_DIMENSION = 1600;
 const CLIENT_PHOTO_MAX_DIMENSION = 2200;
+const MAX_PHOTO_CARDS = 6;
 
 function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) {
@@ -426,6 +428,12 @@ function AccountStep({ onComplete }: { onComplete: () => void }) {
   );
 }
 
+interface PhotoSlot {
+  id: number;
+  file: File | null;
+  previewUrl: string | null;
+}
+
 function BusinessDetailsStep({
   categories,
   userEmail,
@@ -435,16 +443,33 @@ function BusinessDetailsStep({
 }) {
   const [state, action, pending] = useActionState(joinAsContractor, initialJoinState);
   const [clientUploadError, setClientUploadError] = useState<string | null>(null);
-  const [logoStatus, setLogoStatus] = useState<string | null>(null);
-  const [photoStatus, setPhotoStatus] = useState<string | null>(null);
   const [isPreparingUploads, setIsPreparingUploads] = useState(false);
+
+  // Logo
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState("");
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Photo slots
+  const [photoSlots, setPhotoSlots] = useState<PhotoSlot[]>([{ id: 0, file: null, previewUrl: null }]);
+  const nextSlotId = useRef(1);
+  const photosHiddenRef = useRef<HTMLInputElement>(null);
+  const photoPickerRef = useRef<HTMLInputElement>(null);
+  const pendingSlotIdRef = useRef<number | null>(null);
+
+  // Sync filled photo slots into the hidden form input so the server action sees them
+  useEffect(() => {
+    if (photosHiddenRef.current) {
+      const files = photoSlots.map((s) => s.file).filter((f): f is File => f !== null);
+      setInputFiles(photosHiddenRef.current, files);
+    }
+  }, [photoSlots]);
 
   async function handleLogoChange(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
     const file = input.files?.[0];
 
     setClientUploadError(null);
-    setLogoStatus(null);
 
     if (!file) {
       return;
@@ -457,7 +482,9 @@ function BusinessDetailsStep({
         return;
       }
 
-      setLogoStatus(`Logo ready to upload: ${file.name} (${formatBytes(file.size)}).`);
+      const url = URL.createObjectURL(file);
+      if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+      setLogoPreviewUrl(url);
       return;
     }
 
@@ -471,13 +498,9 @@ function BusinessDetailsStep({
 
       setInputFiles(input, [optimizedLogo]);
 
-      if (optimizedLogo.size < file.size) {
-        setLogoStatus(
-          `Logo optimized from ${formatBytes(file.size)} to ${formatBytes(optimizedLogo.size)}.`
-        );
-      } else {
-        setLogoStatus(`Logo ready to upload: ${optimizedLogo.name} (${formatBytes(optimizedLogo.size)}).`);
-      }
+      const url = URL.createObjectURL(optimizedLogo);
+      if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+      setLogoPreviewUrl(url);
     } catch (error) {
       input.value = "";
       setClientUploadError(
@@ -488,57 +511,72 @@ function BusinessDetailsStep({
     }
   }
 
-  async function handlePhotosChange(event: ChangeEvent<HTMLInputElement>) {
-    const input = event.currentTarget;
-    const files = Array.from(input.files ?? []);
-
-    setClientUploadError(null);
-    setPhotoStatus(null);
-
-    if (files.length === 0) {
-      return;
+  function handleLogoRemove() {
+    if (logoInputRef.current) {
+      logoInputRef.current.value = "";
+      setInputFiles(logoInputRef.current, []);
     }
-
-    if (files.length > CLIENT_MAX_PHOTO_COUNT) {
-      setClientUploadError(`You can upload up to ${CLIENT_MAX_PHOTO_COUNT} photos.`);
-      input.value = "";
-      return;
+    if (logoPreviewUrl) {
+      URL.revokeObjectURL(logoPreviewUrl);
+      setLogoPreviewUrl(null);
     }
+  }
+
+  function openPhotoFilePicker(slotId: number) {
+    pendingSlotIdRef.current = slotId;
+    if (photoPickerRef.current) {
+      photoPickerRef.current.value = "";
+      photoPickerRef.current.click();
+    }
+  }
+
+  async function handlePhotoPickerChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.currentTarget.files?.[0];
+    const slotId = pendingSlotIdRef.current;
+    if (!file || slotId === null) return;
 
     setIsPreparingUploads(true);
+    setClientUploadError(null);
 
     try {
-      const optimizedFiles = await Promise.all(
-        files.map((file) =>
-          optimizeRasterImage(file, {
-            maxBytes: CLIENT_MAX_PHOTO_BYTES,
-            maxDimension: CLIENT_PHOTO_MAX_DIMENSION,
-          })
-        )
-      );
+      const optimized = await optimizeRasterImage(file, {
+        maxBytes: CLIENT_MAX_PHOTO_BYTES,
+        maxDimension: CLIENT_PHOTO_MAX_DIMENSION,
+      });
 
-      setInputFiles(input, optimizedFiles);
+      const previewUrl = URL.createObjectURL(optimized);
+      const newSlotId = nextSlotId.current++;
 
-      const originalBytes = files.reduce((total, file) => total + file.size, 0);
-      const optimizedBytes = optimizedFiles.reduce((total, file) => total + file.size, 0);
-
-      if (optimizedBytes < originalBytes) {
-        setPhotoStatus(
-          `${optimizedFiles.length} photo${optimizedFiles.length === 1 ? "" : "s"} optimized from ${formatBytes(originalBytes)} to ${formatBytes(optimizedBytes)}.`
-        );
-      } else {
-        setPhotoStatus(
-          `${optimizedFiles.length} photo${optimizedFiles.length === 1 ? "" : "s"} ready to upload (${formatBytes(optimizedBytes)} total).`
-        );
-      }
+      setPhotoSlots((prev) => {
+        const idx = prev.findIndex((s) => s.id === slotId);
+        if (idx === -1) return prev;
+        const next = [...prev];
+        if (next[idx].previewUrl) URL.revokeObjectURL(next[idx].previewUrl!);
+        next[idx] = { id: slotId, file: optimized, previewUrl };
+        // Add a new empty slot only if this was the last slot and we're under the max
+        const isLastSlot = idx === prev.length - 1;
+        if (isLastSlot && prev.length < MAX_PHOTO_CARDS) {
+          next.push({ id: newSlotId, file: null, previewUrl: null });
+        }
+        return next;
+      });
     } catch (error) {
-      input.value = "";
       setClientUploadError(
-        error instanceof Error ? error.message : "We couldn't prepare the photos for upload."
+        error instanceof Error ? error.message : "We couldn't prepare the photo for upload."
       );
     } finally {
       setIsPreparingUploads(false);
     }
+  }
+
+  function handlePhotoSlotRemove(slotId: number) {
+    setPhotoSlots((prev) => {
+      const idx = prev.findIndex((s) => s.id === slotId);
+      if (idx === -1) return prev;
+      const slot = prev[idx];
+      if (slot.previewUrl) URL.revokeObjectURL(slot.previewUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
   }
 
   return (
@@ -572,6 +610,8 @@ function BusinessDetailsStep({
               name="business_name"
               placeholder="Smith Roofing LLC"
               required
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
             />
           </div>
 
@@ -698,16 +738,13 @@ function BusinessDetailsStep({
             name="service_areas"
             placeholder="30A, Rosemary Beach, WaterColor, Seaside, Destin"
           />
-          <p className="text-xs text-muted-foreground">
-            Common areas: {SERVICE_AREAS.slice(0, 5).join(", ")}...
-          </p>
         </div>
       </section>
 
       <Separator />
 
       {/* Branding & Photos */}
-      <section className="space-y-5">
+      <section className="space-y-6">
         <div>
           <h2 className="text-lg font-semibold">Branding & Photos</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -715,39 +752,144 @@ function BusinessDetailsStep({
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="logo">Upload logo</Label>
-            <Input
-              id="logo"
-              name="logo"
-              type="file"
-              accept="image/*"
-              onChange={handleLogoChange}
-              disabled={isPreparingUploads}
-            />
-            <p className="text-xs text-muted-foreground">
-              Optional. Any image format up to 5MB. Automatically optimized before upload.
-            </p>
-            {logoStatus && <p className="text-xs text-emerald-700">{logoStatus}</p>}
+        {/* Logo upload */}
+        <div className="space-y-2">
+          <Label>Business logo</Label>
+
+          {/* Hidden file input — keeps the existing upload/optimization logic intact */}
+          <input
+            ref={logoInputRef}
+            id="logo"
+            name="logo"
+            type="file"
+            accept="image/*"
+            onChange={handleLogoChange}
+            disabled={isPreparingUploads}
+            className="sr-only"
+          />
+
+          {/* Polaroid card */}
+          <div className="w-40 rounded-xl bg-white shadow-md overflow-hidden border border-gray-100">
+            {/* Square preview area */}
+            <div className="w-full aspect-square bg-[#dbeafe] flex items-center justify-center overflow-hidden">
+              {logoPreviewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoPreviewUrl}
+                  alt="Logo preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-5xl font-bold text-blue-300 select-none leading-none">
+                  {businessName ? businessName[0].toUpperCase() : ""}
+                </span>
+              )}
+            </div>
+
+            {/* Button row */}
+            <div className="p-2.5 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                disabled={isPreparingUploads}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-blue-400 px-2 py-1.5 text-xs text-blue-600 font-medium hover:bg-blue-50 transition-colors disabled:opacity-50"
+              >
+                <Upload className="h-3 w-3" />
+                {logoPreviewUrl ? "Replace" : "Upload Photo"}
+              </button>
+              {logoPreviewUrl && (
+                <button
+                  type="button"
+                  onClick={handleLogoRemove}
+                  disabled={isPreparingUploads}
+                  aria-label="Remove logo"
+                  className="flex-shrink-0 h-7 w-7 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="photos">Upload photos</Label>
-            <Input
-              id="photos"
-              name="photos"
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handlePhotosChange}
-              disabled={isPreparingUploads}
-            />
-            <p className="text-xs text-muted-foreground">
-              Optional. Upload up to 8 photos in any format, 10MB each. Large photos are resized automatically before upload.
-            </p>
-            {photoStatus && <p className="text-xs text-emerald-700">{photoStatus}</p>}
+          <p className="text-xs text-muted-foreground">
+            Optional. Any image format up to 5MB. Automatically optimized before upload.
+          </p>
+        </div>
+
+        {/* Business photos */}
+        <div className="space-y-2">
+          <Label>Business photos</Label>
+
+          {/* Single reusable file picker — opened programmatically per slot */}
+          <input
+            ref={photoPickerRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoPickerChange}
+            disabled={isPreparingUploads}
+            className="sr-only"
+          />
+
+          {/* Hidden multi-file input that the server action reads */}
+          <input
+            ref={photosHiddenRef}
+            name="photos"
+            type="file"
+            accept="image/*"
+            multiple
+            className="sr-only"
+          />
+
+          <div className="flex flex-wrap gap-3">
+            {photoSlots.map((slot) => (
+              <div
+                key={slot.id}
+                className="w-36 rounded-xl bg-white shadow-md overflow-hidden border border-gray-100 animate-in fade-in duration-200"
+              >
+                {/* Square preview area */}
+                <div className="w-full aspect-square bg-[#dbeafe] flex items-center justify-center overflow-hidden">
+                  {slot.previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={slot.previewUrl}
+                      alt="Photo preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <ImageIcon className="h-8 w-8 text-blue-300" />
+                  )}
+                </div>
+
+                {/* Button row */}
+                <div className="p-2 flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => openPhotoFilePicker(slot.id)}
+                    disabled={isPreparingUploads}
+                    className="flex-1 flex items-center justify-center gap-1 rounded-full border border-blue-400 px-2 py-1.5 text-xs text-blue-600 font-medium hover:bg-blue-50 transition-colors disabled:opacity-50"
+                  >
+                    <Upload className="h-3 w-3" />
+                    {slot.previewUrl ? "Replace" : "Upload"}
+                  </button>
+                  {slot.previewUrl && (
+                    <button
+                      type="button"
+                      onClick={() => handlePhotoSlotRemove(slot.id)}
+                      disabled={isPreparingUploads}
+                      aria-label="Remove photo"
+                      className="flex-shrink-0 h-7 w-7 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            Optional. Up to {MAX_PHOTO_CARDS} photos. Large images are resized automatically before upload.
+          </p>
         </div>
       </section>
 

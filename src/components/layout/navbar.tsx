@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { Menu, X, ChevronDown, User, LayoutDashboard, LogOut } from "lucide-react";
+import { Menu, X, ChevronDown, User, LayoutDashboard, LogOut, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { APP_NAME, NAV_LINKS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 interface NavbarProps {
   userEmail?: string | null;
   userId?: string | null;
+  hasBusiness?: boolean;
 }
 
 function AvatarInitials({ email }: { email: string }) {
@@ -23,7 +24,7 @@ function AvatarInitials({ email }: { email: string }) {
   );
 }
 
-function UserMenu({ userEmail, userId, onSignOut }: { userEmail: string; userId: string | null | undefined; onSignOut: () => void }) {
+function UserMenu({ userEmail, userId, hasBusiness, onSignOut }: { userEmail: string; userId: string | null | undefined; hasBusiness: boolean; onSignOut: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -54,14 +55,16 @@ function UserMenu({ userEmail, userId, onSignOut }: { userEmail: string; userId:
           <div className="px-3 py-2 border-b border-border mb-1">
             <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
           </div>
-          <Link
-            href="/dashboard"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent transition-colors"
-          >
-            <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-            Dashboard
-          </Link>
+          {hasBusiness && (
+            <Link
+              href="/dashboard"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent transition-colors"
+            >
+              <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+              Dashboard
+            </Link>
+          )}
           {userId && (
             <Link
               href={`/profile/${userId}`}
@@ -70,6 +73,16 @@ function UserMenu({ userEmail, userId, onSignOut }: { userEmail: string; userId:
             >
               <User className="h-4 w-4 text-muted-foreground" />
               My Profile
+            </Link>
+          )}
+          {!hasBusiness && (
+            <Link
+              href="/join"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent transition-colors"
+            >
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              List Your Business
             </Link>
           )}
           <div className="border-t border-border mt-1 pt-1">
@@ -87,7 +100,7 @@ function UserMenu({ userEmail, userId, onSignOut }: { userEmail: string; userId:
   );
 }
 
-export function Navbar({ userEmail, userId }: NavbarProps) {
+export function Navbar({ userEmail, userId, hasBusiness = false }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -133,12 +146,12 @@ export function Navbar({ userEmail, userId }: NavbarProps) {
         {/* Desktop actions */}
         <div className="hidden md:flex items-center gap-2">
           {userEmail ? (
-            <UserMenu userEmail={userEmail} userId={userId} onSignOut={handleSignOut} />
+            <UserMenu userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} onSignOut={handleSignOut} />
           ) : (
             <>
-              <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  Sign in
+              <Link href="/signup">
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                  Sign Up
                 </Button>
               </Link>
               <Link href="/join">
@@ -180,17 +193,27 @@ export function Navbar({ userEmail, userId }: NavbarProps) {
             <div className="mt-2 flex flex-col gap-2 pt-2 border-t border-border">
               {userEmail ? (
                 <>
-                  <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </Button>
-                  </Link>
+                  {hasBusiness && (
+                    <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
+                      <Button variant="ghost" size="sm" className="w-full justify-start">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Dashboard
+                      </Button>
+                    </Link>
+                  )}
                   {userId && (
                     <Link href={`/profile/${userId}`} onClick={() => setMobileOpen(false)}>
                       <Button variant="ghost" size="sm" className="w-full justify-start">
                         <User className="mr-2 h-4 w-4" />
                         My Profile
+                      </Button>
+                    </Link>
+                  )}
+                  {!hasBusiness && (
+                    <Link href="/join" onClick={() => setMobileOpen(false)}>
+                      <Button variant="ghost" size="sm" className="w-full justify-start">
+                        <Building2 className="mr-2 h-4 w-4" />
+                        List Your Business
                       </Button>
                     </Link>
                   )}
@@ -205,9 +228,9 @@ export function Navbar({ userEmail, userId }: NavbarProps) {
                 </>
               ) : (
                 <>
-                  <Link href="/login" onClick={() => setMobileOpen(false)}>
-                    <Button variant="ghost" size="sm" className="w-full">
-                      Sign in
+                  <Link href="/signup" onClick={() => setMobileOpen(false)}>
+                    <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                      Sign Up
                     </Button>
                   </Link>
                   <Link href="/join" onClick={() => setMobileOpen(false)}>

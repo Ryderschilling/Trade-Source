@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { IntroAnimation } from "@/components/intro-animation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { APP_NAME, APP_TAGLINE, APP_URL } from "@/lib/constants";
 
 const inter = Inter({
@@ -44,6 +44,7 @@ export default async function RootLayout({
 }) {
   let userEmail: string | null = null;
   let userId: string | null = null;
+  let hasBusiness = false;
 
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -56,6 +57,15 @@ export default async function RootLayout({
       } = await supabase.auth.getUser();
       userEmail = user?.email ?? null;
       userId = user?.id ?? null;
+      if (userId) {
+        const serviceClient = await createServiceClient();
+        const { data } = await serviceClient
+          .from("contractors")
+          .select("id")
+          .eq("user_id", userId)
+          .limit(1);
+        hasBusiness = Array.isArray(data) && data.length > 0;
+      }
     } catch {
       // Keep public pages renderable even if auth is misconfigured in production.
     }
@@ -75,7 +85,7 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <IntroAnimation>
-            <Navbar userEmail={userEmail} userId={userId} />
+            <Navbar userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} />
             <main className="flex-1">{children}</main>
             <Footer />
           </IntroAnimation>

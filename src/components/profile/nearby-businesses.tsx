@@ -48,7 +48,7 @@ export function NearbyBusinesses({ profileCity }: Props) {
       .from("contractors")
       .select("id, slug, business_name, city, state, categories(name)")
       .eq("status", "active")
-      .limit(5);
+      .limit(6);
 
     if (targetCity) {
       query = query.ilike("city", `%${targetCity}%`);
@@ -69,9 +69,9 @@ export function NearbyBusinesses({ profileCity }: Props) {
       </h2>
 
       {loading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-[58px] w-full rounded-lg" />
+        <div className="grid grid-cols-3 gap-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-[68px] w-full rounded-lg" />
           ))}
         </div>
       ) : businesses.length === 0 ? (
@@ -86,37 +86,39 @@ export function NearbyBusinesses({ profileCity }: Props) {
           .
         </p>
       ) : (
-        <div className="space-y-2">
-          {businesses.map((b) => (
-            <div
-              key={b.id}
-              className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-neutral-900">
+        <div className="relative">
+          <div className="grid grid-cols-3 gap-3">
+            {businesses.map((b) => (
+              <Link
+                key={b.id}
+                href={`/contractors/${b.slug}`}
+                className="group flex flex-col rounded-lg border border-neutral-200 px-3 py-3 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+              >
+                <p className="truncate text-sm font-medium text-neutral-900 group-hover:text-neutral-700">
                   {b.business_name}
                 </p>
-                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
+                <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-neutral-500">
                   {b.categories?.name && (
-                    <>
-                      <span>{b.categories.name}</span>
-                      <span aria-hidden="true">·</span>
-                    </>
+                    <span className="truncate">{b.categories.name}</span>
                   )}
                   <span className="flex items-center gap-0.5">
-                    <MapPin className="h-3 w-3" />
-                    {b.city}
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{b.city}</span>
                   </span>
                 </div>
-              </div>
-              <Link
-                href={`/contractors/${b.slug}`}
-                className="ml-3 shrink-0 text-xs font-medium text-neutral-700 underline underline-offset-4 hover:text-neutral-900"
-              >
-                View
               </Link>
-            </div>
-          ))}
+            ))}
+          </div>
+          {/* fade overlay */}
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent" />
+          <div className="relative z-10 mt-2 text-center">
+            <Link
+              href="/contractors"
+              className="text-xs font-medium text-neutral-500 underline underline-offset-4 hover:text-neutral-900"
+            >
+              View more
+            </Link>
+          </div>
         </div>
       )}
     </div>

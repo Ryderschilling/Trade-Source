@@ -21,9 +21,12 @@ const initialState: LeadFormState = { success: false };
 interface LeadFormProps {
   contractorId: string;
   businessName: string;
+  defaultName?: string;
+  defaultEmail?: string;
+  defaultPhone?: string;
 }
 
-export function LeadForm({ contractorId, businessName }: LeadFormProps) {
+export function LeadForm({ contractorId, businessName, defaultName, defaultEmail, defaultPhone }: LeadFormProps) {
   const [state, action, pending] = useActionState(submitLead, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -48,6 +51,7 @@ export function LeadForm({ contractorId, businessName }: LeadFormProps) {
           id="lead-name"
           name="name"
           placeholder="Jane Smith"
+          defaultValue={defaultName}
           required
           aria-describedby={state.fieldErrors?.name ? "name-error" : undefined}
         />
@@ -65,6 +69,7 @@ export function LeadForm({ contractorId, businessName }: LeadFormProps) {
           name="email"
           type="email"
           placeholder="jane@example.com"
+          defaultValue={defaultEmail}
           required
           aria-describedby={state.fieldErrors?.email ? "email-error" : undefined}
         />
@@ -82,6 +87,7 @@ export function LeadForm({ contractorId, businessName }: LeadFormProps) {
           name="phone"
           type="tel"
           placeholder="(850) 555-0100"
+          defaultValue={defaultPhone}
         />
       </div>
 
