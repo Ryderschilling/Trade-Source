@@ -8,6 +8,7 @@ import { Footer } from "@/components/layout/footer";
 import { IntroAnimation } from "@/components/intro-animation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { APP_NAME, APP_TAGLINE, APP_URL } from "@/lib/constants";
+import { headers } from "next/headers";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -42,6 +43,27 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") ?? "";
+  const isAdmin = pathname.startsWith("/admin");
+
+  // Admin pages manage their own full-screen layout — skip Navbar, Footer, and
+  // the intro animation entirely so nothing bleeds through behind the overlay.
+  if (isAdmin) {
+    return (
+      <html
+        lang="en"
+        suppressHydrationWarning
+        className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
+      >
+        <body className="h-full bg-neutral-100 text-foreground">
+          {children}
+          <Toaster richColors position="top-right" />
+        </body>
+      </html>
+    );
+  }
+
   let userEmail: string | null = null;
   let userId: string | null = null;
   let hasBusiness = false;

@@ -2,6 +2,7 @@
 
 import { type ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 export interface BusinessRow {
   id: string;
@@ -76,6 +77,19 @@ export const businessColumns: ColumnDef<BusinessRow, unknown>[] = [
     header: 'Created',
     cell: ({ getValue }) => (
       <span className="text-neutral-500 text-xs">{formatDate(getValue() as string)}</span>
+    ),
+  },
+  {
+    id: 'actions',
+    header: '',
+    enableSorting: false,
+    cell: ({ row }) => (
+      <Link
+        href={`/admin/businesses/${row.original.id}`}
+        className="text-xs text-blue-600 hover:underline font-medium"
+      >
+        View
+      </Link>
     ),
   },
 ];

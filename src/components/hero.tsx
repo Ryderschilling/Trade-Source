@@ -58,7 +58,7 @@ export function Hero() {
             style={anim(300)}
           >
             Vetted electricians, plumbers, HVAC pros, and handymen serving the
-            30A corridor. One search. Real reviews. No lead-gen spam.
+            Panhande. One search. Real reviews. No lead-gen spam.
           </p>
 
           {/* Search form */}
@@ -129,14 +129,6 @@ export function Hero() {
               </span>
             </div>
           </form>
-
-          {/* Tagline */}
-          <p className="mt-4 text-sm text-neutral-500" style={anim(580)}>
-            Free to use.{" "}
-            <span className="font-medium text-neutral-900">
-              Pros pay nothing to list.
-            </span>
-          </p>
         </div>
       </div>
     </section>

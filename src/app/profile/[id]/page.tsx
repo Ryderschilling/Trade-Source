@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Star, MapPin, Pencil, ExternalLink, ShieldCheck, Building2 } from "lucide-react";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { NearbyBusinesses } from "@/components/profile/nearby-businesses";
+import { FollowButton } from "@/components/FollowButton";
 
 function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -40,10 +41,23 @@ export default async function ProfilePage({ params }: Props) {
     );
   }
 
-  const [{ data: reviews }, { data: contractor }] = await Promise.all([
+  const [
+    { data: reviews },
+    { data: contractor },
+    { count: followerCount },
+    { count: followingCount },
+    { count: isFollowingCount },
+  ] = await Promise.all([
     supabase.from("reviews").select("*, contractors(business_name, slug, city)").eq("user_id", id).order("created_at", { ascending: false }).limit(20),
     supabase.from("contractors").select("*, categories(name)").eq("user_id", id).eq("status", "active").maybeSingle(),
+    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("following_id", id),
+    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("follower_id", id),
+    user && !isOwner
+      ? supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id).eq("following_id", id)
+      : Promise.resolve({ count: 0 }),
   ]);
+
+  const isFollowing = (isFollowingCount ?? 0) > 0;
 
   return (
     <main className="min-h-screen bg-white">
@@ -74,10 +88,22 @@ export default async function ProfilePage({ params }: Props) {
               {(profile as any).city && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{(profile as any).city}</span>}
               <span>Member since {formatDate(profile.created_at)}</span>
             </div>
+            <div className="mt-1 text-xs text-neutral-400">
+              {followerCount ?? 0} {(followerCount ?? 0) === 1 ? "follower" : "followers"} · following {followingCount ?? 0}
+            </div>
             {isOwner && (
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-neutral-400">
                 <span>{profile.email}</span>
                 {(profile as any).phone && <span>{(profile as any).phone}</span>}
+              </div>
+            )}
+            {!isOwner && user && (
+              <div className="mt-3">
+                <FollowButton
+                  followingId={id}
+                  initialIsFollowing={isFollowing}
+                  followerCount={followerCount ?? 0}
+                />
               </div>
             )}
           </div>

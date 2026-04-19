@@ -480,3 +480,33 @@ export async function updateContractor(
 
   return { success: true };
 }
+
+export async function deleteContractor(contractorId: string): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated.");
+
+  const serviceClient = await createServiceClient();
+
+  // Verify ownership before deleting
+  const { data: existing } = await serviceClient
+    .from("contractors")
+    .select("id, user_id")
+    .eq("id", contractorId)
+    .single();
+
+  if (!existing || existing.user_id !== user.id) {
+    throw new Error("Listing not found.");
+  }
+
+  const { error } = await serviceClient
+    .from("contractors")
+    .delete()
+    .eq("id", contractorId);
+
+  if (error) throw new Error("Failed to delete listing. Please try again.");
+
+  redirect("/dashboard");
+}

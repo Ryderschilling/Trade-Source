@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useRef, useEffect, type ChangeEvent } from "react";
+import { useActionState, useState, useRef, type ChangeEvent } from "react";
 import Link from "next/link";
 import { Upload, ImageIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";

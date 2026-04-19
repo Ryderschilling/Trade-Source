@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useRef, type ChangeEvent } from "react";
+import { useActionState, useState, useRef, useTransition, type ChangeEvent } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { X, Building2, CheckCircle } from "lucide-react";
-import { updateContractor, type EditListingFormState } from "@/app/actions/contractors";
+import { X, Building2, CheckCircle, Trash2 } from "lucide-react";
+import { updateContractor, deleteContractor, type EditListingFormState } from "@/app/actions/contractors";
 import { SERVICE_AREAS } from "@/lib/constants";
 import type { Category, Contractor, PortfolioPhoto } from "@/lib/supabase/types";
 
@@ -107,6 +107,12 @@ const initialState: EditListingFormState = {};
 
 export function EditListingForm({ contractor, portfolioPhotos, categories }: EditFormProps) {
   const [state, action, pending] = useActionState(updateContractor, initialState);
+  const [deletepending, startDelete] = useTransition();
+
+  function handleDeleteListing() {
+    if (!confirm("Are you sure you want to permanently delete this listing? This cannot be undone.")) return;
+    startDelete(() => deleteContractor(contractor.id));
+  }
 
   // Photo deletion state
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
@@ -434,13 +440,23 @@ export function EditListingForm({ contractor, portfolioPhotos, categories }: Edi
 
       {preparing && <p className="text-sm text-muted-foreground">Preparing images for upload...</p>}
 
-      <div className="flex gap-3">
-        <Button type="submit" disabled={pending || preparing} className="flex-1 sm:flex-none sm:min-w-36">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" disabled={pending || preparing || deletepending} className="flex-1 sm:flex-none sm:min-w-36">
           {preparing ? "Preparing..." : pending ? "Saving..." : "Save Changes"}
         </Button>
         <Link href="/dashboard">
-          <Button type="button" variant="outline">Cancel</Button>
+          <Button type="button" variant="outline" disabled={pending || preparing || deletepending}>Cancel</Button>
         </Link>
+        <Button
+          type="button"
+          variant="destructive"
+          disabled={pending || preparing || deletepending}
+          onClick={handleDeleteListing}
+          className="gap-2 sm:ml-auto"
+        >
+          <Trash2 className="w-4 h-4" />
+          {deletepending ? "Deleting..." : "Delete Listing"}
+        </Button>
       </div>
     </form>
   );

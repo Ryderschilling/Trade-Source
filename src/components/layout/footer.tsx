@@ -58,6 +58,7 @@ export function Footer() {
         <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:gap-4 sm:text-sm">
           <p>&copy; {year} {APP_NAME}. All rights reserved.</p>
           <p className="hidden sm:block">Serving the 30A corridor &amp; Northwest Florida</p>
+          <Link href="/admin" className="hover:text-foreground transition-colors">Admin</Link>
         </div>
       </div>
     </footer>

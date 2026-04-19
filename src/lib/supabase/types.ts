@@ -80,6 +80,7 @@ export type Database = {
           is_featured: boolean;
           avg_rating: number | null;
           review_count: number;
+          view_count: number;
           created_at: string;
           updated_at: string;
         };
@@ -111,6 +112,7 @@ export type Database = {
           is_featured?: boolean;
           avg_rating?: number | null;
           review_count?: number;
+          view_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -142,6 +144,7 @@ export type Database = {
           is_featured?: boolean;
           avg_rating?: number | null;
           review_count?: number;
+          view_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -293,6 +296,39 @@ export type Database = {
           }
         ];
       };
+      user_follows: {
+        Row: {
+          follower_id: string;
+          following_id: string;
+          created_at: string;
+        };
+        Insert: {
+          follower_id: string;
+          following_id: string;
+          created_at?: string;
+        };
+        Update: {
+          follower_id?: string;
+          following_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_follows_follower_id_fkey";
+            columns: ["follower_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_follows_following_id_fkey";
+            columns: ["following_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       portfolio_photos: {
         Row: {
           id: string;
@@ -330,7 +366,12 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      increment_view_count: {
+        Args: { p_contractor_id: string };
+        Returns: undefined;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
@@ -343,6 +384,7 @@ export type Category = Database["public"]["Tables"]["categories"]["Row"];
 export type Review = Database["public"]["Tables"]["reviews"]["Row"];
 export type Lead = Database["public"]["Tables"]["leads"]["Row"];
 export type PortfolioPhoto = Database["public"]["Tables"]["portfolio_photos"]["Row"];
+export type UserFollow = Database["public"]["Tables"]["user_follows"]["Row"];
 
 // Contractor with joined data
 export type ContractorWithCategory = Contractor & {

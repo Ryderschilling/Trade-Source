@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LeadForm } from "@/components/contractors/lead-form";
+import { ViewTracker } from "@/components/contractors/ViewTracker";
 import type { Contractor, Category, PortfolioPhoto } from "@/lib/supabase/types";
 
 type ReviewWithProfile = {
@@ -96,6 +97,7 @@ export default async function ContractorProfilePage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <ViewTracker contractorId={c.id} />
       {/* Cover image */}
       {c.cover_url && (
         <div className="relative h-56 sm:h-72 w-full bg-muted overflow-hidden">
