@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-const SESSION_KEY = 'ts-intro-v1';
+const SESSION_KEY = 'ts-intro-v2';
 const DURATION = 1800;
 const START_DELAY = 500;
 const POST_COMPLETE_DELAY = 350;
@@ -114,35 +114,62 @@ export function IntroAnimation({ children }: IntroAnimationProps) {
           }}
         >
           {/* Logo mark */}
-          <div style={{ textAlign: 'center' }}>
-            <div
+          <svg
+            viewBox="0 0 120 120"
+            width="108"
+            height="108"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Ripple ring — expands outward at drop impact */}
+            <circle
+              cx="60"
+              cy="93"
+              r="5.5"
+              stroke="white"
+              strokeWidth="1.5"
+              fill="none"
               style={{
-                fontFamily: 'var(--font-inter)',
-                fontSize: '84px',
-                fontWeight: 900,
-                letterSpacing: '-0.05em',
-                color: '#fff',
-                lineHeight: 1,
-                animation: 'tsLogoIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both',
+                transformBox: 'fill-box',
+                transformOrigin: 'center',
+                animation: 'dotRippleOut 0.6s cubic-bezier(0.2, 0, 0.8, 1) 0.42s both',
+              }}
+            />
+            {/* Dot — drops and splats first */}
+            <g
+              style={{
+                transformBox: 'fill-box',
+                transformOrigin: 'center',
+                animation: 'dotSplat 0.78s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both',
               }}
             >
-              TS
-            </div>
-            <div
+              <circle cx="60" cy="93" r="5.5" fill="white" />
+            </g>
+            {/* Left arm — draws from peak downward after dot lands */}
+            <path
+              d="M 60,32 L 16,80"
+              stroke="white"
+              strokeWidth="7"
+              strokeLinecap="round"
+              strokeDasharray="74"
+              strokeDashoffset="74"
               style={{
-                fontFamily: 'var(--font-inter)',
-                fontSize: '11px',
-                fontWeight: 300,
-                letterSpacing: '0.48em',
-                color: 'rgba(255,255,255,0.8)',
-                textTransform: 'uppercase',
-                marginTop: '10px',
-                animation: 'tsLogoIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both',
+                animation: 'strokeDraw 0.55s cubic-bezier(0.4, 0, 0.2, 1) 0.62s both',
               }}
-            >
-              Trade Source
-            </div>
-          </div>
+            />
+            {/* Right arm — draws from peak downward, tiny stagger */}
+            <path
+              d="M 60,32 L 104,80"
+              stroke="white"
+              strokeWidth="7"
+              strokeLinecap="round"
+              strokeDasharray="74"
+              strokeDashoffset="74"
+              style={{
+                animation: 'strokeDraw 0.55s cubic-bezier(0.4, 0, 0.2, 1) 0.7s both',
+              }}
+            />
+          </svg>
 
           {/* Progress bar */}
           <div

@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Building2 } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/businesses', label: 'Businesses', icon: Building2 },
+  { href: '/admin/leaderboard', label: 'Leaderboard', icon: Trophy },
 ];
 
 export function AdminSidebar() {

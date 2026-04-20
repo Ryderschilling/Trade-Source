@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Star, MapPin, Phone, Globe, Shield, Calendar,
   CheckCircle, ExternalLink,
@@ -11,11 +12,13 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LeadForm } from "@/components/contractors/lead-form";
+import { ReviewForm } from "@/components/contractors/review-form";
 import { ViewTracker } from "@/components/contractors/ViewTracker";
 import type { Contractor, Category, PortfolioPhoto } from "@/lib/supabase/types";
 
 type ReviewWithProfile = {
   id: string;
+  user_id: string | null;
   rating: number;
   title: string | null;
   body: string | null;
@@ -76,17 +79,20 @@ export default async function ContractorProfilePage({ params }: PageProps) {
 
   if (!contractor) notFound();
 
-  let userProfile: { full_name: string | null; email: string; phone: string | null } | null = null;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name, email, phone")
-      .eq("id", user.id)
-      .single();
-    userProfile = profile ?? null;
-  }
-
   const c = contractor as unknown as FullContractor;
+
+  let userProfile: { full_name: string | null; email: string; phone: string | null } | null = null;
+  let hasReviewed = false;
+  const isOwner = user?.id != null && c.user_id === user.id;
+
+  if (user) {
+    const [{ data: profile }, { data: existingReview }] = await Promise.all([
+      supabase.from("profiles").select("full_name, email, phone").eq("id", user.id).single(),
+      supabase.from("reviews").select("id").eq("contractor_id", c.id).eq("user_id", user.id).maybeSingle(),
+    ]);
+    userProfile = profile ?? null;
+    hasReviewed = !!existingReview;
+  }
 
   const initials = c.business_name
     .split(" ")
@@ -159,6 +165,12 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                     <MapPin className="h-4 w-4" />
                     <span>{c.city}, {c.state}</span>
                   </div>
+                  {c.years_experience && (
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span>{c.years_experience} yr{c.years_experience !== 1 ? "s" : ""} experience</span>
+                    </div>
+                  )}
                   {c.years_in_business && (
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Calendar className="h-4 w-4" />
@@ -258,18 +270,31 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage
-                                src={review.profiles?.avatar_url ?? undefined}
-                              />
-                              <AvatarFallback className="text-xs">
-                                {review.profiles?.full_name?.[0] ?? "?"}
-                              </AvatarFallback>
-                            </Avatar>
+                            {review.user_id ? (
+                              <Link href={`/profile/${review.user_id}`}>
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={review.profiles?.avatar_url ?? undefined} />
+                                  <AvatarFallback className="text-xs">
+                                    {review.profiles?.full_name?.[0] ?? "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </Link>
+                            ) : (
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="text-xs">?</AvatarFallback>
+                              </Avatar>
+                            )}
                             <div>
-                              <p className="text-sm font-medium">
-                                {review.profiles?.full_name ?? "Anonymous"}
-                              </p>
+                              {review.user_id ? (
+                                <Link
+                                  href={`/profile/${review.user_id}`}
+                                  className="text-sm font-medium hover:underline underline-offset-2"
+                                >
+                                  {review.profiles?.full_name ?? "Anonymous"}
+                                </Link>
+                              ) : (
+                                <p className="text-sm font-medium">Anonymous</p>
+                              )}
                               <p className="text-xs text-muted-foreground">
                                 {new Date(review.created_at).toLocaleDateString()}
                               </p>
@@ -303,6 +328,22 @@ export default async function ContractorProfilePage({ params }: PageProps) {
               ) : (
                 <p className="text-sm text-muted-foreground">
                   No reviews yet. Be the first to leave one.
+                </p>
+              )}
+
+              {/* Write a review */}
+              {user && !isOwner && !hasReviewed && (
+                <div className="mt-6 rounded-xl border border-border p-5">
+                  <h3 className="text-base font-semibold mb-4">Write a Review</h3>
+                  <ReviewForm contractorId={c.id} businessName={c.business_name} />
+                </div>
+              )}
+              {user && !isOwner && hasReviewed && (
+                <p className="mt-4 text-sm text-muted-foreground">You have already reviewed this business.</p>
+              )}
+              {!user && (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  <a href="/signup" className="text-primary hover:underline">Sign up to continue</a>
                 </p>
               )}
             </section>
@@ -352,13 +393,27 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                 <CardTitle className="text-base">Request a Quote</CardTitle>
               </CardHeader>
               <CardContent>
-                <LeadForm
-                  contractorId={c.id}
-                  businessName={c.business_name}
-                  defaultName={userProfile?.full_name ?? undefined}
-                  defaultEmail={userProfile?.email ?? undefined}
-                  defaultPhone={userProfile?.phone ?? undefined}
-                />
+                {user ? (
+                  <LeadForm
+                    contractorId={c.id}
+                    businessName={c.business_name}
+                    defaultName={userProfile?.full_name ?? undefined}
+                    defaultEmail={userProfile?.email ?? undefined}
+                    defaultPhone={userProfile?.phone ?? undefined}
+                  />
+                ) : (
+                  <div className="rounded-lg border border-dashed border-border p-5 text-center">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Create a free account to send a quote request.
+                    </p>
+                    <Link
+                      href="/signup"
+                      className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+                    >
+                      Sign Up to Continue
+                    </Link>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

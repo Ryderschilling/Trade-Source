@@ -5,8 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, ExternalLink, Search, Pencil, ImageIcon } from "lucide-react";
+import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, ExternalLink, Pencil, ImageIcon, Search } from "lucide-react";
 import type { PortfolioPhoto } from "@/lib/supabase/types";
+import { AdminCRMDashboard } from "@/components/dashboard/admin-crm";
+import { NotificationBell } from "@/components/dashboard/notification-bell";
 
 function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -26,7 +28,7 @@ function LeadStatusBadge({ status }: { status: string }) {
 
 async function ContractorDashboard({ userId }: { userId: string }) {
   const supabase = await createClient();
-  const [{ data: contractor }, { data: allLeads }] = await Promise.all([
+  const [{ data: contractor }, { data: allLeads }, { data: quoteRecipients }, { data: unreadNotifs }, { data: recentNotifs }] = await Promise.all([
     supabase
       .from("contractors")
       .select("*, categories(name), portfolio_photos(*)")
@@ -34,10 +36,42 @@ async function ContractorDashboard({ userId }: { userId: string }) {
       .order("sort_order", { referencedTable: "portfolio_photos", ascending: true })
       .maybeSingle(),
     supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(50),
+    supabase
+      .from("quote_request_recipients")
+      .select("*, quote_requests(name, email, description, timeline, categories(name))")
+      .order("notified_at", { ascending: false })
+      .limit(30),
+    supabase
+      .from("notifications")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("read", false),
+    supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
+
+  // Fetch reviews after we know the contractor id
+  const contractorId = (contractor as any)?.id as string | undefined;
+  const { data: recentReviews } = contractorId
+    ? await supabase
+        .from("reviews")
+        .select("*, profiles(full_name)")
+        .eq("contractor_id", contractorId)
+        .order("created_at", { ascending: false })
+        .limit(10)
+    : { data: [] };
+
   const portfolioPhotos: PortfolioPhoto[] = (contractor as any)?.portfolio_photos ?? [];
   const myLeads = contractor ? (allLeads ?? []).filter((l: any) => l.contractor_id === contractor.id) : [];
   const newLeads = myLeads.filter((l: any) => l.status === "new").length;
+  const myQuoteRecipients = contractor
+    ? (quoteRecipients ?? []).filter((r: any) => r.contractor_id === contractor.id)
+    : [];
+  const unreadCount = (unreadNotifs ?? []).length;
 
   return (
     <div className="space-y-8">
@@ -54,9 +88,15 @@ async function ContractorDashboard({ userId }: { userId: string }) {
             )}
           </div>
         </div>
-        <Link href={`/profile/${userId}`}>
-          <Button variant="outline" size="sm" className="gap-1.5">View My Profile <ExternalLink className="h-3.5 w-3.5" /></Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <NotificationBell
+            initialCount={unreadCount}
+            initialNotifications={recentNotifs ?? []}
+          />
+          <Link href={`/profile/${userId}`}>
+            <Button variant="outline" size="sm" className="gap-1.5">View My Profile <ExternalLink className="h-3.5 w-3.5" /></Button>
+          </Link>
+        </div>
       </div>
 
       {!contractor && (
@@ -179,6 +219,45 @@ async function ContractorDashboard({ userId }: { userId: string }) {
         </CardContent>
       </Card>
 
+      {/* Quote Requests card */}
+      <QuoteRequestsCard contractorId={contractor?.id} recipients={myQuoteRecipients} />
+
+      {/* Recent Reviews card */}
+      <Card className="border-neutral-200">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold text-neutral-900">Recent Reviews</CardTitle>
+          <CardDescription className="text-xs">Customer reviews for your listing</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {(recentReviews ?? []).length === 0 ? (
+            <div className="px-6 py-10 text-center text-sm text-neutral-500">No reviews yet — reviews will appear here.</div>
+          ) : (
+            <div className="divide-y divide-neutral-100">
+              {(recentReviews ?? []).map((review: any) => (
+                <div key={review.id} className="px-6 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-900">{review.profiles?.full_name ?? "Anonymous"}</p>
+                      <p className="text-xs text-neutral-400 mt-0.5">{formatDate(review.created_at)}</p>
+                    </div>
+                    <div className="flex gap-0.5 shrink-0">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-neutral-200"}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {review.title && <p className="mt-2 text-sm font-medium text-neutral-800">{review.title}</p>}
+                  {review.body && <p className="mt-1 text-sm text-neutral-500 line-clamp-3">{review.body}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {contractor && (
         <Card className="border-neutral-200">
           <CardHeader className="pb-4">
@@ -212,12 +291,12 @@ async function ContractorDashboard({ userId }: { userId: string }) {
           </CardHeader>
 
           <CardContent className="space-y-5 pt-0">
-            {/* Details grid */}
             <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
               {[
                 { label: "Licensed",          value: contractor.is_licensed ? "Yes" : "No" },
                 { label: "Insured",           value: contractor.is_insured ? "Yes" : "No" },
-                { label: "Years in Business", value: contractor.years_in_business ?? "—" },
+                { label: "Yrs Experience",   value: contractor.years_experience ?? "—" },
+                { label: "Yrs in Business",   value: contractor.years_in_business ?? "—" },
                 { label: "Service Areas",     value: contractor.service_areas?.join(", ") || "30A" },
               ].map((item) => (
                 <div key={item.label}>
@@ -227,7 +306,6 @@ async function ContractorDashboard({ userId }: { userId: string }) {
               ))}
             </div>
 
-            {/* Contact details */}
             <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 border-t border-neutral-100 pt-4">
               {[
                 { label: "Phone",   value: contractor.phone   ?? "—" },
@@ -241,7 +319,6 @@ async function ContractorDashboard({ userId }: { userId: string }) {
               ))}
             </div>
 
-            {/* Description preview */}
             {contractor.description && (
               <div className="border-t border-neutral-100 pt-4">
                 <p className="text-xs text-neutral-500 mb-1">About</p>
@@ -249,7 +326,6 @@ async function ContractorDashboard({ userId }: { userId: string }) {
               </div>
             )}
 
-            {/* Portfolio photos */}
             {portfolioPhotos.length > 0 ? (
               <div className="border-t border-neutral-100 pt-4">
                 <p className="text-xs text-neutral-500 mb-2">Portfolio ({portfolioPhotos.length} photo{portfolioPhotos.length !== 1 ? "s" : ""})</p>
@@ -285,6 +361,58 @@ async function ContractorDashboard({ userId }: { userId: string }) {
   );
 }
 
+function QuoteRequestsCard({ contractorId, recipients }: { contractorId?: string; recipients: any[] }) {
+  if (!contractorId) return null;
+  return (
+    <Card className="border-neutral-200">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold text-neutral-900">Quote Requests</CardTitle>
+        <CardDescription className="text-xs">Homeowners who requested a quote from you</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        {recipients.length === 0 ? (
+          <div className="px-6 py-10 text-center text-sm text-neutral-500">No quote requests yet.</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="border-neutral-200 text-xs">
+                <TableHead>Date</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead className="hidden sm:table-cell">Category</TableHead>
+                <TableHead className="hidden md:table-cell">Description</TableHead>
+                <TableHead className="hidden md:table-cell">Timeline</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recipients.map((r: any) => (
+                <QuoteRecipientRow key={r.id} recipient={r} />
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function QuoteRecipientRow({ recipient }: { recipient: any }) {
+  const qr = recipient.quote_requests;
+  const desc = qr?.description ?? "";
+  return (
+    <TableRow className="border-neutral-100">
+      <TableCell className="text-xs text-neutral-400 whitespace-nowrap">{formatDate(recipient.notified_at)}</TableCell>
+      <TableCell>
+        <p className="font-medium text-neutral-900">{qr?.name ?? "—"}</p>
+      </TableCell>
+      <TableCell className="hidden sm:table-cell text-sm text-neutral-600">{qr?.categories?.name ?? "—"}</TableCell>
+      <TableCell className="hidden md:table-cell text-sm text-neutral-500 max-w-xs">
+        <span className="line-clamp-2">{desc.length > 80 ? desc.slice(0, 77) + "…" : desc}</span>
+      </TableCell>
+      <TableCell className="hidden md:table-cell text-sm text-neutral-500">{qr?.timeline ?? "—"}</TableCell>
+    </TableRow>
+  );
+}
+
 async function HomeownerDashboard({ userId, name }: { userId: string; email: string; name: string }) {
   const supabase = await createClient();
   const { data: reviews } = await supabase
@@ -302,7 +430,7 @@ async function HomeownerDashboard({ userId, name }: { userId: string; email: str
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base font-semibold text-neutral-900">Your Reviews</CardTitle>
-              <CardDescription className="text-xs">Reviews you've left for local businesses</CardDescription>
+              <CardDescription className="text-xs">Reviews you&apos;ve left for local businesses</CardDescription>
             </div>
             <Link href="/contractors"><Button variant="outline" size="sm" className="gap-1 text-xs">Find a Pro <ArrowRight className="h-3 w-3" /></Button></Link>
           </div>
@@ -358,13 +486,15 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   if (!profile) redirect("/login");
-  const isContractor = profile.role === "contractor" || profile.role === "admin";
+
   return (
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-        {isContractor
-          ? <ContractorDashboard userId={user.id} />
-          : <HomeownerDashboard userId={user.id} email={user.email ?? ""} name={profile.full_name ?? user.email ?? "there"} />
+        {profile.role === "admin"
+          ? <AdminCRMDashboard />
+          : profile.role === "contractor"
+            ? <ContractorDashboard userId={user.id} />
+            : <HomeownerDashboard userId={user.id} email={user.email ?? ""} name={profile.full_name ?? user.email ?? "there"} />
         }
       </div>
     </main>

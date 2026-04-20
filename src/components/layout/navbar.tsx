@@ -8,11 +8,23 @@ import { Button } from "@/components/ui/button";
 import { APP_NAME, NAV_LINKS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/dashboard/notification-bell";
+
+interface NavNotification {
+  id: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  read: boolean;
+  created_at: string;
+}
 
 interface NavbarProps {
   userEmail?: string | null;
   userId?: string | null;
   hasBusiness?: boolean;
+  unreadCount?: number;
+  notifications?: NavNotification[];
 }
 
 function AvatarInitials({ email }: { email: string }) {
@@ -100,7 +112,7 @@ function UserMenu({ userEmail, userId, hasBusiness, onSignOut }: { userEmail: st
   );
 }
 
-export function Navbar({ userEmail, userId, hasBusiness = false }: NavbarProps) {
+export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0, notifications = [] }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -146,7 +158,10 @@ export function Navbar({ userEmail, userId, hasBusiness = false }: NavbarProps) 
         {/* Desktop actions */}
         <div className="hidden md:flex items-center gap-2">
           {userEmail ? (
-            <UserMenu userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} onSignOut={handleSignOut} />
+            <>
+              <NotificationBell initialCount={unreadCount} initialNotifications={notifications} />
+              <UserMenu userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} onSignOut={handleSignOut} />
+            </>
           ) : (
             <>
               <Link href="/signup">

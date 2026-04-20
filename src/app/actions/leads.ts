@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -26,6 +26,10 @@ export async function submitLead(
   _prev: LeadFormState,
   formData: FormData
 ): Promise<LeadFormState> {
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) return { success: false, error: "You must be signed in to request a quote." };
+
   const raw = {
     contractor_id: formData.get("contractor_id") as string,
     name: formData.get("name") as string,
@@ -52,7 +56,7 @@ export async function submitLead(
   // Get contractor info for email notification
   const { data: contractor } = await supabase
     .from("contractors")
-    .select("business_name, email")
+    .select("user_id, business_name, email")
     .eq("id", parsed.data.contractor_id)
     .single();
 
@@ -69,6 +73,18 @@ export async function submitLead(
   if (insertError) {
     console.error("Lead insert error:", insertError);
     return { success: false, error: "Failed to submit request. Please try again." };
+  }
+
+  // Create in-app notification for contractor
+  if (contractor?.user_id) {
+    const truncated = parsed.data.message.length > 120 ? parsed.data.message.slice(0, 117) + "…" : parsed.data.message;
+    await supabase.from("notifications").insert({
+      user_id: contractor.user_id,
+      type: "lead",
+      title: `New quote request from ${parsed.data.name}`,
+      body: truncated,
+      link: "/dashboard",
+    });
   }
 
   // Send email notification to contractor

@@ -8,6 +8,7 @@ import { Star, MapPin, Pencil, ExternalLink, ShieldCheck, Building2 } from "luci
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { NearbyBusinesses } from "@/components/profile/nearby-businesses";
 import { FollowButton } from "@/components/FollowButton";
+import { PendingRequests } from "@/components/profile/pending-requests";
 
 function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -46,18 +47,41 @@ export default async function ProfilePage({ params }: Props) {
     { data: contractor },
     { count: followerCount },
     { count: followingCount },
-    { count: isFollowingCount },
+    followStatusResult,
+    pendingRequestsResult,
   ] = await Promise.all([
     supabase.from("reviews").select("*, contractors(business_name, slug, city)").eq("user_id", id).order("created_at", { ascending: false }).limit(20),
     supabase.from("contractors").select("*, categories(name)").eq("user_id", id).eq("status", "active").maybeSingle(),
-    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("following_id", id),
-    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("follower_id", id),
+    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("following_id", id).eq("status", "accepted"),
+    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("follower_id", id).eq("status", "accepted"),
     user && !isOwner
-      ? supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id).eq("following_id", id)
-      : Promise.resolve({ count: 0 }),
+      ? supabase.from("user_follows").select("status").eq("follower_id", user.id).eq("following_id", id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    isOwner
+      ? supabase
+          .from("user_follows")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .select("follower_id, created_at, profiles!user_follows_follower_id_fkey(full_name, avatar_url)" as any)
+          .eq("following_id", id)
+          .eq("status", "pending")
+      : Promise.resolve({ data: null }),
   ]);
 
-  const isFollowing = (isFollowingCount ?? 0) > 0;
+  const followStatus: "none" | "pending" | "accepted" =
+    followStatusResult.data
+      ? (followStatusResult.data.status as "pending" | "accepted")
+      : "none";
+
+  const pendingRequests = (
+    (pendingRequestsResult.data ?? []) as unknown as Array<{
+      follower_id: string;
+      profiles: { full_name: string | null; avatar_url: string | null } | null;
+    }>
+  ).map((r) => ({
+    follower_id: r.follower_id,
+    full_name: r.profiles?.full_name ?? null,
+    avatar_url: r.profiles?.avatar_url ?? null,
+  }));
 
   return (
     <main className="min-h-screen bg-white">
@@ -101,9 +125,16 @@ export default async function ProfilePage({ params }: Props) {
               <div className="mt-3">
                 <FollowButton
                   followingId={id}
-                  initialIsFollowing={isFollowing}
+                  followStatus={followStatus}
                   followerCount={followerCount ?? 0}
                 />
+              </div>
+            )}
+            {!isOwner && !user && (
+              <div className="mt-3">
+                <Link href="/signup">
+                  <Button variant="outline" size="sm">Sign Up to Follow</Button>
+                </Link>
               </div>
             )}
           </div>
@@ -115,6 +146,8 @@ export default async function ProfilePage({ params }: Props) {
         </div>
 
         {(profile as any).bio && <p className="mt-5 text-sm leading-relaxed text-neutral-600 max-w-2xl">{(profile as any).bio}</p>}
+
+        {isOwner && <PendingRequests requests={pendingRequests} />}
 
         {contractor && (
           <div className="mt-8">

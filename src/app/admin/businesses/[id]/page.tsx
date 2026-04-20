@@ -130,7 +130,11 @@ export default async function AdminBusinessDetailPage({
         />
         <Field label="License #" value={business.license_number} />
         <Field
-          label="Years in Biz"
+          label="Yrs Experience"
+          value={business.years_experience != null ? String(business.years_experience) : null}
+        />
+        <Field
+          label="Yrs in Biz"
           value={business.years_in_business != null ? String(business.years_in_business) : null}
         />
         <Field

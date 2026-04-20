@@ -30,6 +30,7 @@ const joinSchema = z.object({
   is_licensed: z.boolean().default(false),
   is_insured: z.boolean().default(false),
   years_in_business: z.coerce.number().int().min(0).max(100).optional(),
+  years_experience: z.coerce.number().int().min(0).max(100).optional(),
   service_areas: z.string().optional(), // comma-separated
 });
 
@@ -73,6 +74,7 @@ export async function joinAsContractor(
   } = await supabase.auth.getUser();
 
   const serviceAreasRaw = formData.get("service_areas") as string | null;
+  const additionalCategoryIds = formData.getAll("additional_category_ids") as string[];
   const logoFile = normalizeFile(formData.get("logo"));
   const photoFiles = formData
     .getAll("photos")
@@ -104,6 +106,9 @@ export async function joinAsContractor(
     is_insured: formData.get("is_insured") === "on",
     years_in_business: formData.get("years_in_business")
       ? Number(formData.get("years_in_business"))
+      : undefined,
+    years_experience: formData.get("years_experience")
+      ? Number(formData.get("years_experience"))
       : undefined,
     service_areas: serviceAreasRaw || undefined,
   };
@@ -219,11 +224,13 @@ export async function joinAsContractor(
       state: parsed.data.state,
       zip: parsed.data.zip ?? null,
       service_areas: serviceAreasList,
+      additional_categories: additionalCategoryIds.filter((id) => id && id !== parsed.data.category_id),
       logo_url: logoUrl,
       license_number: parsed.data.license_number ?? null,
       is_licensed: parsed.data.is_licensed,
       is_insured: parsed.data.is_insured,
       years_in_business: parsed.data.years_in_business ?? null,
+      years_experience: parsed.data.years_experience ?? null,
       is_claimed: !!user,
       status: "active",
     })
@@ -350,6 +357,9 @@ export async function updateContractor(
     years_in_business: formData.get("years_in_business")
       ? Number(formData.get("years_in_business"))
       : undefined,
+    years_experience: formData.get("years_experience")
+      ? Number(formData.get("years_experience"))
+      : undefined,
     service_areas: serviceAreasRaw || undefined,
   };
 
@@ -470,6 +480,7 @@ export async function updateContractor(
       is_licensed: parsed.data.is_licensed,
       is_insured: parsed.data.is_insured,
       years_in_business: parsed.data.years_in_business ?? null,
+      years_experience: parsed.data.years_experience ?? null,
     })
     .eq("id", contractorId);
 

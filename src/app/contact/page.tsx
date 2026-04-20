@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { APP_NAME } from "@/lib/constants";
+import { PageWrapper } from "@/components/ui/page-wrapper";
 
 export const metadata: Metadata = {
   title: `Contact | ${APP_NAME}`,
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
+    <PageWrapper>
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-muted/40 border-b border-border py-12">
@@ -96,5 +98,6 @@ export default function ContactPage() {
         </section>
       </div>
     </div>
+    </PageWrapper>
   );
 }

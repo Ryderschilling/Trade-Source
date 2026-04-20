@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { IntroAnimation } from "@/components/intro-animation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { APP_NAME, APP_TAGLINE, APP_URL } from "@/lib/constants";
 import { headers } from "next/headers";
 
@@ -67,6 +67,8 @@ export default async function RootLayout({
   let userEmail: string | null = null;
   let userId: string | null = null;
   let hasBusiness = false;
+  let unreadCount = 0;
+  let navNotifications: Array<{ id: string; title: string; body: string | null; link: string | null; read: boolean; created_at: string }> = [];
 
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -80,13 +82,14 @@ export default async function RootLayout({
       userEmail = user?.email ?? null;
       userId = user?.id ?? null;
       if (userId) {
-        const serviceClient = await createServiceClient();
-        const { data } = await serviceClient
-          .from("contractors")
-          .select("id")
-          .eq("user_id", userId)
-          .limit(1);
-        hasBusiness = Array.isArray(data) && data.length > 0;
+        const [{ data: contractorData }, { data: unread }, { data: notifs }] = await Promise.all([
+          supabase.from("contractors").select("id").eq("user_id", userId).limit(1),
+          supabase.from("notifications").select("id").eq("user_id", userId).eq("read", false),
+          supabase.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+        ]);
+        hasBusiness = Array.isArray(contractorData) && contractorData.length > 0;
+        unreadCount = (unread ?? []).length;
+        navNotifications = notifs ?? [];
       }
     } catch {
       // Keep public pages renderable even if auth is misconfigured in production.
@@ -107,7 +110,7 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <IntroAnimation>
-            <Navbar userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} />
+            <Navbar userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} unreadCount={unreadCount} notifications={navNotifications} />
             <main className="flex-1">{children}</main>
             <Footer />
           </IntroAnimation>

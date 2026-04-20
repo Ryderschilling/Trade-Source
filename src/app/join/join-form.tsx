@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useState, useRef, type ChangeEvent } from "react";
+import { useActionState, useState, useRef, startTransition, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
-import { Upload, ImageIcon, Trash2 } from "lucide-react";
+import { Upload, ImageIcon, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,18 +17,15 @@ import type { Category } from "@/lib/supabase/types";
 const initialJoinState: JoinFormState = {};
 const initialAuthState: AuthFormState = {};
 
-// Popular categories shown at the top of the picker (by slug)
-const POPULAR_SLUGS = [
-  "general-contractor",
-  "roofing",
-  "electrical",
-  "plumbing",
-  "hvac",
-  "painting",
-  "landscaping",
-  "pool-spa",
-  "flooring",
-  "cleaning",
+// Group structure for the multi-category picker (mirrors DB groups, used as fallback)
+const CATEGORY_GROUPS = [
+  { id: "outdoors-yard",     name: "Outdoors & Yard",     slugs: ["lawn-care","landscaping-design","tree-service","irrigation","fencing","pool-spa","deck-porch","outdoor-kitchen","landscaping"] },
+  { id: "interior",          name: "Interior",             slugs: ["flooring","painting","cabinetry-millwork","drywall","tile-stone","blinds-window-treatments"] },
+  { id: "exterior",          name: "Exterior",             slugs: ["roofing","windows-doors","gutters","siding","pressure-washing","screen-enclosures","hurricane-shutters","garage-doors"] },
+  { id: "systems-mechanical",name: "Systems & Mechanical", slugs: ["hvac","electrical","plumbing","solar","generator","security-systems","septic"] },
+  { id: "construction",      name: "Construction",         slugs: ["general-contractor","concrete-masonry","home-inspection"] },
+  { id: "waterfront",        name: "Waterfront",           slugs: ["dock-marine","seawall"] },
+  { id: "home-services",     name: "Home Services",        slugs: ["cleaning","pest-control","handyman"] },
 ];
 
 const CLIENT_MAX_LOGO_BYTES = 5 * 1024 * 1024;
@@ -161,180 +158,130 @@ async function optimizeRasterImage(
   throw new Error(`${file.name} is still too large after compression. Please choose a smaller image.`);
 }
 
-function setInputFiles(input: HTMLInputElement, files: File[]) {
-  const dataTransfer = new DataTransfer();
 
-  for (const file of files) {
-    dataTransfer.items.add(file);
-  }
-
-  input.files = dataTransfer.files;
-}
-
-function CategoryPicker({
+function MultiCategoryPicker({
   categories,
 }: {
   categories: Pick<Category, "id" | "name" | "slug">[];
 }) {
-  const [selectedId, setSelectedId] = useState<string>("");
-  const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const [showOtherInput, setShowOtherInput] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
-  const popular = POPULAR_SLUGS
-    .map((slug) => categories.find((c) => c.slug === slug))
-    .filter(Boolean) as Pick<Category, "id" | "name" | "slug">[];
+  const catBySlug: Record<string, Pick<Category, "id" | "name" | "slug">> = {};
+  for (const c of categories) catBySlug[c.slug] = c;
 
-  const otherCategory = categories.find((c) => c.slug === "other");
+  const groups = CATEGORY_GROUPS.map((g) => ({
+    ...g,
+    items: g.slugs.map((s) => catBySlug[s]).filter(Boolean) as Pick<Category, "id" | "name" | "slug">[],
+  })).filter((g) => g.items.length > 0);
 
-  const allNonOther = categories.filter((c) => c.slug !== "other");
+  const knownSlugs = new Set(CATEGORY_GROUPS.flatMap((g) => g.slugs));
+  const ungrouped = categories.filter((c) => !knownSlugs.has(c.slug) && c.slug !== "other");
+  const allGroups = [...groups, ...(ungrouped.length ? [{ id: "other", name: "Other", items: ungrouped }] : [])];
 
-  const filtered = search.trim()
-    ? allNonOther.filter((c) =>
-        c.name.toLowerCase().includes(search.trim().toLowerCase())
-      )
-    : allNonOther;
-
-  const selected = categories.find((c) => c.id === selectedId);
-  const isOther = selected?.slug === "other";
-
-  function pick(cat: Pick<Category, "id" | "name" | "slug">) {
-    setSelectedId(cat.id);
-    setShowOtherInput(cat.slug === "other");
-    setOpen(false);
-    setSearch("");
+  function toggle(id: string) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   }
 
-  function clear() {
-    setSelectedId("");
-    setShowOtherInput(false);
-    setSearch("");
+  function toggleGroup(id: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   }
+
+  const primaryId = selectedIds[0] ?? "";
+  const additionalIds = selectedIds.slice(1);
+  const selectedCats = selectedIds.map((id) => categories.find((c) => c.id === id)).filter(Boolean);
 
   return (
-    <div className="space-y-2">
-      {/* Hidden input for form submission */}
-      <input type="hidden" name="category_id" value={selectedId} />
+    <div className="space-y-3">
+      <input type="hidden" name="category_id" value={primaryId} />
+      {additionalIds.map((id) => (
+        <input key={id} type="hidden" name="additional_category_ids" value={id} />
+      ))}
 
-      {/* Trigger / selected display */}
-      {selected ? (
-        <div className="flex items-center justify-between rounded-md border border-border bg-muted/50 px-3 py-2 text-sm">
-          <span className="font-medium">{selected.name}</span>
-          <button
-            type="button"
-            onClick={clear}
-            className="ml-2 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Clear selection"
-          >
-            ✕
-          </button>
+      {/* Selected tags */}
+      {selectedCats.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selectedCats.map((cat, i) => (
+            <span
+              key={cat!.id}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                i === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground border border-border"
+              }`}
+            >
+              {i === 0 && <span className="opacity-70">Primary:</span>}
+              {cat!.name}
+              <button
+                type="button"
+                onClick={() => toggle(cat!.id)}
+                className="opacity-60 hover:opacity-100 transition-opacity leading-none"
+                aria-label={`Remove ${cat!.name}`}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => {
-            setOpen((o) => !o);
-            setTimeout(() => searchRef.current?.focus(), 50);
-          }}
-          className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground hover:bg-muted/40 transition-colors"
-        >
-          <span>Select your trade...</span>
-          <span className="text-xs opacity-60">▼</span>
-        </button>
       )}
 
-      {/* Dropdown panel */}
-      {open && !selected && (
-        <div className="rounded-md border border-border bg-background shadow-md">
-          {/* Search */}
-          <div className="p-2 border-b border-border">
-            <Input
-              ref={searchRef}
-              placeholder="Search trades..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-8 text-sm"
-            />
-          </div>
-
-          <div className="max-h-72 overflow-y-auto p-2 space-y-3">
-            {/* Popular section — only shown when not searching */}
-            {!search.trim() && popular.length > 0 && (
-              <div>
-                <p className="px-1 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Popular
-                </p>
-                <div className="grid grid-cols-2 gap-1">
-                  {popular.map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => pick(cat)}
-                      className="text-left rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
+      {/* Accordion groups */}
+      <div className="divide-y divide-border rounded-md border border-border overflow-hidden">
+        {allGroups.map((group) => {
+          const open = openGroups.has(group.id);
+          const groupSelectedCount = group.items.filter((c) => selectedIds.includes(c.id)).length;
+          return (
+            <div key={group.id}>
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.id)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+              >
+                <span className="text-sm font-medium text-neutral-800">{group.name}</span>
+                <div className="flex items-center gap-2">
+                  {groupSelectedCount > 0 && (
+                    <span className="text-xs font-medium text-primary bg-primary/10 rounded-full px-2 py-0.5">
+                      {groupSelectedCount}
+                    </span>
+                  )}
+                  <ChevronDown
+                    className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                  />
                 </div>
-              </div>
-            )}
-
-            {/* All / filtered results */}
-            {search.trim() && (
-              <div>
-                {filtered.length === 0 ? (
-                  <p className="px-2 py-3 text-sm text-muted-foreground text-center">
-                    No match — try &quot;Other&quot; below
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-1">
-                    {filtered.map((cat) => (
-                      <button
+              </button>
+              {open && (
+                <div className="px-4 pb-3 pt-1 grid grid-cols-2 gap-1 bg-muted/20">
+                  {group.items.map((cat) => {
+                    const checked = selectedIds.includes(cat.id);
+                    return (
+                      <label
                         key={cat.id}
-                        type="button"
-                        onClick={() => pick(cat)}
-                        className="text-left rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
+                        className={`flex items-center gap-2 rounded-md px-2.5 py-2 cursor-pointer transition-colors text-sm ${
+                          checked ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted text-neutral-700"
+                        }`}
                       >
-                        {cat.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggle(cat.id)}
+                        />
+                        <span>{cat.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-            {/* Other — always shown at bottom */}
-            {otherCategory && (
-              <div className="border-t border-border pt-2">
-                <button
-                  type="button"
-                  onClick={() => pick(otherCategory)}
-                  className="w-full text-left rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors text-muted-foreground"
-                >
-                  Other (not listed)
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Free-text field when "Other" is selected */}
-      {isOther && (
-        <div className="space-y-1.5">
-          <Label htmlFor="custom_trade">Describe your trade *</Label>
-          <Input
-            id="custom_trade"
-            name="custom_trade"
-            placeholder="e.g. Irrigation, Fence Installation, Solar..."
-            required
-          />
-          <p className="text-xs text-muted-foreground">
-            We&apos;ll add your trade to the directory.
-          </p>
-        </div>
-      )}
+      <p className="text-xs text-muted-foreground">
+        Select all trades you offer. The first selected becomes your primary category shown on your listing.
+      </p>
     </div>
   );
 }
@@ -441,29 +388,21 @@ function BusinessDetailsStep({
   categories: Pick<Category, "id" | "name" | "slug">[];
   userEmail?: string;
 }) {
-  const [state, action, pending] = useActionState(joinAsContractor, initialJoinState);
+  const [state, formAction, pending] = useActionState(joinAsContractor, initialJoinState);
   const [clientUploadError, setClientUploadError] = useState<string | null>(null);
   const [isPreparingUploads, setIsPreparingUploads] = useState(false);
 
   // Logo
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [businessName, setBusinessName] = useState("");
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Photo slots
   const [photoSlots, setPhotoSlots] = useState<PhotoSlot[]>([{ id: 0, file: null, previewUrl: null }]);
   const nextSlotId = useRef(1);
-  const photosHiddenRef = useRef<HTMLInputElement>(null);
   const photoPickerRef = useRef<HTMLInputElement>(null);
   const pendingSlotIdRef = useRef<number | null>(null);
-
-  // Sync filled photo slots into the hidden form input so the server action sees them
-  useEffect(() => {
-    if (photosHiddenRef.current) {
-      const files = photoSlots.map((s) => s.file).filter((f): f is File => f !== null);
-      setInputFiles(photosHiddenRef.current, files);
-    }
-  }, [photoSlots]);
 
   async function handleLogoChange(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
@@ -485,6 +424,7 @@ function BusinessDetailsStep({
       const url = URL.createObjectURL(file);
       if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
       setLogoPreviewUrl(url);
+      setLogoFile(file);
       return;
     }
 
@@ -496,11 +436,10 @@ function BusinessDetailsStep({
         maxDimension: CLIENT_LOGO_MAX_DIMENSION,
       });
 
-      setInputFiles(input, [optimizedLogo]);
-
       const url = URL.createObjectURL(optimizedLogo);
       if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
       setLogoPreviewUrl(url);
+      setLogoFile(optimizedLogo);
     } catch (error) {
       input.value = "";
       setClientUploadError(
@@ -514,12 +453,33 @@ function BusinessDetailsStep({
   function handleLogoRemove() {
     if (logoInputRef.current) {
       logoInputRef.current.value = "";
-      setInputFiles(logoInputRef.current, []);
     }
     if (logoPreviewUrl) {
       URL.revokeObjectURL(logoPreviewUrl);
       setLogoPreviewUrl(null);
     }
+    setLogoFile(null);
+  }
+
+  function handleFormSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+
+    // Replace logo with the File object stored in state (bypasses hidden input unreliability)
+    fd.delete("logo");
+    if (logoFile) {
+      fd.set("logo", logoFile);
+    }
+
+    // Replace photos with File objects stored in slot state
+    fd.delete("photos");
+    for (const slot of photoSlots) {
+      if (slot.file) {
+        fd.append("photos", slot.file);
+      }
+    }
+
+    startTransition(() => formAction(fd));
   }
 
   function openPhotoFilePicker(slotId: number) {
@@ -580,7 +540,7 @@ function BusinessDetailsStep({
   }
 
   return (
-    <form action={action} className="space-y-8">
+    <form onSubmit={handleFormSubmit} className="space-y-8">
       {clientUploadError && (
         <div className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
           {clientUploadError}
@@ -626,8 +586,8 @@ function BusinessDetailsStep({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Trade / Category *</Label>
-          <CategoryPicker categories={categories} />
+          <Label>Trades / Categories *</Label>
+          <MultiCategoryPicker categories={categories} />
         </div>
 
         <div className="space-y-1.5">
@@ -830,16 +790,6 @@ function BusinessDetailsStep({
             className="sr-only"
           />
 
-          {/* Hidden multi-file input that the server action reads */}
-          <input
-            ref={photosHiddenRef}
-            name="photos"
-            type="file"
-            accept="image/*"
-            multiple
-            className="sr-only"
-          />
-
           <div className="flex flex-wrap gap-3">
             {photoSlots.map((slot) => (
               <div
@@ -930,7 +880,7 @@ function BusinessDetailsStep({
           </label>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
             <Label htmlFor="license_number">License number</Label>
             <Input
@@ -947,8 +897,21 @@ function BusinessDetailsStep({
               type="number"
               min={0}
               max={100}
-              placeholder="5"
+              placeholder="2"
             />
+            <p className="text-xs text-muted-foreground">Since officially founded</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="years_experience">Years of experience</Label>
+            <Input
+              id="years_experience"
+              name="years_experience"
+              type="number"
+              min={0}
+              max={100}
+              placeholder="10"
+            />
+            <p className="text-xs text-muted-foreground">Your total hands-on experience</p>
           </div>
         </div>
       </section>

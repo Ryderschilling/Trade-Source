@@ -424,14 +424,20 @@ export function EditListingForm({ contractor, portfolioPhotos, categories }: Edi
           </label>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
             <Label htmlFor="license_number">License number</Label>
             <Input id="license_number" name="license_number" defaultValue={contractor.license_number ?? ""} placeholder="CGC1234567" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="years_in_business">Years in business</Label>
-            <Input id="years_in_business" name="years_in_business" type="number" min={0} max={100} defaultValue={contractor.years_in_business ?? ""} placeholder="5" />
+            <Input id="years_in_business" name="years_in_business" type="number" min={0} max={100} defaultValue={contractor.years_in_business ?? ""} placeholder="2" />
+            <p className="text-xs text-muted-foreground">Since officially founded</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="years_experience">Years of experience</Label>
+            <Input id="years_experience" name="years_experience" type="number" min={0} max={100} defaultValue={contractor.years_experience ?? ""} placeholder="10" />
+            <p className="text-xs text-muted-foreground">Your total hands-on experience</p>
           </div>
         </div>
       </section>

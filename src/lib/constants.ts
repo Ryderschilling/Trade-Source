@@ -25,6 +25,6 @@ export const SERVICE_AREAS = [
 export const NAV_LINKS = [
   { label: "Find a Pro", href: "/contractors" },
   { label: "Leaderboard", href: "/leaderboard" },
-  { label: "How It Works", href: "/#how-it-works" },
+  { label: "How It Works", href: "/how-it-works" },
   { label: "List Your Business", href: "/join" },
 ];
