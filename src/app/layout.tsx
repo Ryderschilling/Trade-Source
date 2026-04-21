@@ -69,7 +69,7 @@ export default async function RootLayout({
   let hasBusiness = false;
   let unreadCount = 0;
   let unreadMessages = 0;
-  let navNotifications: Array<{ id: string; title: string; body: string | null; link: string | null; read: boolean; created_at: string }> = [];
+  let navNotifications: Array<{ id: string; user_id: string; title: string; body: string | null; link: string | null; read: boolean; created_at: string }> = [];
 
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&

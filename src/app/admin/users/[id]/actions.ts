@@ -8,7 +8,7 @@ const idSchema = z.string().uuid('Invalid user ID');
 
 export async function deleteUser(userId: string) {
   const parsed = idSchema.safeParse(userId);
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const supabase = createAdminClient();
 

@@ -13,6 +13,7 @@ import { NotificationBell } from "@/components/dashboard/notification-bell";
 
 interface NavNotification {
   id: string;
+  user_id: string;
   title: string;
   body: string | null;
   link: string | null;

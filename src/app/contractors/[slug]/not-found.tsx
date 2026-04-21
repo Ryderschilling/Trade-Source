@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { HardHat } from "lucide-react";
 
 export default function ContractorNotFound() {
@@ -15,9 +15,7 @@ export default function ContractorNotFound() {
         This contractor profile doesn&apos;t exist or may have been removed.
         Browse the directory to find a trusted tradesman near you.
       </p>
-      <Button asChild className="mt-8">
-        <Link href="/contractors">Browse the directory</Link>
-      </Button>
+      <Link href="/contractors" className={buttonVariants({ className: "mt-8" })}>Browse the directory</Link>
     </div>
   );
 }

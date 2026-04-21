@@ -134,7 +134,7 @@ export function QuoteRequestForm({
 
       <div className="space-y-1.5">
         <Label>Timeline *</Label>
-        <Select onValueChange={(v) => setValue("timeline", v, { shouldValidate: true })}>
+        <Select onValueChange={(v) => setValue("timeline", (v as string | null) ?? "", { shouldValidate: true })}>
           <SelectTrigger>
             <SelectValue placeholder="Select a timeline..." />
           </SelectTrigger>

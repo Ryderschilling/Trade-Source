@@ -10,9 +10,10 @@ const leadSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name must be 100 characters or fewer"),
   email: z.string().email("Enter a valid email address"),
   phone: z.string().optional(),
-  description: z.string().min(10, "Please describe your project (min 10 characters)").max(2000, "Description must be 2000 characters or fewer"),
+  message: z.string().min(10, "Please describe your project (min 10 characters)").max(2000, "Message must be 2000 characters or fewer"),
   contractor_id: z.string().uuid("Invalid contractor"),
-  category_id: z.string().uuid("Invalid category"),
+  service_type: z.string().optional(),
+  preferred_contact: z.enum(["email", "phone", "either"]).optional(),
 });
 
 export type LeadFormState = {
@@ -33,9 +34,10 @@ export async function submitLead(
     name: formData.get("name") as string,
     email: formData.get("email") as string,
     phone: (formData.get("phone") as string) || undefined,
-    description: formData.get("description") as string,
+    message: formData.get("message") as string,
     contractor_id: formData.get("contractor_id") as string,
-    category_id: formData.get("category_id") as string,
+    service_type: (formData.get("service_type") as string) || undefined,
+    preferred_contact: (formData.get("preferred_contact") as string) || undefined,
   };
 
   const parsed = leadSchema.safeParse(raw);
@@ -60,11 +62,12 @@ export async function submitLead(
 
   const { error: insertError } = await supabase.from("leads").insert({
     contractor_id: parsed.data.contractor_id,
-    category_id: parsed.data.category_id,
     name: parsed.data.name,
     email: parsed.data.email,
     phone: parsed.data.phone ?? null,
-    description: parsed.data.description,
+    message: parsed.data.message,
+    service_type: parsed.data.service_type ?? null,
+    preferred_contact: parsed.data.preferred_contact ?? "either",
   });
 
   if (insertError) {
@@ -74,7 +77,7 @@ export async function submitLead(
 
   // Create in-app notification for contractor
   if (contractor?.user_id) {
-    const truncated = parsed.data.description.length > 120 ? parsed.data.description.slice(0, 117) + "…" : parsed.data.description;
+    const truncated = parsed.data.message.length > 120 ? parsed.data.message.slice(0, 117) + "…" : parsed.data.message;
     await supabase.from("notifications").insert({
       user_id: contractor.user_id,
       type: "lead",
@@ -101,7 +104,7 @@ export async function submitLead(
             ${parsed.data.phone ? `<p><strong>Phone:</strong> ${parsed.data.phone}</p>` : ""}
             <p><strong>Description:</strong></p>
             <blockquote style="border-left:3px solid #e2e8f0;margin:0;padding:8px 16px;color:#64748b">
-              ${parsed.data.description.replace(/\n/g, "<br/>")}
+              ${parsed.data.message.replace(/\n/g, "<br/>")}
             </blockquote>
             <hr />
             <p style="color:#64748b;font-size:14px">

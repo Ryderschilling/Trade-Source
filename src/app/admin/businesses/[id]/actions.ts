@@ -8,7 +8,7 @@ const idSchema = z.string().uuid('Invalid business ID');
 
 export async function deleteBusiness(businessId: string) {
   const parsed = idSchema.safeParse(businessId);
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const supabase = createAdminClient();
 
