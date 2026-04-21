@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ContractorCard } from "@/components/contractors/contractor-card";
 import { ContractorSearchBar } from "@/components/contractors/search-bar";
 import { QuoteRequestBanner } from "@/components/quote-request-banner";
+import { MobileCategoryNav } from "@/components/contractors/mobile-category-nav";
 import type { ContractorWithCategory } from "@/lib/supabase/types";
 import * as LucideIcons from "lucide-react";
 
@@ -149,7 +150,7 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
       </div>
 
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 py-8">
-        <div className="flex gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 items-start">
 
           {/* Accordion Sidebar */}
           <aside className="hidden lg:block w-64 shrink-0 sticky top-6">
@@ -199,35 +200,14 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
             </nav>
           </aside>
 
-          {/* Mobile: horizontal scroll pills */}
-          <div className="lg:hidden w-full mb-4 overflow-x-auto">
-            <div className="flex gap-2 pb-2 min-w-max">
-              {sidebarGroups.map((group) => (
-                <details key={group.id} className="relative">
-                  <summary className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium cursor-pointer list-none whitespace-nowrap">
-                    <CategoryIcon name={group.icon} className="h-3 w-3" />
-                    {group.name}
-                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                  </summary>
-                  <div className="absolute top-full left-0 z-20 mt-1 w-48 rounded-lg border border-border bg-background shadow-lg py-1">
-                    {group.categories.map((cat: any) => (
-                      <Link
-                        key={cat.id}
-                        href={`/contractors?category=${cat.slug}`}
-                        className={`block px-3 py-2 text-sm transition-colors ${
-                          cat.slug === categorySlug
-                            ? "bg-primary text-primary-foreground font-medium"
-                            : "text-neutral-700 hover:bg-muted"
-                        }`}
-                      >
-                        {cat.name}
-                      </Link>
-                    ))}
-                  </div>
-                </details>
-              ))}
-            </div>
-          </div>
+          {/* Mobile: collapsible category panel */}
+          <MobileCategoryNav
+            sidebarGroups={sidebarGroups}
+            categorySlug={categorySlug}
+            activeGroupId={activeGroupId}
+            activeCategory={activeCategory ?? null}
+            countByCategory={countByCategory}
+          />
 
           {/* Main content */}
           <div className="flex-1 min-w-0">
@@ -260,7 +240,7 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
               <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
                 <p className="text-lg font-medium text-neutral-700">Select a trade to get started</p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Choose a category from the sidebar to browse local contractors.
+                  Choose a category above to browse local contractors.
                 </p>
               </div>
             ) : (

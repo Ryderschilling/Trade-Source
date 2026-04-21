@@ -1,32 +1,56 @@
 'use server';
 
+import { timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { signAdminToken } from '@/lib/admin-auth';
 
 export type LoginState = { error?: string };
+
+function safeCompare(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  // timingSafeEqual requires equal lengths; compare lengths separately so we
+  // don't short-circuit on length mismatch before the constant-time check.
+  if (aBuf.length !== bBuf.length) {
+    timingSafeEqual(aBuf, aBuf); // dummy op to normalize timing
+    return false;
+  }
+  return timingSafeEqual(aBuf, bBuf);
+}
 
 export async function adminLogin(
   _prev: LoginState,
   formData: FormData
 ): Promise<LoginState> {
-  const password = formData.get('password') as string;
+  const username = (formData.get('username') as string) ?? '';
+  const password = (formData.get('password') as string) ?? '';
 
-  if (!password || password !== process.env.ADMIN_PASSWORD) {
-    return { error: 'Incorrect password' };
-  }
+  const expectedUsername = process.env.ADMIN_USERNAME ?? '';
+  const expectedPassword = process.env.ADMIN_PASSWORD ?? '';
+  const secretKey = process.env.ADMIN_SECRET_KEY;
 
-  const secret = process.env.ADMIN_SESSION_SECRET;
-  if (!secret) {
+  if (!secretKey) {
     return { error: 'Server misconfiguration' };
   }
 
+  const usernameOk = safeCompare(username, expectedUsername);
+  const passwordOk = safeCompare(password, expectedPassword);
+
+  // Evaluate both comparisons before branching to prevent short-circuit leaks
+  if (!usernameOk || !passwordOk) {
+    return { error: 'Invalid credentials' };
+  }
+
+  const token = await signAdminToken(secretKey);
+
   const cookieStore = await cookies();
-  cookieStore.set('admin_session', secret, {
+  cookieStore.set('admin_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 8, // 8 hours — matches JWT expiry
   });
 
   redirect('/admin');
@@ -34,6 +58,6 @@ export async function adminLogin(
 
 export async function adminLogout(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete('admin_session');
+  cookieStore.delete('admin_token');
   redirect('/admin/login');
 }

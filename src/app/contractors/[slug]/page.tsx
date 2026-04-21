@@ -11,9 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LeadForm } from "@/components/contractors/lead-form";
+import { QuoteRequestForm } from "@/components/contractors/quote-request-form";
 import { ReviewForm } from "@/components/contractors/review-form";
 import { ViewTracker } from "@/components/contractors/ViewTracker";
+import { PortfolioGallery } from "@/components/contractors/portfolio-gallery";
 import type { Contractor, Category, PortfolioPhoto } from "@/lib/supabase/types";
 
 type ReviewWithProfile = {
@@ -234,21 +235,10 @@ export default async function ContractorProfilePage({ params }: PageProps) {
             {c.portfolio_photos.length > 0 && (
               <section>
                 <h2 className="text-lg font-semibold mb-3">Portfolio</h2>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {c.portfolio_photos.map((photo) => (
-                    <div
-                      key={photo.id}
-                      className="relative aspect-square rounded-lg overflow-hidden bg-muted"
-                    >
-                      <Image
-                        src={photo.url}
-                        alt={photo.caption ?? `${c.business_name} work`}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+                <PortfolioGallery
+                  photos={c.portfolio_photos}
+                  businessName={c.business_name}
+                />
               </section>
             )}
 
@@ -394,8 +384,9 @@ export default async function ContractorProfilePage({ params }: PageProps) {
               </CardHeader>
               <CardContent>
                 {user ? (
-                  <LeadForm
+                  <QuoteRequestForm
                     contractorId={c.id}
+                    categoryId={c.categories.id}
                     businessName={c.business_name}
                     defaultName={userProfile?.full_name ?? undefined}
                     defaultEmail={userProfile?.email ?? undefined}

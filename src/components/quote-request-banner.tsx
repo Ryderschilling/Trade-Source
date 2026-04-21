@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -47,6 +47,7 @@ export function QuoteRequestBanner({
   defaultPhone,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const websiteRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<Set<string>>(
     new Set(contractors.map((c) => c.id))
   );
@@ -81,6 +82,7 @@ export function QuoteRequestBanner({
           category_id: categoryId,
           contractor_ids: Array.from(selected),
           ...values,
+          website: websiteRef.current?.value ?? "",
         }),
       });
       if (!res.ok) throw new Error("Request failed");
@@ -152,6 +154,16 @@ export function QuoteRequestBanner({
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                    {/* honeypot — invisible to users, bots will fill it */}
+                    <input
+                      ref={websiteRef}
+                      type="text"
+                      name="website"
+                      tabIndex={-1}
+                      aria-hidden="true"
+                      autoComplete="off"
+                      style={{ position: "absolute", opacity: 0, pointerEvents: "none", height: 0, width: 0, border: 0, padding: 0 }}
+                    />
                     {/* Contractor checklist */}
                     <div>
                       <p className="text-sm font-medium text-neutral-700 mb-2">

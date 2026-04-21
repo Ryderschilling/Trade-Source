@@ -9,6 +9,113 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      conversations: {
+        Row: {
+          id: string;
+          subject: string | null;
+          quote_request_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          subject?: string | null;
+          quote_request_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          subject?: string | null;
+          quote_request_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversations_quote_request_id_fkey";
+            columns: ["quote_request_id"];
+            isOneToOne: false;
+            referencedRelation: "quote_requests";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      conversation_participants: {
+        Row: {
+          conversation_id: string;
+          user_id: string;
+          joined_at: string;
+          last_read_at: string;
+        };
+        Insert: {
+          conversation_id: string;
+          user_id: string;
+          joined_at?: string;
+          last_read_at?: string;
+        };
+        Update: {
+          conversation_id?: string;
+          user_id?: string;
+          joined_at?: string;
+          last_read_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_id: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          sender_id?: string;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       category_groups: {
         Row: {
           id: string;
@@ -608,6 +715,10 @@ export type ContractorWithReviews = Contractor & {
   reviews: Review[];
   portfolio_photos: PortfolioPhoto[];
 };
+
+export type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
+export type ConversationParticipant = Database["public"]["Tables"]["conversation_participants"]["Row"];
+export type Message = Database["public"]["Tables"]["messages"]["Row"];
 
 export type CategoryGroup = Database["public"]["Tables"]["category_groups"]["Row"];
 export type QuoteRequest = Database["public"]["Tables"]["quote_requests"]["Row"];

@@ -1,21 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
 
+const schema = z.object({
+  category_id: z.string().uuid(),
+  contractor_ids: z.array(z.string().uuid()).min(1),
+  name: z.string().min(1).max(100),
+  email: z.string().email().max(255),
+  phone: z.string().max(20).optional(),
+  description: z.string().min(1).max(2000),
+  timeline: z.string().max(200).optional(),
+});
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { category_id, contractor_ids, name, email, phone, description, timeline } = body;
+    const raw = await req.json();
 
-    if (!category_id || !Array.isArray(contractor_ids) || contractor_ids.length === 0) {
-      return NextResponse.json({ error: "category_id and contractor_ids are required." }, { status: 400 });
+    // Honeypot: real users leave this empty; silently discard bot submissions
+    if (raw.website) {
+      return NextResponse.json({ success: true, request_id: null });
     }
-    if (!name || !email || !description) {
-      return NextResponse.json({ error: "name, email, and description are required." }, { status: 400 });
+
+    const result = schema.safeParse(raw);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: result.error.flatten().fieldErrors },
+        { status: 400 }
+      );
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
-    }
+    const { category_id, contractor_ids, name, email, phone, description, timeline } = result.data;
 
     const supabase = await createServiceClient();
 

@@ -1,9 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { Menu, X, ChevronDown, User, LayoutDashboard, LogOut, Building2 } from "lucide-react";
+import { Menu, X, ChevronDown, User, LayoutDashboard, LogOut, Building2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { APP_NAME, NAV_LINKS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
@@ -79,6 +80,16 @@ function UserMenu({ userEmail, userId, hasBusiness, onSignOut }: { userEmail: st
           )}
           {userId && (
             <Link
+              href="/messages"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent transition-colors"
+            >
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              Messages
+            </Link>
+          )}
+          {userId && (
+            <Link
               href={`/profile/${userId}`}
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent transition-colors"
@@ -128,18 +139,17 @@ export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">
-            TS
-          </div>
-          <span className="font-semibold text-foreground hidden sm:block">
-            {APP_NAME}
-          </span>
+        <Link href="/" className="flex items-center">
+          <Image src="/logo-wordmark.svg" alt="Trade Source" width={175} height={30} priority />
         </Link>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-6">
-          {NAV_LINKS.map((link) => (
+          {NAV_LINKS.filter((link) => {
+            if (link.href === "/how-it-works" && userEmail) return false;
+            if (link.href === "/join" && hasBusiness) return false;
+            return true;
+          }).map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -190,7 +200,11 @@ export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-background px-4 pb-4 pt-2">
           <nav className="flex flex-col gap-1">
-            {NAV_LINKS.map((link) => (
+            {NAV_LINKS.filter((link) => {
+              if (link.href === "/how-it-works" && userEmail) return false;
+              if (link.href === "/join" && hasBusiness) return false;
+              return true;
+            }).map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -213,6 +227,14 @@ export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0
                       <Button variant="ghost" size="sm" className="w-full justify-start">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
                         Dashboard
+                      </Button>
+                    </Link>
+                  )}
+                  {userId && (
+                    <Link href="/messages" onClick={() => setMobileOpen(false)}>
+                      <Button variant="ghost" size="sm" className="w-full justify-start">
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Messages
                       </Button>
                     </Link>
                   )}

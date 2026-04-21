@@ -6,10 +6,10 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Eye, Star, MessageSquare, Users } from "lucide-react";
 
 const TAB_ITEMS = [
-  { value: "most-viewed", label: "Most Viewed", Icon: Eye },
-  { value: "top-rated", label: "Top Rated", Icon: Star },
-  { value: "most-reviewed", label: "Most Reviewed", Icon: MessageSquare },
-  { value: "most-active", label: "Most Active", Icon: Users },
+  { value: "most-viewed", label: "Most Viewed", short: "Viewed", Icon: Eye },
+  { value: "top-rated", label: "Top Rated", short: "Rated", Icon: Star },
+  { value: "most-reviewed", label: "Most Reviewed", short: "Reviewed", Icon: MessageSquare },
+  { value: "most-active", label: "Most Active", short: "Active", Icon: Users },
 ] as const;
 
 type TabValue = (typeof TAB_ITEMS)[number]["value"];
@@ -27,7 +27,7 @@ export function LeaderboardTabs({ children }: { children: React.ReactNode }) {
     if (trigger && list) {
       const listRect = list.getBoundingClientRect();
       const triggerRect = trigger.getBoundingClientRect();
-      setPill({ left: triggerRect.left - listRect.left, width: triggerRect.width });
+      setPill({ left: triggerRect.left - listRect.left + list.scrollLeft, width: triggerRect.width });
     }
   }, [activeTab]);
 
@@ -38,7 +38,7 @@ export function LeaderboardTabs({ children }: { children: React.ReactNode }) {
     >
       <TabsPrimitive.List
         ref={listRef}
-        className="relative inline-flex w-full sm:w-auto flex-wrap items-center gap-1 rounded-lg bg-neutral-100 p-1 h-auto"
+        className="relative flex w-full items-center gap-1 rounded-lg bg-neutral-100 p-1 overflow-x-auto"
       >
         {/* Animated sliding pill */}
         {pill && (
@@ -53,17 +53,18 @@ export function LeaderboardTabs({ children }: { children: React.ReactNode }) {
           />
         )}
 
-        {TAB_ITEMS.map(({ value, label, Icon }, idx) => (
+        {TAB_ITEMS.map(({ value, label, short, Icon }, idx) => (
           <TabsPrimitive.Tab
             key={value}
             value={value}
             ref={(el: HTMLButtonElement | null) => {
               triggerRefs.current[idx] = el;
             }}
-            className="relative z-10 flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors text-neutral-500 data-[active]:text-neutral-900 disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
+            className="relative z-10 flex-1 inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-xs sm:text-sm font-medium transition-colors text-neutral-500 data-[active]:text-neutral-900 disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
           >
-            <Icon className="h-3.5 w-3.5" />
-            {label}
+            <Icon className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">{label}</span>
+            <span className="sm:hidden">{short}</span>
           </TabsPrimitive.Tab>
         ))}
       </TabsPrimitive.List>

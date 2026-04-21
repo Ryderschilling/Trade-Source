@@ -220,12 +220,12 @@ export function HowItWorksContent() {
               Trade Source connects 30A homeowners with verified local contractors — no algorithms, no middlemen.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/">
+              <Link href="/contractors">
                 <button className="px-6 py-3 rounded-lg bg-blue-400 text-zinc-950 font-semibold hover:bg-blue-300 transition-colors">
                   Find a Tradesman
                 </button>
               </Link>
-              <Link href="/">
+              <Link href="/join">
                 <button className="px-6 py-3 rounded-lg border border-white text-white font-semibold hover:bg-white/10 transition-colors">
                   List Your Business
                 </button>
@@ -248,9 +248,6 @@ export function HowItWorksContent() {
           </FadeUp>
 
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-10">
-            {/* Dashed connector (desktop only) */}
-            <div className="hidden md:block absolute top-14 left-[calc(33%-1rem)] right-[calc(33%-1rem)] border-t-2 border-dashed border-blue-200 pointer-events-none" />
-
             {homeownerSteps.map((step, i) => (
               <FadeUp key={step.title} delay={i * 0.25} duration={0.9}>
                 <div className="flex flex-col items-start gap-4">
@@ -282,8 +279,6 @@ export function HowItWorksContent() {
           </FadeUp>
 
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-10">
-            <div className="hidden md:block absolute top-14 left-[calc(33%-1rem)] right-[calc(33%-1rem)] border-t-2 border-dashed border-blue-200 pointer-events-none" />
-
             {tradespeopleSteps.map((step, i) => (
               <FadeUp key={step.title} delay={i * 0.25} duration={0.9}>
                 <div className="flex flex-col items-start gap-4">
@@ -354,12 +349,12 @@ export function HowItWorksContent() {
               It takes 2 minutes to find a tradesman or build your free listing.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/">
+              <Link href="/contractors">
                 <button className="px-6 py-3 rounded-lg bg-blue-400 text-zinc-950 font-semibold hover:bg-blue-300 transition-colors">
                   Find a Tradesman
                 </button>
               </Link>
-              <Link href="/">
+              <Link href="/join">
                 <button className="px-6 py-3 rounded-lg border border-white text-white font-semibold hover:bg-white/10 transition-colors">
                   List Your Business
                 </button>

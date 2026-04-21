@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
-const VALID_STATUSES = ["new", "viewed", "contacted", "closed"] as const;
+const schema = z.object({
+  status: z.enum(["new", "viewed", "contacted", "closed"]),
+});
 
 export async function PATCH(
   req: NextRequest,
@@ -9,12 +12,16 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const body = await req.json();
-    const { status } = body;
 
-    if (!VALID_STATUSES.includes(status)) {
-      return NextResponse.json({ error: "Invalid status value." }, { status: 400 });
+    const raw = await req.json();
+    const result = schema.safeParse(raw);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: result.error.flatten().fieldErrors },
+        { status: 400 }
+      );
     }
+    const { status } = result.data;
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

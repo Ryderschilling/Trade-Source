@@ -9,6 +9,7 @@ import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, ExternalLink, Pe
 import type { PortfolioPhoto } from "@/lib/supabase/types";
 import { AdminCRMDashboard } from "@/components/dashboard/admin-crm";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
+import { QuoteRequestsCard } from "@/components/dashboard/quote-requests-card";
 
 function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -38,7 +39,7 @@ async function ContractorDashboard({ userId }: { userId: string }) {
     supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(50),
     supabase
       .from("quote_request_recipients")
-      .select("*, quote_requests(name, email, description, timeline, categories(name))")
+      .select("*, quote_requests(name, email, phone, description, timeline, categories(name))")
       .order("notified_at", { ascending: false })
       .limit(30),
     supabase
@@ -361,57 +362,6 @@ async function ContractorDashboard({ userId }: { userId: string }) {
   );
 }
 
-function QuoteRequestsCard({ contractorId, recipients }: { contractorId?: string; recipients: any[] }) {
-  if (!contractorId) return null;
-  return (
-    <Card className="border-neutral-200">
-      <CardHeader>
-        <CardTitle className="text-base font-semibold text-neutral-900">Quote Requests</CardTitle>
-        <CardDescription className="text-xs">Homeowners who requested a quote from you</CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
-        {recipients.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-neutral-500">No quote requests yet.</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-neutral-200 text-xs">
-                <TableHead>Date</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden sm:table-cell">Category</TableHead>
-                <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead className="hidden md:table-cell">Timeline</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recipients.map((r: any) => (
-                <QuoteRecipientRow key={r.id} recipient={r} />
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function QuoteRecipientRow({ recipient }: { recipient: any }) {
-  const qr = recipient.quote_requests;
-  const desc = qr?.description ?? "";
-  return (
-    <TableRow className="border-neutral-100">
-      <TableCell className="text-xs text-neutral-400 whitespace-nowrap">{formatDate(recipient.notified_at)}</TableCell>
-      <TableCell>
-        <p className="font-medium text-neutral-900">{qr?.name ?? "—"}</p>
-      </TableCell>
-      <TableCell className="hidden sm:table-cell text-sm text-neutral-600">{qr?.categories?.name ?? "—"}</TableCell>
-      <TableCell className="hidden md:table-cell text-sm text-neutral-500 max-w-xs">
-        <span className="line-clamp-2">{desc.length > 80 ? desc.slice(0, 77) + "…" : desc}</span>
-      </TableCell>
-      <TableCell className="hidden md:table-cell text-sm text-neutral-500">{qr?.timeline ?? "—"}</TableCell>
-    </TableRow>
-  );
-}
 
 async function HomeownerDashboard({ userId, name }: { userId: string; email: string; name: string }) {
   const supabase = await createClient();

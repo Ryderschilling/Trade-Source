@@ -22,6 +22,20 @@ export default function AdminLoginPage() {
         <CardContent>
           <form action={action} className="space-y-4">
             <div className="space-y-1.5">
+              <Label htmlFor="username" className="text-neutral-300 text-sm">
+                Username
+              </Label>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                placeholder="Username"
+                autoComplete="username"
+                autoFocus
+                className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus-visible:ring-neutral-500"
+              />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="password" className="text-neutral-300 text-sm">
                 Password
               </Label>
@@ -29,8 +43,8 @@ export default function AdminLoginPage() {
                 id="password"
                 name="password"
                 type="password"
-                placeholder="Enter admin password"
-                autoFocus
+                placeholder="Password"
+                autoComplete="current-password"
                 className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus-visible:ring-neutral-500"
               />
             </div>
