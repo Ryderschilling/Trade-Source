@@ -5,6 +5,7 @@ import { z } from "zod";
 import slugify from "slugify";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
+import { SERVICE_AREAS } from "@/lib/constants";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const LOGO_BUCKET = "contractor-logos";
@@ -163,8 +164,12 @@ export async function joinAsContractor(
     ? parsed.data.service_areas
         .split(",")
         .map((s) => s.trim())
-        .filter(Boolean)
+        .filter((s) => SERVICE_AREAS.includes(s))
     : [];
+
+  if (serviceAreasList.length === 0) {
+    return { error: "Please select at least one valid service area." };
+  }
 
   let logoUrl: string | null = null;
 
@@ -392,8 +397,12 @@ export async function updateContractor(
   }
 
   const serviceAreasList = parsed.data.service_areas
-    ? parsed.data.service_areas.split(",").map((s) => s.trim()).filter(Boolean)
+    ? parsed.data.service_areas.split(",").map((s) => s.trim()).filter((s) => SERVICE_AREAS.includes(s))
     : [];
+
+  if (serviceAreasList.length === 0) {
+    return { error: "Please select at least one valid service area." };
+  }
 
   // Upload new logo if provided
   let logoUrl = existing.logo_url;

@@ -3,9 +3,15 @@
 import { timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { z } from 'zod';
 import { signAdminToken } from '@/lib/admin-auth';
 
 export type LoginState = { error?: string };
+
+const loginSchema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
+});
 
 function safeCompare(a: string, b: string): boolean {
   const aBuf = Buffer.from(a);
@@ -23,16 +29,25 @@ export async function adminLogin(
   _prev: LoginState,
   formData: FormData
 ): Promise<LoginState> {
-  const username = (formData.get('username') as string) ?? '';
-  const password = (formData.get('password') as string) ?? '';
-
-  const expectedUsername = process.env.ADMIN_USERNAME ?? '';
-  const expectedPassword = process.env.ADMIN_PASSWORD ?? '';
-  const secretKey = process.env.ADMIN_SECRET_KEY;
-
-  if (!secretKey) {
-    return { error: 'Server misconfiguration' };
+  const parsed = loginSchema.safeParse({
+    username: formData.get('username') ?? '',
+    password: formData.get('password') ?? '',
+  });
+  if (!parsed.success) {
+    const firstError = Object.values(parsed.error.flatten().fieldErrors)[0]?.[0];
+    return { error: firstError ?? 'Please fill in all fields.' };
   }
+
+  const { username, password } = parsed.data;
+
+  if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.ADMIN_SECRET_KEY) {
+    console.error('Server misconfiguration: missing required ADMIN_* env vars');
+    return { error: 'Login failed' };
+  }
+
+  const expectedUsername = process.env.ADMIN_USERNAME!;
+  const expectedPassword = process.env.ADMIN_PASSWORD!;
+  const secretKey = process.env.ADMIN_SECRET_KEY!;
 
   const usernameOk = safeCompare(username, expectedUsername);
   const passwordOk = safeCompare(password, expectedPassword);

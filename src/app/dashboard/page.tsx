@@ -4,39 +4,26 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, ExternalLink, Pencil, ImageIcon, Search } from "lucide-react";
+import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, ExternalLink, Pencil, ImageIcon, Search, Target } from "lucide-react";
 import type { PortfolioPhoto } from "@/lib/supabase/types";
 import { AdminCRMDashboard } from "@/components/dashboard/admin-crm";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { QuoteRequestsCard } from "@/components/dashboard/quote-requests-card";
+import { LeadCRMTable } from "@/components/dashboard/lead-crm-table";
 
 function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function LeadStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    new:       { label: "New",       cls: "bg-blue-50 text-blue-700 border-blue-200" },
-    viewed:    { label: "Viewed",    cls: "bg-yellow-50 text-yellow-700 border-yellow-200" },
-    contacted: { label: "Contacted", cls: "bg-green-50 text-green-700 border-green-200" },
-    closed:    { label: "Closed",    cls: "bg-neutral-100 text-neutral-500 border-neutral-200" },
-  };
-  const s = map[status] ?? map["new"];
-  return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>{s.label}</span>;
-}
-
-
 async function ContractorDashboard({ userId }: { userId: string }) {
   const supabase = await createClient();
-  const [{ data: contractor }, { data: allLeads }, { data: quoteRecipients }, { data: unreadNotifs }, { data: recentNotifs }] = await Promise.all([
+  const [{ data: contractor }, { data: quoteRecipients }, { data: unreadNotifs }, { data: recentNotifs }] = await Promise.all([
     supabase
       .from("contractors")
       .select("*, categories(name), portfolio_photos(*)")
       .eq("user_id", userId)
       .order("sort_order", { referencedTable: "portfolio_photos", ascending: true })
       .maybeSingle(),
-    supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(50),
     supabase
       .from("quote_request_recipients")
       .select("*, quote_requests(name, email, phone, description, timeline, categories(name))")
@@ -55,27 +42,31 @@ async function ContractorDashboard({ userId }: { userId: string }) {
       .limit(20),
   ]);
 
-  // Fetch reviews after we know the contractor id
   const contractorId = (contractor as any)?.id as string | undefined;
-  const { data: recentReviews } = contractorId
-    ? await supabase
-        .from("reviews")
-        .select("*, profiles(full_name)")
-        .eq("contractor_id", contractorId)
-        .order("created_at", { ascending: false })
-        .limit(10)
-    : { data: [] };
+  const [{ data: myLeads }, { data: recentReviews }] = await Promise.all([
+    contractorId
+      ? supabase.from("leads").select("*").eq("contractor_id", contractorId).order("created_at", { ascending: false }).limit(100)
+      : Promise.resolve({ data: [] as any[] }),
+    contractorId
+      ? supabase.from("reviews").select("*, profiles(full_name)").eq("contractor_id", contractorId).order("created_at", { ascending: false }).limit(10)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
 
   const portfolioPhotos: PortfolioPhoto[] = (contractor as any)?.portfolio_photos ?? [];
-  const myLeads = contractor ? (allLeads ?? []).filter((l: any) => l.contractor_id === contractor.id) : [];
-  const newLeads = myLeads.filter((l: any) => l.status === "new").length;
   const myQuoteRecipients = contractor
     ? (quoteRecipients ?? []).filter((r: any) => r.contractor_id === contractor.id)
     : [];
   const unreadCount = (unreadNotifs ?? []).length;
 
+  const leads = myLeads ?? [];
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const newThisWeek = leads.filter((l: any) => l.status === "new" && l.created_at >= sevenDaysAgo).length;
+  const wonLeads = leads.filter((l: any) => l.status === "won").length;
+  const conversionRate = leads.length > 0 ? Math.round((wonLeads / leads.length) * 100) : null;
+
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Business Dashboard</h1>
@@ -91,6 +82,7 @@ async function ContractorDashboard({ userId }: { userId: string }) {
         </div>
         <div className="flex items-center gap-2">
           <NotificationBell
+            userId={userId}
             initialCount={unreadCount}
             initialNotifications={recentNotifs ?? []}
           />
@@ -100,6 +92,7 @@ async function ContractorDashboard({ userId }: { userId: string }) {
         </div>
       </div>
 
+      {/* No contractor yet — empty state */}
       {!contractor && (
         <div className="space-y-8">
           <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-6 py-12 text-center">
@@ -164,12 +157,13 @@ async function ContractorDashboard({ userId }: { userId: string }) {
         </div>
       )}
 
+      {/* Stats row */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: "Total Leads",  value: myLeads.length, icon: <Inbox className="h-4 w-4" /> },
-          { label: "New Leads",    value: newLeads,        icon: <TrendingUp className="h-4 w-4" />, hi: newLeads > 0 },
-          { label: "Avg Rating",   value: contractor?.avg_rating ? Number(contractor.avg_rating).toFixed(1) : "—", icon: <Star className="h-4 w-4" /> },
-          { label: "Reviews",      value: contractor?.review_count ?? 0, icon: <Users className="h-4 w-4" /> },
+          { label: "Total Leads",      value: leads.length,                                        icon: <Inbox className="h-4 w-4" /> },
+          { label: "New This Week",    value: newThisWeek,                                         icon: <TrendingUp className="h-4 w-4" />, hi: newThisWeek > 0 },
+          { label: "Conversion Rate",  value: conversionRate !== null ? `${conversionRate}%` : "—", icon: <Target className="h-4 w-4" /> },
+          { label: "Avg Rating",       value: contractor?.avg_rating ? Number(contractor.avg_rating).toFixed(1) : "—", icon: <Star className="h-4 w-4" /> },
         ].map((s) => (
           <Card key={s.label} className="border-neutral-200">
             <CardHeader className="pb-2">
@@ -182,48 +176,22 @@ async function ContractorDashboard({ userId }: { userId: string }) {
         ))}
       </div>
 
+      {/* Leads & Pipeline */}
       <Card className="border-neutral-200">
         <CardHeader>
-          <CardTitle className="text-base font-semibold text-neutral-900">Recent Leads</CardTitle>
-          <CardDescription className="text-xs">Customer inquiries sent to your listing</CardDescription>
+          <CardTitle className="text-base font-semibold text-neutral-900">Leads &amp; Pipeline</CardTitle>
+          <CardDescription className="text-xs">Customer inquiries — track status and take notes</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          {myLeads.length === 0 ? (
-            <div className="px-6 py-10 text-center text-sm text-neutral-500">No leads yet — your first inquiry will appear here.</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-neutral-200 text-xs">
-                  <TableHead>Name</TableHead>
-                  <TableHead className="hidden sm:table-cell">Service</TableHead>
-                  <TableHead className="hidden md:table-cell">Contact</TableHead>
-                  <TableHead className="hidden md:table-cell">Date</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {myLeads.slice(0, 20).map((lead: any) => (
-                  <TableRow key={lead.id} className="border-neutral-100">
-                    <TableCell>
-                      <p className="font-medium text-neutral-900">{lead.name}</p>
-                      <p className="text-xs text-neutral-500">{lead.email}</p>
-                    </TableCell>
-                    <TableCell className="hidden text-sm text-neutral-600 sm:table-cell">{lead.service_type ?? "—"}</TableCell>
-                    <TableCell className="hidden text-sm text-neutral-600 md:table-cell">{lead.phone ?? lead.preferred_contact}</TableCell>
-                    <TableCell className="hidden text-xs text-neutral-400 md:table-cell">{formatDate(lead.created_at)}</TableCell>
-                    <TableCell><LeadStatusBadge status={lead.status} /></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+        <CardContent>
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <LeadCRMTable leads={leads as any} />
         </CardContent>
       </Card>
 
-      {/* Quote Requests card */}
+      {/* Quote Requests */}
       <QuoteRequestsCard contractorId={contractor?.id} recipients={myQuoteRecipients} />
 
-      {/* Recent Reviews card */}
+      {/* Recent Reviews */}
       <Card className="border-neutral-200">
         <CardHeader>
           <CardTitle className="text-base font-semibold text-neutral-900">Recent Reviews</CardTitle>
@@ -259,6 +227,7 @@ async function ContractorDashboard({ userId }: { userId: string }) {
         </CardContent>
       </Card>
 
+      {/* Listing / Profile card */}
       {contractor && (
         <Card className="border-neutral-200">
           <CardHeader className="pb-4">
@@ -294,11 +263,11 @@ async function ContractorDashboard({ userId }: { userId: string }) {
           <CardContent className="space-y-5 pt-0">
             <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
               {[
-                { label: "Licensed",          value: contractor.is_licensed ? "Yes" : "No" },
-                { label: "Insured",           value: contractor.is_insured ? "Yes" : "No" },
-                { label: "Yrs Experience",   value: contractor.years_experience ?? "—" },
-                { label: "Yrs in Business",   value: contractor.years_in_business ?? "—" },
-                { label: "Service Areas",     value: contractor.service_areas?.join(", ") || "30A" },
+                { label: "Licensed",        value: contractor.is_licensed ? "Yes" : "No" },
+                { label: "Insured",         value: contractor.is_insured ? "Yes" : "No" },
+                { label: "Yrs Experience",  value: contractor.years_experience ?? "—" },
+                { label: "Yrs in Business", value: contractor.years_in_business ?? "—" },
+                { label: "Service Areas",   value: contractor.service_areas?.join(", ") || "30A" },
               ].map((item) => (
                 <div key={item.label}>
                   <p className="text-xs text-neutral-500">{item.label}</p>

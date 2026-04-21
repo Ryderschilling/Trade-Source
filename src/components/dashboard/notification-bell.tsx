@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, type CSSProperties } from "react";
 import { Bell } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 interface Notification {
   id: string;
+  user_id: string;
   title: string;
   body: string | null;
   link: string | null;
@@ -13,6 +15,7 @@ interface Notification {
 }
 
 interface Props {
+  userId: string;
   initialCount: number;
   initialNotifications: Notification[];
 }
@@ -21,24 +24,61 @@ function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export function NotificationBell({ initialCount, initialNotifications }: Props) {
+export function NotificationBell({ userId, initialCount, initialNotifications }: Props) {
   const [open, setOpen] = useState(false);
   const [count, setCount] = useState(initialCount);
   const [notifications, setNotifications] = useState(initialNotifications);
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const channelName = useRef(`notifications:${userId}:${Math.random().toString(36).slice(2)}`);
 
-  async function handleOpen() {
-    setOpen((prev) => !prev);
-    if (!open && count > 0) {
-      await fetch("/api/notifications/mark-read", { method: "PATCH" });
-      setCount(0);
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(channelName.current)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications" },
+        (payload) => {
+          const newNotif = payload.new as Notification;
+          if (newNotif.user_id !== userId) return;
+          setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
+          setCount((prev) => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  function handleToggle() {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const panelWidth = Math.min(320, window.innerWidth - 16);
+      const rightFromEdge = window.innerWidth - rect.right;
+      setDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + 8,
+        right: Math.max(8, rightFromEdge),
+        width: panelWidth,
+      });
     }
+    setOpen((prev) => !prev);
+  }
+
+  async function handleMarkAllRead() {
+    await fetch("/api/notifications/mark-read", { method: "PATCH" });
+    setCount(0);
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }
 
   return (
-    <div className="relative">
+    <div>
       <button
-        onClick={handleOpen}
+        ref={buttonRef}
+        onClick={handleToggle}
         className="relative flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors"
         aria-label="Notifications"
       >
@@ -52,13 +92,18 @@ export function NotificationBell({ initialCount, initialNotifications }: Props) 
 
       {open && (
         <>
-          <div
-            className="fixed inset-0 z-20"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute right-0 top-10 z-30 w-80 rounded-lg border border-neutral-200 bg-white shadow-lg">
-            <div className="px-4 py-3 border-b border-neutral-100">
+          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <div style={dropdownStyle} className="z-30 rounded-lg border border-neutral-200 bg-white shadow-lg">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100">
               <p className="text-sm font-semibold text-neutral-900">Notifications</p>
+              {notifications.some((n) => !n.read) && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  Mark all as read
+                </button>
+              )}
             </div>
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (

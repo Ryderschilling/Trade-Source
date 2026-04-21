@@ -36,6 +36,8 @@ interface ConversationItem {
   } | null;
   other_user: OtherUser | null;
   last_message: { body: string; created_at: string; is_mine: boolean } | null;
+  // All conversation IDs with this person (populated during dedup)
+  allIds?: string[];
 }
 
 interface ChatMessage {
@@ -305,91 +307,93 @@ function ChatWindow({
   conversation,
   currentUserId,
   onBack,
+  onRead,
 }: {
   conversation: ConversationItem;
   currentUserId: string;
   onBack: () => void;
+  onRead: () => void;
 }) {
-  const supabase = createClient();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
 
+  const allIds = conversation.allIds ?? [conversation.id];
+  const primaryId = conversation.id;
   const name = displayName(conversation.other_user, conversation.quote_request);
 
   const scrollToBottom = useCallback((smooth = false) => {
-    bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "instant" });
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "instant" });
   }, []);
 
-  // Load messages for this conversation
+  function mergeMessages(incoming: ChatMessage[]) {
+    setMessages((prev) => {
+      const ids = new Set(prev.map((m) => m.id));
+      const next = [...prev, ...incoming.filter((m) => !ids.has(m.id))];
+      next.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      messagesRef.current = next;
+      return next;
+    });
+  }
+
+  // Initial load — fetch from all conversation IDs in parallel
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setMessages([]);
+    messagesRef.current = [];
 
-    supabase
-      .from("messages")
-      .select("*")
-      .eq("conversation_id", conversation.id)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        if (!cancelled) {
-          setMessages((data as ChatMessage[]) ?? []);
-          setLoading(false);
-          setTimeout(() => scrollToBottom(), 50);
-        }
-      });
-
-    // Mark as read
-    supabase
-      .from("conversation_participants")
-      .update({ last_read_at: new Date().toISOString() })
-      .eq("conversation_id", conversation.id)
-      .eq("user_id", currentUserId)
-      .then(() => {});
+    Promise.all(
+      allIds.map((cid) =>
+        fetch(`/api/messages?conversation_id=${cid}`)
+          .then((r) => r.json())
+          .then(({ messages }) => (messages as ChatMessage[]) ?? [])
+          .catch(() => [] as ChatMessage[])
+      )
+    ).then((results) => {
+      if (cancelled) return;
+      const all = results.flat();
+      all.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      setMessages(all);
+      messagesRef.current = all;
+      setLoading(false);
+      setTimeout(() => scrollToBottom(), 50);
+      onRead();
+    });
 
     return () => { cancelled = true; };
-  }, [conversation.id, currentUserId, supabase, scrollToBottom]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [primaryId, scrollToBottom]);
 
-  // Realtime subscription
+  // Poll for new messages every 4 seconds across all conversation IDs
   useEffect(() => {
-    const channel = supabase
-      .channel(`messages:${conversation.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversation.id}`,
-        },
-        (payload) => {
-          const msg = payload.new as ChatMessage;
-          setMessages((prev) => {
-            // Deduplicate by id
-            if (prev.some((m) => m.id === msg.id)) return prev;
-            return [...prev, msg];
-          });
-          setTimeout(() => scrollToBottom(true), 50);
-
-          // Mark as read if the new message is from someone else
-          if (msg.sender_id !== currentUserId) {
-            supabase
-              .from("conversation_participants")
-              .update({ last_read_at: new Date().toISOString() })
-              .eq("conversation_id", conversation.id)
-              .eq("user_id", currentUserId)
-              .then(() => {});
-          }
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [conversation.id, currentUserId, supabase, scrollToBottom]);
+    const id = setInterval(() => {
+      const last = messagesRef.current.at(-1);
+      const after = last ? `&after=${encodeURIComponent(last.created_at)}` : "";
+      Promise.all(
+        allIds.map((cid) =>
+          fetch(`/api/messages?conversation_id=${cid}${after}`)
+            .then((r) => r.json())
+            .then(({ messages }) => (messages as ChatMessage[]) ?? [])
+            .catch(() => [] as ChatMessage[])
+        )
+      ).then((results) => {
+        const incoming = results.flat();
+        if (!incoming.length) return;
+        const hadMessages = messagesRef.current.length > 0;
+        mergeMessages(incoming);
+        if (hadMessages) setTimeout(() => scrollToBottom(true), 50);
+      });
+    }, 4000);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [primaryId, scrollToBottom]);
 
   async function handleSend(e?: FormEvent) {
     e?.preventDefault();
@@ -405,9 +409,14 @@ function ChatWindow({
       body: JSON.stringify({ conversation_id: conversation.id, body }),
     });
 
+    const resData = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      setText(body); // restore on error
-      toast.error("Failed to send message");
+      setText(body);
+      toast.error(resData.error ?? "Failed to send message");
+    } else if (resData.message) {
+      mergeMessages([resData.message]);
+      setTimeout(() => scrollToBottom(true), 50);
     }
 
     setSending(false);
@@ -475,7 +484,7 @@ function ChatWindow({
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="h-5 w-5 rounded-full border-2 border-neutral-200 border-t-blue-500 animate-spin" />
@@ -512,7 +521,6 @@ function ChatWindow({
             </div>
           ))
         )}
-        <div ref={bottomRef} />
       </div>
 
       {/* Input */}
@@ -585,13 +593,93 @@ export function MessagesLayout({
   const [conversations, setConversations] = useState(initialConversations);
   const [search, setSearch] = useState("");
   const selectedId = searchParams.get("c");
+  const fetchedIds = useRef(new Set<string>());
 
-  const selectedConversation = conversations.find((c) => c.id === selectedId) ?? null;
+  // Deduplicate: per other_user, keep most recent conversation but track all IDs.
+  // Always surface the most recent last_message across all merged conversations.
+  const deduped = conversations.reduce<ConversationItem[]>((acc, c) => {
+    const key = c.other_user?.id ?? c.id;
+    const existing = acc.findIndex((x) => (x.other_user?.id ?? x.id) === key);
+    if (existing === -1) {
+      acc.push({ ...c, allIds: [c.id] });
+    } else {
+      const prev = acc[existing];
+      const allIds = [...(prev.allIds ?? [prev.id]), c.id];
+      // Pick the best last_message (most recent across both)
+      const prevMsgTime = prev.last_message ? new Date(prev.last_message.created_at).getTime() : -1;
+      const thisMsgTime = c.last_message ? new Date(c.last_message.created_at).getTime() : -1;
+      const bestLastMessage = thisMsgTime > prevMsgTime ? c.last_message : prev.last_message;
+      // Primary is the most recently updated conversation
+      const prevTime = new Date(prev.updated_at).getTime();
+      const thisTime = new Date(c.updated_at).getTime();
+      const primary = thisTime > prevTime ? { ...c } : { ...prev };
+      acc[existing] = { ...primary, allIds, last_message: bestLastMessage };
+    }
+    return acc;
+  }, []);
+
+  // Find in deduped first (has allIds), fall back to raw conversations for freshly-added items
+  const selectedConversation =
+    deduped.find((c) => c.id === selectedId || c.allIds?.includes(selectedId ?? "")) ??
+    conversations.find((c) => c.id === selectedId) ??
+    null;
+
+  // If the URL has a ?c= that isn't in our list (e.g. just created), fetch it client-side
+  useEffect(() => {
+    if (!selectedId) return;
+    if (conversations.some((c) => c.id === selectedId)) return;
+    if (fetchedIds.current.has(selectedId)) return;
+    fetchedIds.current.add(selectedId);
+
+    const client = createClient();
+    Promise.all([
+      client
+        .from("conversations")
+        .select("id, subject, quote_request_id, updated_at, quote_requests(name, description, categories(name))")
+        .eq("id", selectedId)
+        .maybeSingle(),
+      client
+        .from("conversation_participants")
+        .select("conversation_id, user_id, profiles(id, full_name, email, avatar_url)")
+        .eq("conversation_id", selectedId)
+        .neq("user_id", currentUserId),
+    ]).then(([{ data: convoData }, { data: coParticipants }]) => {
+      if (!convoData) return;
+      const otherParticipant = (coParticipants ?? [])[0];
+      const item: ConversationItem = {
+        id: convoData.id,
+        subject: (convoData as any).subject ?? null,
+        quote_request_id: (convoData as any).quote_request_id ?? null,
+        updated_at: (convoData as any).updated_at,
+        last_read_at: new Date().toISOString(),
+        quote_request: (convoData as any).quote_requests ?? null,
+        other_user: (otherParticipant as any)?.profiles ?? null,
+        last_message: null,
+      };
+      setConversations((prev) => {
+        if (prev.some((c) => c.id === item.id)) return prev;
+        return [item, ...prev];
+      });
+    });
+  }, [selectedId, conversations, currentUserId]);
 
   function handleSelect(id: string) {
+    // Optimistically mark the conversation as read in local state so the
+    // sidebar blue dot disappears immediately without waiting for a refresh.
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, last_read_at: new Date().toISOString() } : c
+      )
+    );
     const params = new URLSearchParams(searchParams.toString());
     params.set("c", id);
     router.push(`/messages?${params.toString()}`, { scroll: false });
+  }
+
+  function handleRead() {
+    // Re-fetch server components so the navbar blue dot reflects the updated
+    // last_read_at that the messages API just wrote to the DB.
+    router.refresh();
   }
 
   function handleBack() {
@@ -601,8 +689,8 @@ export function MessagesLayout({
   // Subscribe to conversation updates (for last-message preview refresh)
   const supabase = createClient();
   useEffect(() => {
-    if (initialConversations.length === 0) return;
-    const ids = initialConversations.map((c) => c.id);
+    if (conversations.length === 0) return;
+    const ids = conversations.map((c) => c.id);
 
     const channel = supabase
       .channel("conversations:all")
@@ -655,7 +743,7 @@ export function MessagesLayout({
     <div className="flex h-[calc(100dvh-4rem)] overflow-hidden bg-white">
       {/* Sidebar */}
       <Sidebar
-        conversations={conversations}
+        conversations={deduped}
         selectedId={selectedId}
         currentUserId={currentUserId}
         search={search}
@@ -674,6 +762,7 @@ export function MessagesLayout({
           conversation={selectedConversation}
           currentUserId={currentUserId}
           onBack={handleBack}
+          onRead={handleRead}
         />
       ) : (
         <EmptyState className="hidden md:flex flex-1" />

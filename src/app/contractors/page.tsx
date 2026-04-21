@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { ContractorCard } from "@/components/contractors/contractor-card";
+import { ContractorCard, ContractorCardSkeleton } from "@/components/contractors/contractor-card";
 import { ContractorSearchBar } from "@/components/contractors/search-bar";
 import { QuoteRequestBanner } from "@/components/quote-request-banner";
 import { MobileCategoryNav } from "@/components/contractors/mobile-category-nav";
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ category?: string; search?: string }>;
+  searchParams: Promise<{ category?: string; search?: string; q?: string; zip?: string }>;
 }
 
 function CategoryIcon({ name, className }: { name: string; className?: string }) {
@@ -36,14 +37,166 @@ const FALLBACK_GROUPS = [
   { id: "home-services",     name: "Home Services",        icon: "Sparkles",  slugs: ["cleaning","pest-control","handyman"] },
 ];
 
+interface ContractorGridProps {
+  searchTerm: string;
+  zipTerm: string;
+  activeCategory: { id: string; name: string; description?: string | null } | null;
+  allCategories: { id: string; name: string }[];
+  userProfile: { full_name: string | null; email: string | null; phone: string | null } | null;
+}
+
+async function ContractorGrid({ searchTerm, zipTerm, activeCategory, allCategories, userProfile }: ContractorGridProps) {
+  const supabase = await createClient();
+  let contractors: ContractorWithCategory[] = [];
+
+  if (searchTerm) {
+    const qLower = searchTerm.toLowerCase();
+    const matchingCatIds = allCategories
+      .filter((c) => c.name.toLowerCase().includes(qLower))
+      .map((c) => c.id);
+
+    const orParts = [
+      `business_name.ilike.%${searchTerm}%`,
+      `tagline.ilike.%${searchTerm}%`,
+    ];
+    if (matchingCatIds.length > 0) {
+      orParts.push(`category_id.in.(${matchingCatIds.join(",")})`);
+    }
+
+    let query = supabase
+      .from("contractors")
+      .select("*, categories(*)")
+      .eq("status", "active")
+      .or(orParts.join(","));
+
+    if (zipTerm) query = query.contains("service_areas", [zipTerm]);
+
+    const { data } = await query
+      .order("is_featured", { ascending: false })
+      .order("avg_rating", { ascending: false, nullsFirst: false })
+      .order("review_count", { ascending: false });
+    contractors = (data ?? []) as ContractorWithCategory[];
+  } else if (activeCategory) {
+    let query = supabase
+      .from("contractors")
+      .select("*, categories(*)")
+      .eq("status", "active")
+      .or(`category_id.eq.${activeCategory.id},additional_categories.cs.{${activeCategory.id}}`);
+
+    if (zipTerm) query = query.contains("service_areas", [zipTerm]);
+
+    const { data } = await query
+      .order("is_featured", { ascending: false })
+      .order("avg_rating", { ascending: false, nullsFirst: false })
+      .order("review_count", { ascending: false });
+    contractors = (data ?? []) as ContractorWithCategory[];
+  }
+
+  if (searchTerm) {
+    return (
+      <>
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="font-semibold text-neutral-900">Search results</h2>
+            <p className="text-sm text-muted-foreground">
+              {contractors.length} contractor{contractors.length !== 1 ? "s" : ""} matching &quot;{searchTerm}&quot;{zipTerm ? ` near ${zipTerm}` : ""}
+            </p>
+          </div>
+        </div>
+        {contractors.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {contractors.map((contractor) => (
+              <ContractorCard key={contractor.id} contractor={contractor} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
+            <p className="text-lg font-medium text-neutral-700">No results found</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Try a different search term or browse by category.
+            </p>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  if (!activeCategory) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
+        <p className="text-lg font-medium text-neutral-700">Select a trade to get started</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Choose a category above to browse local contractors.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {contractors.length > 0 && (
+        <QuoteRequestBanner
+          categoryId={activeCategory.id}
+          categoryName={activeCategory.name}
+          contractors={contractors.map((c) => ({
+            id: c.id,
+            business_name: c.business_name,
+            is_active: c.status === "active",
+          }))}
+          defaultName={userProfile?.full_name ?? undefined}
+          defaultEmail={userProfile?.email ?? undefined}
+          defaultPhone={userProfile?.phone ?? undefined}
+        />
+      )}
+
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="font-semibold text-neutral-900">{activeCategory.name}</h2>
+          <p className="text-sm text-muted-foreground">
+            {contractors.length} contractor{contractors.length !== 1 ? "s" : ""} found
+          </p>
+        </div>
+      </div>
+
+      {contractors.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {contractors.map((contractor) => (
+            <ContractorCard key={contractor.id} contractor={contractor} />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-border p-16 text-center">
+          <p className="text-muted-foreground">
+            No contractors listed for this category yet.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Are you a local tradesman?{" "}
+            <Link href="/join" className="text-primary hover:underline">List your business</Link>
+          </p>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ContractorGridSkeleton() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <ContractorCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
 export default async function ContractorsPage({ searchParams }: PageProps) {
-  const { category: categorySlug, search: searchQuery } = await searchParams;
-  const searchTerm = searchQuery?.trim() ?? "";
+  const { category: categorySlug, search: searchQuery, q: qParam, zip: zipParam } = await searchParams;
+  const searchTerm = (qParam ?? searchQuery)?.trim() ?? "";
+  const zipTerm = zipParam?.trim() ?? "";
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Fetch everything in parallel
   const [
     { data: groups },
     { data: allCategories },
@@ -60,49 +213,22 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
 
   const userProfile = profileResult.data ?? null;
 
-  // Count active contractors per category
   const countByCategory: Record<string, number> = {};
   for (const c of contractorCountRows ?? []) {
     if (c.category_id) countByCategory[c.category_id] = (countByCategory[c.category_id] ?? 0) + 1;
   }
 
-  const activeCategory = (allCategories ?? []).find((c: any) => c.slug === categorySlug);
-
-  // Fetch contractors for the selected category
-  let contractors: ContractorWithCategory[] = [];
-  if (searchTerm) {
-    const { data } = await supabase
-      .from("contractors")
-      .select("*, categories(*)")
-      .eq("status", "active")
-      .order("is_featured", { ascending: false })
-      .order("avg_rating", { ascending: false, nullsFirst: false })
-      .order("review_count", { ascending: false });
-    const q = searchTerm.toLowerCase();
-    contractors = (data ?? []).filter((c: any) =>
-      c.business_name.toLowerCase().includes(q) ||
-      (c.service_areas as string[]).some((area) => area.toLowerCase().includes(q)) ||
-      c.tagline?.toLowerCase().includes(q)
-    ) as ContractorWithCategory[];
-  } else if (activeCategory) {
-    const { data } = await supabase
-      .from("contractors")
-      .select("*, categories(*)")
-      .eq("status", "active")
-      .or(`category_id.eq.${activeCategory.id},additional_categories.cs.{${activeCategory.id}}`)
-      .order("is_featured", { ascending: false })
-      .order("avg_rating", { ascending: false, nullsFirst: false })
-      .order("review_count", { ascending: false });
-    contractors = (data ?? []) as ContractorWithCategory[];
+  let activeCategory = (allCategories ?? []).find((c: any) => c.slug === categorySlug);
+  if (!activeCategory && searchTerm) {
+    const qLower = searchTerm.toLowerCase();
+    activeCategory = (allCategories ?? []).find((c: any) => c.name.toLowerCase() === qLower);
   }
 
-  // Build grouped sidebar structure
   const hasGroups = (groups ?? []).length > 0;
 
   let sidebarGroups: { id: string; name: string; icon: string; categories: any[] }[];
 
   if (hasGroups) {
-    // Use DB groups
     const catsByGroupId: Record<string, any[]> = {};
     for (const cat of allCategories ?? []) {
       const gid = (cat as any).group_id ?? "__none__";
@@ -116,7 +242,6 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
       categories: catsByGroupId[g.id] ?? [],
     }));
   } else {
-    // Fallback: hard-coded group structure, match by slug
     const catBySlug: Record<string, any> = {};
     for (const cat of allCategories ?? []) catBySlug[(cat as any).slug] = cat;
     sidebarGroups = FALLBACK_GROUPS.map((g) => ({
@@ -127,7 +252,6 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
     })).filter((g) => g.categories.length > 0);
   }
 
-  // Determine which group the active category belongs to (for auto-open)
   const activeGroupId = hasGroups
     ? (activeCategory as any)?.group_id
     : FALLBACK_GROUPS.find((g) => g.slugs.includes(categorySlug ?? ""))?.id;
@@ -140,12 +264,12 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-bold tracking-tight">Find a Contractor</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {searchTerm
-              ? `Showing results for "${searchTerm}"`
+              ? `Showing results for "${searchTerm}"${zipTerm ? ` near ${zipTerm}` : ""}`
               : activeCategory
-              ? `${activeCategory.description ?? ""} Serving 30A and Northwest Florida.`
+              ? `${(activeCategory as any).description ?? ""} Serving 30A and Northwest Florida.`
               : "Browse trusted local tradesmen serving 30A and Northwest Florida."}
           </p>
-          <ContractorSearchBar defaultValue={searchTerm} />
+          <ContractorSearchBar defaultValue={searchTerm} defaultZip={zipTerm} />
         </div>
       </div>
 
@@ -211,84 +335,15 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
 
           {/* Main content */}
           <div className="flex-1 min-w-0">
-            {searchTerm ? (
-              <>
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <h2 className="font-semibold text-neutral-900">Search results</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {contractors.length} contractor{contractors.length !== 1 ? "s" : ""} matching &quot;{searchTerm}&quot;
-                    </p>
-                  </div>
-                </div>
-                {contractors.length > 0 ? (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {contractors.map((contractor) => (
-                      <ContractorCard key={contractor.id} contractor={contractor} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
-                    <p className="text-lg font-medium text-neutral-700">No results found</p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Try a different search term or browse by category.
-                    </p>
-                  </div>
-                )}
-              </>
-            ) : !activeCategory ? (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
-                <p className="text-lg font-medium text-neutral-700">Select a trade to get started</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Choose a category above to browse local contractors.
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Quote request banner */}
-                {contractors.length > 0 && (
-                  <QuoteRequestBanner
-                    categoryId={activeCategory.id}
-                    categoryName={activeCategory.name}
-                    contractors={contractors.map((c) => ({
-                      id: c.id,
-                      business_name: c.business_name,
-                      is_active: c.status === "active",
-                    }))}
-                    defaultName={userProfile?.full_name ?? undefined}
-                    defaultEmail={userProfile?.email ?? undefined}
-                    defaultPhone={userProfile?.phone ?? undefined}
-                  />
-                )}
-
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <h2 className="font-semibold text-neutral-900">{activeCategory.name}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {contractors.length} contractor{contractors.length !== 1 ? "s" : ""} found
-                    </p>
-                  </div>
-                </div>
-
-                {contractors.length > 0 ? (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {contractors.map((contractor) => (
-                      <ContractorCard key={contractor.id} contractor={contractor} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-border p-16 text-center">
-                    <p className="text-muted-foreground">
-                      No contractors listed for this category yet.
-                    </p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Are you a local tradesman?{" "}
-                      <Link href="/join" className="text-primary hover:underline">List your business</Link>
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
+            <Suspense fallback={<ContractorGridSkeleton />}>
+              <ContractorGrid
+                searchTerm={searchTerm}
+                zipTerm={zipTerm}
+                activeCategory={activeCategory ?? null}
+                allCategories={(allCategories ?? []) as { id: string; name: string }[]}
+                userProfile={userProfile}
+              />
+            </Suspense>
           </div>
         </div>
       </div>

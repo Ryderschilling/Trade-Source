@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+const ratelimit = new Ratelimit({
+  redis: new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  }),
+  limiter: Ratelimit.slidingWindow(5, "10 m"),
+  prefix: "rl:quote-request",
+});
 
 const schema = z.object({
   category_id: z.string().uuid(),
@@ -15,10 +26,21 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+      ?? req.headers.get("x-real-ip")
+      ?? "anonymous";
+    const { success } = await ratelimit.limit(ip);
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const raw = await req.json();
 
     // Honeypot: real users leave this empty; silently discard bot submissions
-    if (raw.website) {
+    if (raw.referral_source) {
       return NextResponse.json({ success: true, request_id: null });
     }
 
@@ -74,6 +96,23 @@ export async function POST(req: NextRequest) {
       console.error("recipient insert error:", recipientError);
     }
 
+    // Create a lead for each contractor so it appears in their pipeline
+    const leadRows = contractor_ids.map((contractor_id: string) => ({
+      contractor_id,
+      name,
+      email,
+      phone: phone ?? null,
+      message: description,
+      service_type: category?.name ?? null,
+      preferred_contact: phone ? "either" : "email",
+      status: "new",
+    }));
+
+    const { error: leadError } = await supabase.from("leads").insert(leadRows as any);
+    if (leadError) {
+      console.error("lead insert error:", leadError);
+    }
+
     // Fetch contractor details for notifications + emails
     const { data: contractors } = await supabase
       .from("contractors")
@@ -81,7 +120,7 @@ export async function POST(req: NextRequest) {
       .in("id", contractor_ids);
 
     const categoryName = category?.name ?? "your trade";
-    const truncatedDesc = description.length > 120 ? description.slice(0, 117) + "…" : description;
+    const truncatedDesc = description.length > 117 ? description.slice(0, 114) + "…" : description;
     const timelineLabel = timeline ?? "Not specified";
 
     // Insert notifications + send emails

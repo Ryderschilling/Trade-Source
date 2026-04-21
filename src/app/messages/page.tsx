@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { MessagesLayout } from "@/components/messages/messages-layout";
 
 export const metadata: Metadata = { title: "Messages" };
@@ -12,8 +12,11 @@ export default async function MessagesPage() {
 
   if (!user) redirect("/login");
 
+  // Use service client to bypass potential RLS issues with server-side session
+  const service = await createServiceClient();
+
   // Get all conversations this user participates in
-  const { data: participations } = await supabase
+  const { data: participations } = await service
     .from("conversation_participants")
     .select("conversation_id, last_read_at")
     .eq("user_id", user.id);
@@ -24,7 +27,7 @@ export default async function MessagesPage() {
   const [{ data: conversations }, { data: coParticipants }, { data: allMessages }] =
     await Promise.all([
       conversationIds.length > 0
-        ? supabase
+        ? service
             .from("conversations")
             .select("id, subject, quote_request_id, updated_at, quote_requests(name, description, categories(name))")
             .in("id", conversationIds)
@@ -32,7 +35,7 @@ export default async function MessagesPage() {
         : Promise.resolve({ data: [] }),
 
       conversationIds.length > 0
-        ? supabase
+        ? service
             .from("conversation_participants")
             .select("conversation_id, user_id, profiles(id, full_name, email, avatar_url)")
             .in("conversation_id", conversationIds)
@@ -40,7 +43,7 @@ export default async function MessagesPage() {
         : Promise.resolve({ data: [] }),
 
       conversationIds.length > 0
-        ? supabase
+        ? service
             .from("messages")
             .select("id, conversation_id, body, created_at, sender_id")
             .in("conversation_id", conversationIds)

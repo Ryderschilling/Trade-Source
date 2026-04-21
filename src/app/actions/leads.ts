@@ -7,13 +7,12 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const leadSchema = z.object({
-  contractor_id: z.string().uuid(),
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email("Valid email required"),
+  name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name must be 100 characters or fewer"),
+  email: z.string().email("Enter a valid email address"),
   phone: z.string().optional(),
-  message: z.string().min(10, "Please describe your project (min 10 chars)"),
-  service_type: z.string().optional(),
-  preferred_contact: z.enum(["email", "phone", "either"]).default("either"),
+  description: z.string().min(10, "Please describe your project (min 10 characters)").max(2000, "Description must be 2000 characters or fewer"),
+  contractor_id: z.string().uuid("Invalid contractor"),
+  category_id: z.string().uuid("Invalid category"),
 });
 
 export type LeadFormState = {
@@ -31,13 +30,12 @@ export async function submitLead(
   if (!user) return { success: false, error: "You must be signed in to request a quote." };
 
   const raw = {
-    contractor_id: formData.get("contractor_id") as string,
     name: formData.get("name") as string,
     email: formData.get("email") as string,
     phone: (formData.get("phone") as string) || undefined,
-    message: formData.get("message") as string,
-    service_type: (formData.get("service_type") as string) || undefined,
-    preferred_contact: (formData.get("preferred_contact") as string) || "either",
+    description: formData.get("description") as string,
+    contractor_id: formData.get("contractor_id") as string,
+    category_id: formData.get("category_id") as string,
   };
 
   const parsed = leadSchema.safeParse(raw);
@@ -62,12 +60,11 @@ export async function submitLead(
 
   const { error: insertError } = await supabase.from("leads").insert({
     contractor_id: parsed.data.contractor_id,
+    category_id: parsed.data.category_id,
     name: parsed.data.name,
     email: parsed.data.email,
     phone: parsed.data.phone ?? null,
-    message: parsed.data.message,
-    service_type: parsed.data.service_type ?? null,
-    preferred_contact: parsed.data.preferred_contact,
+    description: parsed.data.description,
   });
 
   if (insertError) {
@@ -77,7 +74,7 @@ export async function submitLead(
 
   // Create in-app notification for contractor
   if (contractor?.user_id) {
-    const truncated = parsed.data.message.length > 120 ? parsed.data.message.slice(0, 117) + "…" : parsed.data.message;
+    const truncated = parsed.data.description.length > 120 ? parsed.data.description.slice(0, 117) + "…" : parsed.data.description;
     await supabase.from("notifications").insert({
       user_id: contractor.user_id,
       type: "lead",
@@ -102,11 +99,9 @@ export async function submitLead(
             <p><strong>From:</strong> ${parsed.data.name}</p>
             <p><strong>Email:</strong> ${parsed.data.email}</p>
             ${parsed.data.phone ? `<p><strong>Phone:</strong> ${parsed.data.phone}</p>` : ""}
-            ${parsed.data.service_type ? `<p><strong>Service needed:</strong> ${parsed.data.service_type}</p>` : ""}
-            <p><strong>Preferred contact:</strong> ${parsed.data.preferred_contact}</p>
-            <p><strong>Message:</strong></p>
+            <p><strong>Description:</strong></p>
             <blockquote style="border-left:3px solid #e2e8f0;margin:0;padding:8px 16px;color:#64748b">
-              ${parsed.data.message.replace(/\n/g, "<br/>")}
+              ${parsed.data.description.replace(/\n/g, "<br/>")}
             </blockquote>
             <hr />
             <p style="color:#64748b;font-size:14px">

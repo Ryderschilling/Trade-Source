@@ -70,10 +70,12 @@ function Lightbox({
         className="flex flex-col items-center"
         style={{ maxWidth: "90vw", maxHeight: "90vh" }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={photos[index].url}
-          alt={photos[index].caption ?? `${businessName} work`}
+          alt={photos[index].caption ?? `${businessName} portfolio image ${index + 1}`}
+          width={1600}
+          height={1200}
+          sizes="90vw"
           style={{
             maxWidth: "90vw",
             maxHeight: "85vh",
@@ -154,8 +156,9 @@ export function PortfolioGallery({
           >
             <Image
               src={photo.url}
-              alt={photo.caption ?? `${businessName} work`}
+              alt={photo.caption ?? `${businessName} portfolio image ${i + 1}`}
               fill
+              sizes="(min-width: 640px) 33vw, 50vw"
               className="object-cover transition-transform duration-200 group-hover:scale-105"
             />
           </button>

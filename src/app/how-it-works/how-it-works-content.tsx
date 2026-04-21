@@ -7,6 +7,35 @@ import { FadeUp } from "@/components/ui/fade-up";
 
 const TradeMap = dynamic(() => import("@/components/trade-map"), { ssr: false });
 
+interface MapPin {
+  id: string;
+  name: string;
+  trade: string;
+  slug: string;
+  lng: number;
+  lat: number;
+}
+
+// ── Static topo-map path data (computed once at module load to avoid SSR/client mismatch) ──
+const TOPO_PATHS: string[] = Array.from({ length: 32 }).map((_, row) => {
+  const baseY = -20 + row * 19;
+  const xs = [0, 80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880, 960, 1040, 1120, 1200, 1280, 1360, 1440, 1500];
+  const ys = xs.map((x) => {
+    const v =
+      22 * Math.sin(x * 0.005 + row * 0.62) +
+      12 * Math.sin(x * 0.013 + row * 1.1 + 1.8) +
+      7  * Math.sin(x * 0.028 + row * 0.38 + 3.3) +
+      4  * Math.sin(x * 0.048 + row * 1.7 + 0.9);
+    return baseY + v;
+  });
+  let d = `M${xs[0]},${ys[0]}`;
+  for (let i = 1; i < xs.length; i++) {
+    const w = xs[i] - xs[i - 1];
+    d += ` C${xs[i-1] + w * 0.35},${ys[i-1]} ${xs[i-1] + w * 0.65},${ys[i]} ${xs[i]},${ys[i]}`;
+  }
+  return d;
+});
+
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
 
 function IconSearch() {
@@ -157,7 +186,7 @@ const valueProps = [
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export function HowItWorksContent() {
+export function HowItWorksContent({ mapPins = [] }: { mapPins?: MapPin[] }) {
   return (
     <div className="min-h-screen bg-white">
 
@@ -172,24 +201,9 @@ export function HowItWorksContent() {
             xmlns="http://www.w3.org/2000/svg"
           >
             <g stroke="white" strokeWidth="0.75" fill="none" opacity="0.18">
-              {Array.from({ length: 32 }).map((_, row) => {
-                const baseY = -20 + row * 19;
-                const xs = [0, 80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880, 960, 1040, 1120, 1200, 1280, 1360, 1440, 1500];
-                const ys = xs.map((x) => {
-                  const v =
-                    22 * Math.sin(x * 0.005 + row * 0.62) +
-                    12 * Math.sin(x * 0.013 + row * 1.1 + 1.8) +
-                    7  * Math.sin(x * 0.028 + row * 0.38 + 3.3) +
-                    4  * Math.sin(x * 0.048 + row * 1.7 + 0.9);
-                  return baseY + v;
-                });
-                let d = `M${xs[0]},${ys[0]}`;
-                for (let i = 1; i < xs.length; i++) {
-                  const w = xs[i] - xs[i - 1];
-                  d += ` C${xs[i-1] + w * 0.35},${ys[i-1]} ${xs[i-1] + w * 0.65},${ys[i]} ${xs[i]},${ys[i]}`;
-                }
-                return <path key={row} d={d} />;
-              })}
+              {TOPO_PATHS.map((d, row) => (
+                <path key={row} d={d} />
+              ))}
               {/* Closed hilltop loops */}
               <ellipse cx="310" cy="130" rx="62" ry="28" transform="rotate(-8 310 130)" />
               <ellipse cx="310" cy="130" rx="38" ry="16" transform="rotate(-8 310 130)" />
@@ -311,7 +325,7 @@ export function HowItWorksContent() {
 
           <FadeUp delay={0.2} duration={0.9}>
             <div className="rounded-2xl overflow-hidden border border-white/10">
-              <TradeMap />
+              <TradeMap pins={mapPins} />
             </div>
           </FadeUp>
         </div>

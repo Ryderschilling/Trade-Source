@@ -58,7 +58,7 @@ export function Hero() {
             style={anim(300)}
           >
             Vetted electricians, plumbers, HVAC pros, and handymen serving the
-            Panhande. One search. Real reviews. No lead-gen spam.
+            Panhandle. One search. Real reviews. No lead-gen spam.
           </p>
 
           {/* Search form */}

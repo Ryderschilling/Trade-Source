@@ -32,6 +32,16 @@ export async function POST(req: NextRequest) {
 
   const service = await createServiceClient();
 
+  // Verify both users exist in profiles
+  const { data: profiles } = await service
+    .from("profiles")
+    .select("id")
+    .in("id", [user.id, other_user_id]);
+
+  if (!profiles || profiles.length < 2) {
+    return NextResponse.json({ error: "One or more users not found" }, { status: 400 });
+  }
+
   // Find conversations this user is in
   const { data: myParticipations } = await service
     .from("conversation_participants")

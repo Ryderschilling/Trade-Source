@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -19,6 +20,30 @@ function initials(name?: string | null) {
 }
 
 interface Props { params: Promise<{ id: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, avatar_url, bio")
+    .eq("id", id)
+    .single();
+
+  if (!profile) return { title: "Profile Not Found" };
+
+  const name = (profile as any).full_name ?? "Trade Source Member";
+  const metadata: Metadata = {
+    title: `${name} — Trade Source`,
+    description: (profile as any).bio ?? `View ${name}'s profile on Trade Source`,
+  };
+
+  if ((profile as any).avatar_url) {
+    metadata.openGraph = { images: [(profile as any).avatar_url] };
+  }
+
+  return metadata;
+}
 
 export default async function ProfilePage({ params }: Props) {
   const { id } = await params;

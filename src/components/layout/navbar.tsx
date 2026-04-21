@@ -25,6 +25,7 @@ interface NavbarProps {
   userId?: string | null;
   hasBusiness?: boolean;
   unreadCount?: number;
+  unreadMessages?: number;
   notifications?: NavNotification[];
 }
 
@@ -37,7 +38,7 @@ function AvatarInitials({ email }: { email: string }) {
   );
 }
 
-function UserMenu({ userEmail, userId, hasBusiness, onSignOut }: { userEmail: string; userId: string | null | undefined; hasBusiness: boolean; onSignOut: () => void }) {
+function UserMenu({ userEmail, userId, hasBusiness, unreadMessages, onSignOut }: { userEmail: string; userId: string | null | undefined; hasBusiness: boolean; unreadMessages: number; onSignOut: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -86,6 +87,9 @@ function UserMenu({ userEmail, userId, hasBusiness, onSignOut }: { userEmail: st
             >
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
               Messages
+              {unreadMessages > 0 && (
+                <span className="ml-auto h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />
+              )}
             </Link>
           )}
           {userId && (
@@ -123,7 +127,7 @@ function UserMenu({ userEmail, userId, hasBusiness, onSignOut }: { userEmail: st
   );
 }
 
-export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0, notifications = [] }: NavbarProps) {
+export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0, unreadMessages = 0, notifications = [] }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -169,8 +173,8 @@ export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0
         <div className="hidden md:flex items-center gap-2">
           {userEmail ? (
             <>
-              <NotificationBell initialCount={unreadCount} initialNotifications={notifications} />
-              <UserMenu userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} onSignOut={handleSignOut} />
+              <NotificationBell userId={userId!} initialCount={unreadCount} initialNotifications={notifications} />
+              <UserMenu userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} unreadMessages={unreadMessages} onSignOut={handleSignOut} />
             </>
           ) : (
             <>
@@ -235,6 +239,9 @@ export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0
                       <Button variant="ghost" size="sm" className="w-full justify-start">
                         <MessageSquare className="mr-2 h-4 w-4" />
                         Messages
+                        {unreadMessages > 0 && (
+                          <span className="ml-auto h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />
+                        )}
                       </Button>
                     </Link>
                   )}

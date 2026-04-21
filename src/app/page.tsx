@@ -6,6 +6,8 @@ import { Hero } from "@/components/hero";
 import { TradeCategoriesGrid } from "@/components/home/trade-categories-grid";
 import { HowItWorksSteps } from "@/components/home/how-it-works-steps";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
+import TradeMapClient from "@/components/trade-map-client";
+import { getContractorPins } from "@/lib/map-pins";
 
 export const metadata: Metadata = {
   title: "Trade Source | Find Trusted Local Contractors Near 30A & NW Florida",
@@ -54,7 +56,9 @@ const HOW_IT_WORKS = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const pins = await getContractorPins();
+
   return (
     <>
       <script
@@ -202,6 +206,37 @@ export default function HomePage() {
           </div>
 
           <HowItWorksSteps steps={HOW_IT_WORKS} />
+        </div>
+      </section>
+
+      {/* Map — local business coverage */}
+      <section className="py-12 sm:py-20 bg-background">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6">
+          <ScrollReveal>
+            <div className="text-center mb-8 sm:mb-10">
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Local pros across 30A & the Emerald Coast
+              </h2>
+              <p className="mt-2 text-muted-foreground text-base sm:mt-3 sm:text-lg max-w-2xl mx-auto">
+                Every business on Trade Source serves this community. Browse
+                contractors covering Santa Rosa Beach, Destin, Fort Walton
+                Beach, and every neighborhood in between.
+              </p>
+            </div>
+
+            <div className="rounded-xl overflow-hidden border border-border shadow-sm">
+              <TradeMapClient pins={pins} />
+            </div>
+
+            <div className="mt-6 text-center">
+              <Link href="/contractors">
+                <Button variant="outline" size="lg">
+                  View all local businesses
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 

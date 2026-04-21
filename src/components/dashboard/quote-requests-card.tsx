@@ -30,9 +30,12 @@ function QuoteRequestRow({ r }: { r: Recipient }) {
 
   return (
     <div className="border-b border-neutral-100 last:border-0">
-      <button
-        className="w-full text-left px-6 py-4 flex items-start gap-3 hover:bg-neutral-50 transition-colors"
+      <div
+        role="button"
+        tabIndex={0}
+        className="w-full text-left px-6 py-4 flex items-start gap-3 hover:bg-neutral-50 transition-colors cursor-pointer"
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((v) => !v); } }}
       >
         <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-1 sm:gap-4 items-start">
           <div className="min-w-0">
@@ -60,7 +63,7 @@ function QuoteRequestRow({ r }: { r: Recipient }) {
             )}
           </div>
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="px-6 pb-5 bg-neutral-50 border-t border-neutral-100">

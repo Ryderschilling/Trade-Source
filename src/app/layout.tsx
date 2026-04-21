@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { IntroAnimation } from "@/components/intro-animation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { APP_NAME, APP_TAGLINE, APP_URL } from "@/lib/constants";
 import { headers } from "next/headers";
 
@@ -68,6 +68,7 @@ export default async function RootLayout({
   let userId: string | null = null;
   let hasBusiness = false;
   let unreadCount = 0;
+  let unreadMessages = 0;
   let navNotifications: Array<{ id: string; title: string; body: string | null; link: string | null; read: boolean; created_at: string }> = [];
 
   if (
@@ -90,6 +91,32 @@ export default async function RootLayout({
         hasBusiness = Array.isArray(contractorData) && contractorData.length > 0;
         unreadCount = (unread ?? []).length;
         navNotifications = notifs ?? [];
+
+        // Count conversations with unread messages
+        const service = await createServiceClient();
+        const { data: participations } = await service
+          .from("conversation_participants")
+          .select("conversation_id, last_read_at")
+          .eq("user_id", userId);
+        const convIds = (participations ?? []).map((p: any) => p.conversation_id);
+        if (convIds.length > 0) {
+          const { data: latestMsgs } = await service
+            .from("messages")
+            .select("conversation_id, sender_id, created_at")
+            .in("conversation_id", convIds)
+            .neq("sender_id", userId)
+            .order("created_at", { ascending: false });
+          const latestPerConvo: Record<string, string> = {};
+          for (const msg of latestMsgs ?? []) {
+            const m = msg as { conversation_id: string; created_at: string };
+            if (!latestPerConvo[m.conversation_id]) latestPerConvo[m.conversation_id] = m.created_at;
+          }
+          for (const p of participations ?? []) {
+            const pp = p as { conversation_id: string; last_read_at: string };
+            const latest = latestPerConvo[pp.conversation_id];
+            if (latest && new Date(latest) > new Date(pp.last_read_at)) unreadMessages++;
+          }
+        }
       }
     } catch {
       // Keep public pages renderable even if auth is misconfigured in production.
@@ -110,7 +137,7 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <IntroAnimation>
-            <Navbar userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} unreadCount={unreadCount} notifications={navNotifications} />
+            <Navbar userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} unreadCount={unreadCount} unreadMessages={unreadMessages} notifications={navNotifications} />
             <main className="flex-1">{children}</main>
             <Footer />
           </IntroAnimation>

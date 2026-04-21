@@ -28,7 +28,7 @@ type ReviewWithProfile = {
 };
 
 type FullContractor = Contractor & {
-  categories: Category;
+  categories: Category | null;
   reviews: ReviewWithProfile[];
   portfolio_photos: PortfolioPhoto[];
 };
@@ -102,8 +102,34 @@ export default async function ContractorProfilePage({ params }: PageProps) {
     .join("")
     .toUpperCase();
 
+  const jsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: c.business_name,
+    description: c.description ?? undefined,
+    url: `https://sourceatrade.com/contractors/${c.slug}`,
+    telephone: c.phone ?? undefined,
+    address: {
+      "@type": "PostalAddress",
+      addressRegion: "FL",
+      addressLocality: "30A area",
+    },
+  };
+
+  if (c.avg_rating !== null && c.review_count > 0) {
+    jsonLd.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: c.avg_rating,
+      reviewCount: c.review_count,
+    };
+  }
+
   return (
     <div className="min-h-screen bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <ViewTracker contractorId={c.id} />
       {/* Cover image */}
       {c.cover_url && (
@@ -142,7 +168,7 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                 </div>
 
                 <p className="text-muted-foreground mt-0.5">
-                  {c.categories.name}
+                  {c.categories?.name ?? "Unknown Category"}
                 </p>
 
                 {c.tagline && (
@@ -386,7 +412,7 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                 {user ? (
                   <QuoteRequestForm
                     contractorId={c.id}
-                    categoryId={c.categories.id}
+                    categoryId={c.categories?.id ?? ""}
                     businessName={c.business_name}
                     defaultName={userProfile?.full_name ?? undefined}
                     defaultEmail={userProfile?.email ?? undefined}

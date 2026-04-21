@@ -45,7 +45,7 @@ export function QuoteRequestForm({
   defaultPhone,
 }: Props) {
   const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
-  const websiteRef = useRef<HTMLInputElement>(null);
+  const referralSourceRef = useRef<HTMLInputElement>(null);
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -66,7 +66,7 @@ export function QuoteRequestForm({
           category_id: categoryId,
           contractor_ids: [contractorId],
           ...values,
-          website: websiteRef.current?.value ?? "",
+          referral_source: referralSourceRef.current?.value ?? "",
         }),
       });
       if (!res.ok) throw new Error("Request failed");
@@ -85,7 +85,7 @@ export function QuoteRequestForm({
         <p className="text-sm text-neutral-500">
           {businessName} will be in touch with you soon.
         </p>
-        <Button variant="outline" size="sm" onClick={() => reset() || setStatus("idle")}>
+        <Button variant="outline" size="sm" onClick={() => { reset(); setStatus("idle"); }}>
           Send another
         </Button>
       </div>
@@ -96,9 +96,9 @@ export function QuoteRequestForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* honeypot — invisible to users, bots will fill it */}
       <input
-        ref={websiteRef}
+        ref={referralSourceRef}
         type="text"
-        name="website"
+        name="referral_source"
         tabIndex={-1}
         aria-hidden="true"
         autoComplete="off"

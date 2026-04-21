@@ -342,6 +342,8 @@ export type Database = {
           avg_rating: number | null;
           review_count: number;
           additional_categories: string[];
+          lat: number | null;
+          lng: number | null;
           view_count: number;
           created_at: string;
           updated_at: string;
@@ -376,6 +378,8 @@ export type Database = {
           is_featured?: boolean;
           avg_rating?: number | null;
           review_count?: number;
+          lat?: number | null;
+          lng?: number | null;
           view_count?: number;
           created_at?: string;
           updated_at?: string;
@@ -410,6 +414,8 @@ export type Database = {
           is_featured?: boolean;
           avg_rating?: number | null;
           review_count?: number;
+          lat?: number | null;
+          lng?: number | null;
           view_count?: number;
           created_at?: string;
           updated_at?: string;
@@ -707,11 +713,11 @@ export type LeaderboardSnapshot = Database["public"]["Tables"]["leaderboard_snap
 
 // Contractor with joined data
 export type ContractorWithCategory = Contractor & {
-  categories: Category;
+  categories: Category | null;
 };
 
 export type ContractorWithReviews = Contractor & {
-  categories: Category;
+  categories: Category | null;
   reviews: Review[];
   portfolio_photos: PortfolioPhoto[];
 };
