@@ -99,8 +99,8 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-bold text-foreground mb-3">7. Contact</h2>
             <p>
               If you have questions about this policy, contact us at{" "}
-              <a href="mailto:hello@sourceatrade.com" className="text-primary hover:underline">
-                hello@sourceatrade.com
+              <a href="mailto:support@sourceatrade.com" className="text-primary hover:underline">
+                support@sourceatrade.com
               </a>
               .
             </p>

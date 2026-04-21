@@ -44,10 +44,10 @@ export default function ContactPage() {
                 Best for general questions, listing support, and feedback.
               </p>
               <a
-                href="mailto:hello@sourceatrade.com"
+                href="mailto:support@sourceatrade.com"
                 className="mt-2 inline-block text-sm text-primary hover:underline font-medium"
               >
-                hello@sourceatrade.com
+                support@sourceatrade.com
               </a>
             </div>
           </div>
@@ -69,7 +69,7 @@ export default function ContactPage() {
             <div>
               <h3 className="font-medium text-sm">How do I report a bad listing or review?</h3>
               <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                Email us at hello@sourceatrade.com with the business name and what you&apos;re
+                Email us at support@sourceatrade.com with the business name and what you&apos;re
                 reporting. We investigate every complaint.
               </p>
             </div>

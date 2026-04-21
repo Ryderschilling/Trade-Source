@@ -286,7 +286,7 @@ export async function joinAsContractor(
             <p>You'll hear back from us within 1 business day. Once approved, your listing will be live at:</p>
             <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}">${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}</a></p>
             <hr />
-            <p style="color:#64748b;font-size:14px">Questions? Reply to this email or contact us at hello@sourceatrade.com</p>
+            <p style="color:#64748b;font-size:14px">Questions? Reply to this email or contact us at support@sourceatrade.com</p>
           </div>
         `,
       });

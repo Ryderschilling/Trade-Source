@@ -47,10 +47,8 @@ export default function AboutPage() {
         <section>
           <h2 className="text-2xl font-bold tracking-tight mb-4">Why we built this</h2>
           <p className="text-muted-foreground leading-relaxed text-base">
-            Platforms like Angi and HomeAdvisor send your request to contractors in three states.
-            You get a call from someone who has never been to 30A and doesn&apos;t know the difference
-            between Rosemary Beach and Inlet Beach. That&apos;s not good enough for a community with
-            the service demands of vacation rentals, second homes, and year-round residents.
+          Most lead platforms send your request to contractors in three states. You get a call from someone who has never been to 30A and doesn't know the difference between Rosemary Beach and Inlet Beach. That's not good enough for a community with the service demands of vacation rentals, second homes, and year-round residents.
+        
           </p>
           <p className="mt-4 text-muted-foreground leading-relaxed text-base">
             Trade Source is purpose-built for this market. The data is ours — not scraped from

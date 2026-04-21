@@ -40,7 +40,7 @@ const HOW_IT_WORKS = [
     step: "1",
     title: "Search Your Trade",
     description:
-      "Browse by category or search by name. Every listing is a local 30A area business — no out-of-town referrals.",
+      "Browse by category or search by name. Every listing is a local business — no out-of-town referrals.",
   },
   {
     step: "2",
@@ -215,12 +215,12 @@ export default async function HomePage() {
           <ScrollReveal>
             <div className="text-center mb-8 sm:mb-10">
               <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Local pros across 30A & the Emerald Coast
+                Local pros across the Emerald Coast
               </h2>
               <p className="mt-2 text-muted-foreground text-base sm:mt-3 sm:text-lg max-w-2xl mx-auto">
-                Every business on Trade Source serves this community. Browse
-                contractors covering Santa Rosa Beach, Destin, Fort Walton
-                Beach, and every neighborhood in between.
+                Every business on Trade Source serves your community. Browse
+                contractors covering Destin, Santa Rosa Beach, Fort Walton
+                Beach, Panama City, and every neighborhood in between.
               </p>
             </div>
 

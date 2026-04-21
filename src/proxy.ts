@@ -19,11 +19,9 @@ export default async function proxy(request: NextRequest) {
   requestHeaders.set("x-pathname", pathname);
 
   // Admin session gate — check before any Supabase work
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
-    const session = request.cookies.get("admin_session")?.value;
-    const secret = process.env.ADMIN_SESSION_SECRET;
-
-    if (!session || !secret || session !== secret) {
+  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
+    const token = request.cookies.get("admin_token")?.value;
+    if (!token) {
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
   }
