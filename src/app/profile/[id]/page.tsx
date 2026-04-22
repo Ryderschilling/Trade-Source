@@ -8,8 +8,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Star, MapPin, Pencil, ExternalLink, ShieldCheck, Building2 } from "lucide-react";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { NearbyBusinesses } from "@/components/profile/nearby-businesses";
-import { FollowButton } from "@/components/FollowButton";
-import { PendingRequests } from "@/components/profile/pending-requests";
 
 function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -70,43 +68,10 @@ export default async function ProfilePage({ params }: Props) {
   const [
     { data: reviews },
     { data: contractor },
-    { count: followerCount },
-    { count: followingCount },
-    followStatusResult,
-    pendingRequestsResult,
   ] = await Promise.all([
     supabase.from("reviews").select("*, contractors(business_name, slug, city)").eq("user_id", id).order("created_at", { ascending: false }).limit(20),
     supabase.from("contractors").select("*, categories(name)").eq("user_id", id).eq("status", "active").maybeSingle(),
-    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("following_id", id).eq("status", "accepted"),
-    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("follower_id", id).eq("status", "accepted"),
-    user && !isOwner
-      ? supabase.from("user_follows").select("status").eq("follower_id", user.id).eq("following_id", id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    isOwner
-      ? supabase
-          .from("user_follows")
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .select("follower_id, created_at, profiles!user_follows_follower_id_fkey(full_name, avatar_url)" as any)
-          .eq("following_id", id)
-          .eq("status", "pending")
-      : Promise.resolve({ data: null }),
   ]);
-
-  const followStatus: "none" | "pending" | "accepted" =
-    followStatusResult.data
-      ? (followStatusResult.data.status as "pending" | "accepted")
-      : "none";
-
-  const pendingRequests = (
-    (pendingRequestsResult.data ?? []) as unknown as Array<{
-      follower_id: string;
-      profiles: { full_name: string | null; avatar_url: string | null } | null;
-    }>
-  ).map((r) => ({
-    follower_id: r.follower_id,
-    full_name: r.profiles?.full_name ?? null,
-    avatar_url: r.profiles?.avatar_url ?? null,
-  }));
 
   return (
     <main className="min-h-screen bg-white">
@@ -137,29 +102,10 @@ export default async function ProfilePage({ params }: Props) {
               {(profile as any).city && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{(profile as any).city}</span>}
               <span>Member since {formatDate(profile.created_at)}</span>
             </div>
-            <div className="mt-1 text-xs text-neutral-400">
-              {followerCount ?? 0} {(followerCount ?? 0) === 1 ? "follower" : "followers"} · following {followingCount ?? 0}
-            </div>
             {isOwner && (
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-neutral-400">
                 <span>{profile.email}</span>
                 {(profile as any).phone && <span>{(profile as any).phone}</span>}
-              </div>
-            )}
-            {!isOwner && user && (
-              <div className="mt-3">
-                <FollowButton
-                  followingId={id}
-                  followStatus={followStatus}
-                  followerCount={followerCount ?? 0}
-                />
-              </div>
-            )}
-            {!isOwner && !user && (
-              <div className="mt-3">
-                <Link href="/signup">
-                  <Button variant="outline" size="sm">Sign Up to Follow</Button>
-                </Link>
               </div>
             )}
           </div>
@@ -171,8 +117,6 @@ export default async function ProfilePage({ params }: Props) {
         </div>
 
         {(profile as any).bio && <p className="mt-5 text-sm leading-relaxed text-neutral-600 max-w-2xl">{(profile as any).bio}</p>}
-
-        {isOwner && <PendingRequests requests={pendingRequests} />}
 
         {contractor && (
           <div className="mt-8">

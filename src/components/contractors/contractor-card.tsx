@@ -34,9 +34,10 @@ export function ContractorCardSkeleton() {
 
 interface ContractorCardProps {
   contractor: ContractorWithCategory;
+  categoryMap?: Record<string, string>;
 }
 
-export function ContractorCard({ contractor }: ContractorCardProps) {
+export function ContractorCard({ contractor, categoryMap }: ContractorCardProps) {
   const initials = contractor.business_name
     .split(" ")
     .map((w) => w[0])
@@ -72,7 +73,10 @@ export function ContractorCard({ contractor }: ContractorCardProps) {
               </div>
 
               <p className="text-sm text-muted-foreground mt-0.5">
-                {contractor.categories?.name ?? ""}
+                {[
+                  contractor.categories?.name,
+                  ...(contractor.additional_categories ?? []).map((id) => categoryMap?.[id]).filter(Boolean),
+                ].filter(Boolean).join(" · ")}
               </p>
 
               {contractor.tagline && (

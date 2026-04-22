@@ -28,13 +28,16 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
 
 // Hard-coded groups used as fallback when migration hasn't run
 const FALLBACK_GROUPS = [
-  { id: "outdoors-yard",     name: "Outdoors & Yard",     icon: "Leaf",      slugs: ["lawn-care","landscaping-design","tree-service","irrigation","fencing","pool-spa","deck-porch","outdoor-kitchen","landscaping"] },
-  { id: "interior",          name: "Interior",             icon: "Home",      slugs: ["flooring","painting","cabinetry-millwork","drywall","tile-stone","blinds-window-treatments"] },
-  { id: "exterior",          name: "Exterior",             icon: "Building2", slugs: ["roofing","windows-doors","gutters","siding","pressure-washing","screen-enclosures","hurricane-shutters","garage-doors"] },
-  { id: "systems-mechanical",name: "Systems & Mechanical", icon: "Zap",       slugs: ["hvac","electrical","plumbing","solar","generator","security-systems","septic"] },
-  { id: "construction",      name: "Construction",         icon: "HardHat",   slugs: ["general-contractor","concrete-masonry","home-inspection"] },
-  { id: "waterfront",        name: "Waterfront",           icon: "Waves",     slugs: ["dock-marine","seawall"] },
-  { id: "home-services",     name: "Home Services",        icon: "Sparkles",  slugs: ["cleaning","pest-control","handyman"] },
+  { id: "exterior-structure",   name: "Exterior & Structure",  icon: "Building2",  slugs: ["roofing","siding","windows-doors","gutters","painting-exterior","pressure-washing","driveway-paving","foundation-structural","stucco"] },
+  { id: "mechanical-systems",   name: "Mechanical Systems",    icon: "Zap",        slugs: ["plumbing","hvac","electrical","solar","generator","water-treatment","gas-lines"] },
+  { id: "interior-remodel",     name: "Interior & Remodel",    icon: "Home",       slugs: ["painting-interior","flooring","drywall","insulation","carpentry-trim","cabinetry-countertops","tile-stone","kitchen-remodel","bathroom-remodel"] },
+  { id: "outdoor-landscape",    name: "Outdoor & Landscape",   icon: "Leaf",       slugs: ["landscaping","lawn-care","irrigation","tree-service","pool-spa","outdoor-lighting","fencing","decks-patios","outdoor-kitchen"] },
+  { id: "coastal-marine",       name: "Coastal & Marine",      icon: "Waves",      slugs: ["dock-boathouse","seawall-bulkhead","hurricane-shutters","flood-mitigation"] },
+  { id: "property-services",    name: "Property Services",     icon: "Sparkles",   slugs: ["property-management","home-watch","pest-control","security-systems","locksmith","handyman","junk-removal","house-cleaning"] },
+  { id: "vacation-rentals",     name: "Vacation Rentals",      icon: "Key",        slugs: ["rental-management","turnover-cleaning","linen-service","rental-photography","staging-rentals"] },
+  { id: "automotive",           name: "Automotive",            icon: "Car",        slugs: ["auto-repair","auto-body-paint","oil-change","tire-shop","car-detailing","towing","golf-cart-repair"] },
+  { id: "health-wellness",      name: "Health & Wellness",     icon: "Heart",      slugs: ["chiropractor","massage-therapy","physical-therapy","dentist","med-spa","personal-training"] },
+  { id: "professional-services",name: "Professional Services", icon: "Briefcase",  slugs: ["real-estate-agent","insurance-agent","financial-advisor","attorney","cpa-tax"] },
 ];
 
 interface ContractorGridProps {
@@ -48,6 +51,7 @@ interface ContractorGridProps {
 async function ContractorGrid({ searchTerm, zipTerm, activeCategory, allCategories, userProfile }: ContractorGridProps) {
   const supabase = await createClient();
   let contractors: ContractorWithCategory[] = [];
+  const categoryMap: Record<string, string> = Object.fromEntries(allCategories.map((c) => [c.id, c.name]));
 
   if (searchTerm) {
     const qLower = searchTerm.toLowerCase();
@@ -106,7 +110,7 @@ async function ContractorGrid({ searchTerm, zipTerm, activeCategory, allCategori
         {contractors.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2">
             {contractors.map((contractor) => (
-              <ContractorCard key={contractor.id} contractor={contractor} />
+              <ContractorCard key={contractor.id} contractor={contractor} categoryMap={categoryMap} />
             ))}
           </div>
         ) : (
@@ -161,7 +165,7 @@ async function ContractorGrid({ searchTerm, zipTerm, activeCategory, allCategori
       {contractors.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {contractors.map((contractor) => (
-            <ContractorCard key={contractor.id} contractor={contractor} />
+            <ContractorCard key={contractor.id} contractor={contractor} categoryMap={categoryMap} />
           ))}
         </div>
       ) : (
@@ -205,7 +209,7 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
   ] = await Promise.all([
     supabase.from("category_groups").select("*").order("sort_order"),
     supabase.from("categories").select("*").order("sort_order"),
-    supabase.from("contractors").select("category_id").eq("status", "active"),
+    supabase.from("contractors").select("category_id, additional_categories").eq("status", "active"),
     user
       ? supabase.from("profiles").select("full_name, email, phone").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
@@ -216,6 +220,9 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
   const countByCategory: Record<string, number> = {};
   for (const c of contractorCountRows ?? []) {
     if (c.category_id) countByCategory[c.category_id] = (countByCategory[c.category_id] ?? 0) + 1;
+    for (const id of (c as any).additional_categories ?? []) {
+      countByCategory[id] = (countByCategory[id] ?? 0) + 1;
+    }
   }
 
   let activeCategory = (allCategories ?? []).find((c: any) => c.slug === categorySlug);

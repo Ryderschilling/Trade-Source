@@ -3,9 +3,9 @@
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  HardHat, Home, Zap, Droplets, Wind, Paintbrush,
-  Leaf, Waves, Grid3x3, Box, Building2, DoorOpen,
-  Bug, Sparkles, Truck, ArrowRight, type LucideIcon,
+  Home, Zap, Droplets, Thermometer, Trees, Waves,
+  Grid3x3, Bug, Sparkles, ShieldAlert, Anchor, Wind,
+  Car, Building2, Wrench, ArrowRight, type LucideIcon,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -16,29 +16,29 @@ interface TradeCategory {
 }
 
 const CATEGORIES: TradeCategory[] = [
-  { name: "General Contractor", slug: "general-contractor", icon: HardHat },
-  { name: "Roofing",            slug: "roofing",            icon: Home },
-  { name: "Electrical",         slug: "electrical",         icon: Zap },
-  { name: "Plumbing",           slug: "plumbing",           icon: Droplets },
-  { name: "HVAC",               slug: "hvac",               icon: Wind },
-  { name: "Painting",           slug: "painting",           icon: Paintbrush },
-  { name: "Landscaping",        slug: "landscaping",        icon: Leaf },
-  { name: "Pool & Spa",         slug: "pool-spa",           icon: Waves },
-  { name: "Flooring",           slug: "flooring",           icon: Grid3x3 },
-  { name: "Cabinetry & Millwork", slug: "cabinetry-millwork", icon: Box },
-  { name: "Concrete & Masonry", slug: "concrete-masonry",   icon: Building2 },
-  { name: "Windows & Doors",    slug: "windows-doors",      icon: DoorOpen },
-  { name: "Pest Control",       slug: "pest-control",       icon: Bug },
-  { name: "Cleaning",           slug: "cleaning",           icon: Sparkles },
-  { name: "Moving",             slug: "moving",             icon: Truck },
+  { name: "Roofing",                           slug: "roofing",           icon: Home },
+  { name: "Electrical",                        slug: "electrical",        icon: Zap },
+  { name: "Plumbing",                          slug: "plumbing",          icon: Droplets },
+  { name: "HVAC",                              slug: "hvac",              icon: Thermometer },
+  { name: "Landscaping",                       slug: "landscaping",       icon: Trees },
+  { name: "Pool & Spa",                        slug: "pool-spa",          icon: Waves },
+  { name: "Flooring",                          slug: "flooring",          icon: Grid3x3 },
+  { name: "Pest Control",                      slug: "pest-control",      icon: Bug },
+  { name: "Handyman",                          slug: "handyman",          icon: Wrench },
+  { name: "House Cleaning",                    slug: "house-cleaning",    icon: Sparkles },
+  { name: "Hurricane Shutters & Impact Windows", slug: "hurricane-shutters", icon: ShieldAlert },
+  { name: "Dock & Boathouse",                  slug: "dock-boathouse",    icon: Anchor },
+  { name: "Pressure Washing",                  slug: "pressure-washing",  icon: Wind },
+  { name: "Auto Repair",                       slug: "auto-repair",       icon: Car },
+  { name: "Property Management",               slug: "property-management", icon: Building2 },
 ];
 
 const POPULAR: TradeCategory[] = [
-  { name: "Electrical",  slug: "electrical",        icon: Zap },
-  { name: "Plumbing",    slug: "plumbing",           icon: Droplets },
-  { name: "HVAC",        slug: "hvac",               icon: Wind },
-  { name: "Roofing",     slug: "roofing",            icon: Home },
-  { name: "Landscaping", slug: "landscaping",        icon: Leaf },
+  { name: "Electrical",  slug: "electrical",  icon: Zap },
+  { name: "Plumbing",    slug: "plumbing",    icon: Droplets },
+  { name: "HVAC",        slug: "hvac",        icon: Thermometer },
+  { name: "Roofing",     slug: "roofing",     icon: Home },
+  { name: "Landscaping", slug: "landscaping", icon: Trees },
 ];
 
 export function TradeCategoriesGrid() {

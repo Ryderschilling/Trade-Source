@@ -170,6 +170,39 @@ export async function POST(req: NextRequest) {
       })
     );
 
+    // Send confirmation email to the customer
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const businessNames = (contractors ?? []).map((c) => c.business_name).filter(Boolean);
+      const businessList = businessNames.length
+        ? businessNames.map((n) => `<li>${n}</li>`).join("")
+        : "<li>your selected contractors</li>";
+      try {
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL!,
+          to: email,
+          subject: `Your quote request has been sent — Trade Source`,
+          html: `
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+              <h2>Quote request received, ${name}!</h2>
+              <p>Your request for <strong>${categoryName}</strong> work has been sent to ${businessNames.length} contractor${businessNames.length !== 1 ? "s" : ""}:</p>
+              <ul style="padding-left:20px;line-height:1.8">${businessList}</ul>
+              <p>Each contractor will review your request and reach out to you directly at <strong>${email}</strong>${phone ? ` or <strong>${phone}</strong>` : ""}.</p>
+              <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0">
+                <p style="margin:0 0 8px 0;font-size:13px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Your project description</p>
+                <p style="margin:0;color:#374151;font-size:15px">${description}</p>
+              </div>
+              <p style="color:#64748b;font-size:13px">Timeline: ${timelineLabel}</p>
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+              <p style="color:#94a3b8;font-size:12px">Trade Source — sourceatrade.com</p>
+            </div>
+          `,
+        });
+      } catch (e) {
+        console.error("Customer confirmation email failed:", e);
+      }
+    }
+
     return NextResponse.json({ success: true, request_id: quoteRequest.id });
   } catch (e) {
     console.error("quote-request route error:", e);

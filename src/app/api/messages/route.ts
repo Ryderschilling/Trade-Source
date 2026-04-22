@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { Resend } from "resend";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
@@ -138,7 +139,7 @@ export async function POST(req: NextRequest) {
   const [{ data: otherParticipants }, { data: senderProfile }] = await Promise.all([
     service
       .from("conversation_participants")
-      .select("user_id")
+      .select("user_id, profiles(email, full_name)")
       .eq("conversation_id", conversation_id)
       .neq("user_id", user.id),
     service
@@ -151,6 +152,7 @@ export async function POST(req: NextRequest) {
   if (otherParticipants?.length) {
     const senderName = senderProfile?.full_name ?? senderProfile?.email ?? "Someone";
     const preview = body.trim().length > 80 ? body.trim().slice(0, 77) + "…" : body.trim();
+
     await service.from("notifications").insert(
       otherParticipants.map((p) => ({
         user_id: p.user_id,
@@ -160,6 +162,43 @@ export async function POST(req: NextRequest) {
         link: `/messages?c=${conversation_id}`,
       }))
     );
+
+    // Email each recipient
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sourceatrade.com";
+      await Promise.all(
+        otherParticipants.map(async (p) => {
+          const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
+          const recipientEmail = (profile as { email?: string } | null)?.email;
+          if (!recipientEmail) return;
+          try {
+            await resend.emails.send({
+              from: process.env.RESEND_FROM_EMAIL!,
+              to: recipientEmail,
+              subject: `New message from ${senderName} — Trade Source`,
+              html: `
+                <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+                  <h2>You have a new message</h2>
+                  <p><strong>${senderName}</strong> sent you a message on Trade Source:</p>
+                  <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0;border-left:3px solid #3b82f6">
+                    <p style="margin:0;color:#374151;font-size:15px">${preview}</p>
+                  </div>
+                  <a href="${appUrl}/messages?c=${conversation_id}"
+                     style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:600;font-size:14px;margin:8px 0">
+                    Reply in Trade Source
+                  </a>
+                  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+                  <p style="color:#94a3b8;font-size:12px">Trade Source — sourceatrade.com</p>
+                </div>
+              `,
+            });
+          } catch (e) {
+            console.error("Message email notification failed for user", p.user_id, e);
+          }
+        })
+      );
+    }
   }
 
   return NextResponse.json({ message: data });

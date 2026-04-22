@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Hero } from "@/components/hero";
 import { TradeCategoriesGrid } from "@/components/home/trade-categories-grid";
+import { FeaturedBusinesses } from "@/components/home/featured-businesses";
 import { HowItWorksSteps } from "@/components/home/how-it-works-steps";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import TradeMapClient from "@/components/trade-map-client";
@@ -189,6 +190,9 @@ export default async function HomePage() {
           </ScrollReveal>
         </div>
       </section>
+
+      {/* Highlighted trades & businesses */}
+      <FeaturedBusinesses />
 
       {/* How it works */}
       <section

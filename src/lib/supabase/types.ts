@@ -156,6 +156,7 @@ export type Database = {
           phone: string | null;
           description: string;
           timeline: string | null;
+          followup_sent_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -167,6 +168,7 @@ export type Database = {
           phone?: string | null;
           description: string;
           timeline?: string | null;
+          followup_sent_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -178,6 +180,7 @@ export type Database = {
           phone?: string | null;
           description?: string;
           timeline?: string | null;
+          followup_sent_at?: string | null;
           created_at?: string;
         };
         Relationships: [
@@ -345,6 +348,8 @@ export type Database = {
           lat: number | null;
           lng: number | null;
           view_count: number;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -381,6 +386,8 @@ export type Database = {
           lat?: number | null;
           lng?: number | null;
           view_count?: number;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -417,6 +424,8 @@ export type Database = {
           lat?: number | null;
           lng?: number | null;
           view_count?: number;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -487,6 +496,7 @@ export type Database = {
           title: string | null;
           body: string | null;
           is_verified: boolean;
+          is_anonymous: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -498,6 +508,7 @@ export type Database = {
           title?: string | null;
           body?: string | null;
           is_verified?: boolean;
+          is_anonymous?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -509,6 +520,7 @@ export type Database = {
           title?: string | null;
           body?: string | null;
           is_verified?: boolean;
+          is_anonymous?: boolean;
           created_at?: string;
           updated_at?: string;
         };

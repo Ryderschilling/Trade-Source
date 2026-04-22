@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { Star } from "lucide-react";
+import { Star, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ export function ReviewForm({ contractorId, businessName }: ReviewFormProps) {
   const [state, action, pending] = useActionState(submitReview, initialState);
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export function ReviewForm({ contractorId, businessName }: ReviewFormProps) {
     <form ref={formRef} action={action} className="space-y-4">
       <input type="hidden" name="contractor_id" value={contractorId} />
       <input type="hidden" name="rating" value={rating} />
+      <input type="hidden" name="is_anonymous" value={isAnonymous ? "true" : "false"} />
 
       <div className="space-y-1.5">
         <Label>Your rating *</Label>
@@ -98,6 +100,34 @@ export function ReviewForm({ contractorId, businessName }: ReviewFormProps) {
           </p>
         )}
       </div>
+
+      {/* Anonymous toggle */}
+      <button
+        type="button"
+        onClick={() => setIsAnonymous((v) => !v)}
+        className={`flex items-center gap-2.5 w-full rounded-lg border px-3 py-2.5 text-sm transition-colors text-left ${
+          isAnonymous
+            ? "border-primary/40 bg-primary/5 text-primary"
+            : "border-border bg-transparent text-muted-foreground hover:bg-muted/50"
+        }`}
+      >
+        <EyeOff className="h-4 w-4 flex-shrink-0" />
+        <div>
+          <span className="font-medium">
+            {isAnonymous ? "Posting anonymously" : "Post anonymously"}
+          </span>
+          <span className="ml-1.5 text-xs opacity-70">
+            {isAnonymous
+              ? "Your name won't appear on this review"
+              : "Hide your name from this review"}
+          </span>
+        </div>
+        <div
+          className={`ml-auto h-4 w-4 rounded-full border-2 flex-shrink-0 transition-colors ${
+            isAnonymous ? "border-primary bg-primary" : "border-muted-foreground/40"
+          }`}
+        />
+      </button>
 
       <Button type="submit" className="w-full" disabled={pending || rating === 0}>
         {pending ? "Submitting..." : "Submit Review"}

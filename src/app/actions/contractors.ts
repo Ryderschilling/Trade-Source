@@ -237,14 +237,14 @@ export async function joinAsContractor(
       years_in_business: parsed.data.years_in_business ?? null,
       years_experience: parsed.data.years_experience ?? null,
       is_claimed: !!user,
-      status: "active",
+      status: "pending",
     })
-    .select("slug")
+    .select("id, slug")
     .single();
 
   if (insertError || !contractor) {
     console.error("Contractor insert error:", insertError);
-    return { error: "Failed to submit listing. Please try again." };
+    return { error: "We couldn't save your listing. Please try again." };
   }
 
   if (uploadedPhotoUrls.length > 0) {
@@ -278,13 +278,13 @@ export async function joinAsContractor(
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL!,
         to: parsed.data.email,
-        subject: "Your Trade Source listing is pending review",
+        subject: "Complete payment to activate your Trade Source listing",
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-            <h2>Thanks for listing ${parsed.data.business_name}!</h2>
-            <p>We received your listing on <strong>Trade Source</strong> and it's currently under review.</p>
-            <p>You'll hear back from us within 1 business day. Once approved, your listing will be live at:</p>
-            <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}">${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}</a></p>
+            <h2>Almost there, ${parsed.data.business_name}!</h2>
+            <p>Your listing on <strong>Trade Source</strong> has been created. To make it live, complete your $49.99/month subscription payment.</p>
+            <p>If you were redirected to Stripe and completed payment, your listing will go live automatically within a few seconds.</p>
+            <p>Once active, your listing will be at:<br/><a href="${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}">${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}</a></p>
             <hr />
             <p style="color:#64748b;font-size:14px">Questions? Reply to this email or contact us at support@sourceatrade.com</p>
           </div>
@@ -295,7 +295,43 @@ export async function joinAsContractor(
     }
   }
 
-  redirect(`/join/success?slug=${slug}`);
+  // Create Stripe Checkout Session
+  const Stripe = (await import("stripe")).default;
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2025-03-31.basil" as any,
+  });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price: process.env.STRIPE_PRICE_ID!,
+        quantity: 1,
+      },
+    ],
+    customer_email: parsed.data.email,
+    metadata: {
+      contractor_id: contractorId,
+      contractor_slug: contractor.slug,
+    },
+    subscription_data: {
+      metadata: {
+        contractor_id: contractorId,
+        contractor_slug: contractor.slug,
+      },
+    },
+    success_url: `${appUrl}/join/success?slug=${contractor.slug}&paid=1`,
+    cancel_url: `${appUrl}/join?canceled=1`,
+  });
+
+  if (!session.url) {
+    return { error: "Failed to create payment session. Please try again." };
+  }
+
+  redirect(session.url);
 }
 
 // ─── Edit / update an existing contractor listing ────────────────────────────

@@ -19,13 +19,16 @@ const initialAuthState: AuthFormState = {};
 
 // Group structure for the multi-category picker (mirrors DB groups, used as fallback)
 const CATEGORY_GROUPS = [
-  { id: "outdoors-yard",     name: "Outdoors & Yard",     slugs: ["lawn-care","landscaping-design","tree-service","irrigation","fencing","pool-spa","deck-porch","outdoor-kitchen","landscaping"] },
-  { id: "interior",          name: "Interior",             slugs: ["flooring","painting","cabinetry-millwork","drywall","tile-stone","blinds-window-treatments"] },
-  { id: "exterior",          name: "Exterior",             slugs: ["roofing","windows-doors","gutters","siding","pressure-washing","screen-enclosures","hurricane-shutters","garage-doors"] },
-  { id: "systems-mechanical",name: "Systems & Mechanical", slugs: ["hvac","electrical","plumbing","solar","generator","security-systems","septic"] },
-  { id: "construction",      name: "Construction",         slugs: ["general-contractor","concrete-masonry","home-inspection"] },
-  { id: "waterfront",        name: "Waterfront",           slugs: ["dock-marine","seawall"] },
-  { id: "home-services",     name: "Home Services",        slugs: ["cleaning","pest-control","handyman"] },
+  { id: "exterior-structure",   name: "Exterior & Structure",  slugs: ["roofing","siding","windows-doors","gutters","painting-exterior","pressure-washing","driveway-paving","foundation-structural","stucco"] },
+  { id: "mechanical-systems",   name: "Mechanical Systems",    slugs: ["plumbing","hvac","electrical","solar","generator","water-treatment","gas-lines"] },
+  { id: "interior-remodel",     name: "Interior & Remodel",    slugs: ["painting-interior","flooring","drywall","insulation","carpentry-trim","cabinetry-countertops","tile-stone","kitchen-remodel","bathroom-remodel"] },
+  { id: "outdoor-landscape",    name: "Outdoor & Landscape",   slugs: ["landscaping","lawn-care","irrigation","tree-service","pool-spa","outdoor-lighting","fencing","decks-patios","outdoor-kitchen"] },
+  { id: "coastal-marine",       name: "Coastal & Marine",      slugs: ["dock-boathouse","seawall-bulkhead","hurricane-shutters","flood-mitigation"] },
+  { id: "property-services",    name: "Property Services",     slugs: ["property-management","home-watch","pest-control","security-systems","locksmith","handyman","junk-removal","house-cleaning"] },
+  { id: "vacation-rentals",     name: "Vacation Rentals",      slugs: ["rental-management","turnover-cleaning","linen-service","rental-photography","staging-rentals"] },
+  { id: "automotive",           name: "Automotive",            slugs: ["auto-repair","auto-body-paint","oil-change","tire-shop","car-detailing","towing","golf-cart-repair"] },
+  { id: "health-wellness",      name: "Health & Wellness",     slugs: ["chiropractor","massage-therapy","physical-therapy","dentist","med-spa","personal-training"] },
+  { id: "professional-services",name: "Professional Services", slugs: ["real-estate-agent","insurance-agent","financial-advisor","attorney","cpa-tax"] },
 ];
 
 const CLIENT_MAX_LOGO_BYTES = 5 * 1024 * 1024;

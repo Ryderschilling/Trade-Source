@@ -23,6 +23,7 @@ type ReviewWithProfile = {
   rating: number;
   title: string | null;
   body: string | null;
+  is_anonymous: boolean;
   created_at: string;
   profiles: { full_name: string | null; avatar_url: string | null } | null;
 };
@@ -286,7 +287,11 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-2">
-                            {review.user_id ? (
+                            {review.is_anonymous || !review.user_id ? (
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="text-xs">A</AvatarFallback>
+                              </Avatar>
+                            ) : (
                               <Link href={`/profile/${review.user_id}`}>
                                 <Avatar className="h-8 w-8">
                                   <AvatarImage src={review.profiles?.avatar_url ?? undefined} />
@@ -295,21 +300,17 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                                   </AvatarFallback>
                                 </Avatar>
                               </Link>
-                            ) : (
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback className="text-xs">?</AvatarFallback>
-                              </Avatar>
                             )}
                             <div>
-                              {review.user_id ? (
+                              {review.is_anonymous || !review.user_id ? (
+                                <p className="text-sm font-medium text-muted-foreground">Anonymous</p>
+                              ) : (
                                 <Link
                                   href={`/profile/${review.user_id}`}
                                   className="text-sm font-medium hover:underline underline-offset-2"
                                 >
                                   {review.profiles?.full_name ?? "Anonymous"}
                                 </Link>
-                              ) : (
-                                <p className="text-sm font-medium">Anonymous</p>
                               )}
                               <p className="text-xs text-muted-foreground">
                                 {new Date(review.created_at).toLocaleDateString()}

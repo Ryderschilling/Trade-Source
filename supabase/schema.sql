@@ -64,23 +64,19 @@ create table public.categories (
   created_at  timestamptz not null default now()
 );
 
--- Seed categories (30A / NW Florida trades)
+-- Seed categories — representative cross-section for fresh installs.
+-- The full 70-trade taxonomy is populated by migrations 006 and 015.
 insert into public.categories (name, slug, icon, description, sort_order) values
-  ('General Contractor',   'general-contractor',   'HardHat',       'Full-service residential and commercial general contractors',  1),
-  ('Roofing',              'roofing',               'Home',          'Roof installation, repair, and replacement',                   2),
-  ('Electrical',           'electrical',            'Zap',           'Licensed electricians for all residential and commercial work', 3),
-  ('Plumbing',             'plumbing',              'Droplets',      'Plumbers for repairs, installs, and remodels',                  4),
-  ('HVAC',                 'hvac',                  'Wind',          'Heating, ventilation, and air conditioning specialists',        5),
-  ('Painting',             'painting',              'Paintbrush',    'Interior and exterior painting professionals',                  6),
-  ('Landscaping',          'landscaping',           'Leaf',          'Lawn care, landscaping, and outdoor living',                    7),
-  ('Pool & Spa',           'pool-spa',              'Waves',         'Pool construction, maintenance, and repair',                    8),
-  ('Flooring',             'flooring',              'Grid',          'Hardwood, tile, LVP, carpet installation and refinishing',      9),
-  ('Cabinetry & Millwork', 'cabinetry-millwork',    'Box',           'Custom cabinetry, built-ins, and fine millwork',               10),
-  ('Concrete & Masonry',   'concrete-masonry',      'Building2',     'Driveways, patios, foundations, and masonry work',             11),
-  ('Windows & Doors',      'windows-doors',         'DoorOpen',      'Window and door installation, replacement, and repair',        12),
-  ('Pest Control',         'pest-control',          'Bug',           'Termite, pest, and wildlife control services',                 13),
-  ('Cleaning',             'cleaning',              'Sparkles',      'Residential and commercial cleaning services',                 14),
-  ('Moving',               'moving',                'Truck',         'Local and long-distance moving companies',                     15);
+  ('Roofing',              'roofing',          'Home',        'Roof installation, repair, and replacement',                        10),
+  ('Electrical',           'electrical',       'Zap',         'Licensed electricians for all residential and commercial work',     22),
+  ('Plumbing',             'plumbing',         'Droplets',    'Plumbers for repairs, installs, and remodels',                      20),
+  ('HVAC',                 'hvac',             'Thermometer', 'Heating, ventilation, and air conditioning specialists',            21),
+  ('Flooring',             'flooring',         'Grid',        'Hardwood, tile, LVP, and carpet installation',                      31),
+  ('Landscaping',          'landscaping',      'Trees',       'Full landscaping design, hardscape, and new installs',              40),
+  ('Pool & Spa',           'pool-spa',         'Waves',       'Pool construction, maintenance, and repair',                        44),
+  ('Pest Control',         'pest-control',     'Bug',         'Termite, pest, and wildlife control',                               62),
+  ('Handyman',             'handyman',         'Wrench',      'General repairs, installs, and honey-do lists',                     65),
+  ('House Cleaning',       'house-cleaning',   'Sparkles',    'Residential and vacation rental cleaning services',                 67);
 
 -- ============================================================
 -- CONTRACTORS
