@@ -176,20 +176,20 @@ export async function POST(req: NextRequest) {
             await resend.emails.send({
               from: process.env.RESEND_FROM_EMAIL!,
               to: recipientEmail,
-              subject: `New message from ${senderName} — Trade Source`,
+              subject: `New message from ${senderName} — Source A Trade`,
               html: `
                 <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
                   <h2>You have a new message</h2>
-                  <p><strong>${senderName}</strong> sent you a message on Trade Source:</p>
+                  <p><strong>${senderName}</strong> sent you a message on Source A Trade:</p>
                   <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0;border-left:3px solid #3b82f6">
                     <p style="margin:0;color:#374151;font-size:15px">${preview}</p>
                   </div>
                   <a href="${appUrl}/messages?c=${conversation_id}"
                      style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:600;font-size:14px;margin:8px 0">
-                    Reply in Trade Source
+                    Reply in Source A Trade
                   </a>
                   <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-                  <p style="color:#94a3b8;font-size:12px">Trade Source — sourceatrade.com</p>
+                  <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
                 </div>
               `,
             });

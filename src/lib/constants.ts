@@ -1,4 +1,4 @@
-export const APP_NAME = "Trade Source";
+export const APP_NAME = "Source A Trade";
 export const APP_TAGLINE = "Find trusted local tradesmen on 30A";
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://sourceatrade.com";
 

@@ -3,7 +3,7 @@ import { APP_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: `Privacy Policy | ${APP_NAME}`,
-  description: "Privacy Policy for Trade Source.",
+  description: "Privacy Policy for Source A Trade.",
 };
 
 export default function PrivacyPage() {
@@ -22,7 +22,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-bold text-foreground mb-3">1. Who we are</h2>
             <p>
-              Trade Source (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) operates the
+              Source A Trade (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) operates the
               website sourceatrade.com, a local contractor directory serving the 30A corridor and
               Northwest Florida. We take your privacy seriously and are committed to being transparent
               about how we collect and use data.
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-bold text-foreground mb-3">3. How we use your information</h2>
             <ul className="list-disc pl-6 space-y-2">
-              <li>To operate and maintain the Trade Source directory</li>
+              <li>To operate and maintain the Source A Trade directory</li>
               <li>To display contractor listings and reviews to users</li>
               <li>To facilitate contact between homeowners and contractors</li>
               <li>To send transactional emails (account confirmations, listing approvals)</li>

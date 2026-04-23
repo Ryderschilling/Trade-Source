@@ -1,0 +1,13 @@
+export const PRICES = {
+  BASE_50: process.env.STRIPE_PRICE_BASE_50!,
+  VERIFIED_BADGE: process.env.STRIPE_PRICE_VERIFIED_BADGE!,
+  LEAD_NOTIFICATIONS: process.env.STRIPE_PRICE_LEAD_NOTIFICATIONS!,
+  HOMEPAGE_SLIDER: process.env.STRIPE_PRICE_HOMEPAGE_SLIDER!,
+  FEATURED_EMAIL: process.env.STRIPE_PRICE_FEATURED_EMAIL_ONETIME!,
+}
+
+export const ADDON_PRICE_MAP: Record<string, string> = {
+  verified_badge: PRICES.VERIFIED_BADGE,
+  lead_notifications: PRICES.LEAD_NOTIFICATIONS,
+  homepage_slider: PRICES.HOMEPAGE_SLIDER,
+}

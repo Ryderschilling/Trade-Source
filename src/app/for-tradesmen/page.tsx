@@ -11,7 +11,7 @@ import { APP_NAME } from "@/lib/constants";
 export const metadata: Metadata = {
   title: `List Your Business | ${APP_NAME}`,
   description:
-    "Get your trade business in front of homeowners across 30A and the Emerald Coast. Free to list, no middlemen, direct leads — built for local tradesmen.",
+    "Get your trade business in front of homeowners across 30A and the Emerald Coast. No middlemen, direct leads — built for local tradesmen.",
 };
 
 const BENEFITS = [
@@ -23,7 +23,7 @@ const BENEFITS = [
   },
   {
     icon: DollarSign,
-    title: "Free to start",
+    title: "Start Now",
     description:
       "Create your listing at no cost. We built this to serve the community first. Premium placement options come later — and will always be optional.",
   },
@@ -37,7 +37,7 @@ const BENEFITS = [
     icon: Star,
     title: "Verified community reviews",
     description:
-      "Reviews on Trade Source come from registered local users — real neighbors, not anonymous strangers. Good work speaks for itself here.",
+      "Reviews on Source A Trade come from registered local users — real neighbors, not anonymous strangers. Good work speaks for itself here.",
   },
   {
     icon: TrendingUp,
@@ -90,13 +90,13 @@ export default function ForTradiesPage() {
               <span className="text-blue-400">30A homeowners</span>
             </h1>
             <p className="mt-6 text-xl text-slate-300 leading-relaxed max-w-2xl">
-              Trade Source is the only contractor directory built specifically for the 30A corridor
-              and Emerald Coast. Free listing. Direct leads. No middlemen.
+              Source A Trade is the only contractor directory built specifically for the 30A corridor
+              and Emerald Coast. Direct leads. No middlemen.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4">
               <Link href="/join">
                 <Button size="lg" className="w-full sm:w-auto text-base px-8">
-                  List Your Business Free
+                  List Your Business Today
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -118,7 +118,7 @@ export default function ForTradiesPage() {
       <section className="py-20 bg-background">
         <div className="container mx-auto max-w-5xl px-4 sm:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight">Why list on Trade Source</h2>
+            <h2 className="text-3xl font-bold tracking-tight">Why list on Source A Trade</h2>
             <p className="mt-3 text-muted-foreground text-lg">
               Everything you need to grow your local business — nothing you don&apos;t.
             </p>
@@ -203,9 +203,7 @@ export default function ForTradiesPage() {
             <div>
               <h3 className="font-semibold mb-2">Is it really free?</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Yes. Basic listings are free. We plan to offer optional premium placement in the
-                future, but listing your business and receiving direct leads will always have a
-                free tier.
+                Yes. Basic business listings are a monthly fee. But there is no premium tier or pay-to-rank upgrades; every listed contractor gets equal visibility.
               </p>
             </div>
             <div>
@@ -226,8 +224,7 @@ export default function ForTradiesPage() {
             <div>
               <h3 className="font-semibold mb-2">How long does approval take?</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                We review every submission manually to keep the directory quality high. Most listings
-                are approved within 1–2 business days.
+                Approval is instant. You'll recieve a confirmation once approved.
               </p>
             </div>
             <div>
@@ -253,7 +250,7 @@ export default function ForTradiesPage() {
           <div className="mt-8">
             <Link href="/join">
               <Button size="lg" className="px-10 text-base">
-                List Your Business Free
+                List Your Business Today
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

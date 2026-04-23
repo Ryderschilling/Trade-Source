@@ -33,8 +33,8 @@ export default async function JoinSuccessPage({ searchParams }: PageProps) {
           </h1>
           <p className="mt-3 text-muted-foreground leading-relaxed">
             {isPaid
-              ? "Payment confirmed. Your listing is now active on Trade Source. Welcome to the directory."
-              : "Thanks for joining Trade Source. Complete payment to make your listing go live."
+              ? "Payment confirmed. Your listing is now active on Source A Trade. Welcome to the directory."
+              : "Thanks for joining Source A Trade. Complete payment to make your listing go live."
             }
           </p>
         </div>

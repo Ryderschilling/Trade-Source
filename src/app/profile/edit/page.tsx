@@ -61,7 +61,7 @@ export default function EditProfilePage() {
         </Link>
         <div className="mt-6 mb-8">
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Edit Profile</h1>
-          <p className="mt-1 text-sm text-neutral-500">Update your public-facing information on Trade Source.</p>
+          <p className="mt-1 text-sm text-neutral-500">Update your public-facing information on Source A Trade.</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-1.5">

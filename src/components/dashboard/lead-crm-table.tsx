@@ -185,7 +185,14 @@ function LeadDetailModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[11px] text-neutral-400 font-medium uppercase tracking-wide mb-1">Service</p>
-              <p className="text-sm text-neutral-700">{lead.service_type ?? "—"}</p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <p className="text-sm text-neutral-700">{lead.service_type ?? "—"}</p>
+                {lead.package_name && (
+                  <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-700">
+                    Package
+                  </span>
+                )}
+              </div>
             </div>
             <div>
               <p className="text-[11px] text-neutral-400 font-medium uppercase tracking-wide mb-1">Date</p>
@@ -334,7 +341,14 @@ export function LeadCRMTable({ leads: initialLeads }: { leads: CRMLead[] }) {
                     <p className="font-medium text-neutral-900 text-sm truncate max-w-[120px]">{lead.name}</p>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell text-sm text-neutral-600">
-                    {lead.service_type ?? "—"}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span>{lead.service_type ?? "—"}</span>
+                      {lead.package_name && (
+                        <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-700">
+                          Package
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {lead.phone ? <CopyPhoneButton phone={lead.phone} /> : (

@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useRef, startTransition, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
-import { Upload, ImageIcon, Trash2, ChevronDown } from "lucide-react";
+import { Upload, ImageIcon, Trash2, ChevronDown, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -289,6 +289,106 @@ function MultiCategoryPicker({
   );
 }
 
+interface PackageEntry {
+  name: string;
+  description: string;
+  price_label: string;
+}
+
+function PackagesEditor({ onChange }: { onChange: (pkgs: PackageEntry[]) => void }) {
+  const [packages, setPackages] = useState<PackageEntry[]>([]);
+
+  function update(index: number, field: keyof PackageEntry, value: string) {
+    setPackages((prev) => {
+      const next = prev.map((p, i) => (i === index ? { ...p, [field]: value } : p));
+      onChange(next);
+      return next;
+    });
+  }
+
+  function addPackage() {
+    if (packages.length >= 4) return;
+    setPackages((prev) => {
+      const next = [...prev, { name: "", description: "", price_label: "" }];
+      onChange(next);
+      return next;
+    });
+  }
+
+  function removePackage(index: number) {
+    setPackages((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      onChange(next);
+      return next;
+    });
+  }
+
+  return (
+    <div className="space-y-3">
+      {packages.map((pkg, i) => (
+        <div key={i} className="rounded-lg border border-border p-4 space-y-3 relative">
+          <button
+            type="button"
+            onClick={() => removePackage(i)}
+            aria-label="Remove package"
+            className="absolute top-3 right-3 h-6 w-6 flex items-center justify-center rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+          <div className="space-y-1.5 pr-8">
+            <Label htmlFor={`pkg_name_${i}`}>Package name *</Label>
+            <Input
+              id={`pkg_name_${i}`}
+              placeholder="e.g. Full Roof Replacement"
+              value={pkg.name}
+              onChange={(e) => update(i, "name", e.target.value)}
+              maxLength={100}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor={`pkg_desc_${i}`}>Description</Label>
+            <Textarea
+              id={`pkg_desc_${i}`}
+              placeholder="What's included, timeline, any details..."
+              rows={2}
+              value={pkg.description}
+              onChange={(e) => update(i, "description", e.target.value)}
+              maxLength={500}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor={`pkg_price_${i}`}>Price / label</Label>
+            <Input
+              id={`pkg_price_${i}`}
+              placeholder="e.g. Starting at $5,000 or Free estimate"
+              value={pkg.price_label}
+              onChange={(e) => update(i, "price_label", e.target.value)}
+              maxLength={100}
+            />
+          </div>
+        </div>
+      ))}
+
+      {packages.length < 4 && (
+        <button
+          type="button"
+          onClick={addPackage}
+          className="flex items-center gap-2 rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors w-full"
+        >
+          <Plus className="h-4 w-4" />
+          Add a service or package {packages.length > 0 && `(${packages.length}/4)`}
+        </button>
+      )}
+
+      {packages.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          Optional. Add up to 4 services or packages — homeowners can request them directly from your listing.
+        </p>
+      )}
+    </div>
+  );
+}
+
 interface JoinFormProps {
   categories: Pick<Category, "id" | "name" | "slug">[];
   userEmail?: string;
@@ -394,6 +494,7 @@ function BusinessDetailsStep({
   const [state, formAction, pending] = useActionState(joinAsContractor, initialJoinState);
   const [clientUploadError, setClientUploadError] = useState<string | null>(null);
   const [isPreparingUploads, setIsPreparingUploads] = useState(false);
+  const [packagesJson, setPackagesJson] = useState("");
 
   // Logo
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
@@ -917,6 +1018,22 @@ function BusinessDetailsStep({
             <p className="text-xs text-muted-foreground">Your total hands-on experience</p>
           </div>
         </div>
+      </section>
+
+      <Separator />
+
+      {/* Services & Packages */}
+      <section className="space-y-5">
+        <div>
+          <h2 className="text-lg font-semibold">Services &amp; Packages</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Add your offerings so homeowners can request specific services from your listing.
+          </p>
+        </div>
+        <input type="hidden" name="packages_json" value={packagesJson} />
+        <PackagesEditor
+          onChange={(pkgs) => setPackagesJson(pkgs.length > 0 ? JSON.stringify(pkgs) : "")}
+        />
       </section>
 
       <Separator />

@@ -145,7 +145,7 @@ export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0
       <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center">
-          <Image src="/logo-wordmark.svg" alt="Trade Source" width={175} height={30} priority />
+          <Image src="/logo-wordmark.svg" alt="Source A Trade" width={175} height={30} priority />
         </Link>
 
         {/* Desktop nav */}

@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
               subject: `New quote request — ${categoryName}`,
               html: `
                 <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-                  <h2>New quote request on Trade Source</h2>
+                  <h2>New quote request on Source A Trade</h2>
                   <p>A homeowner is looking for a <strong>${categoryName}</strong> contractor.</p>
                   <table style="width:100%;border-collapse:collapse;margin:16px 0">
                     <tr><td style="padding:6px 0;color:#64748b;width:120px">Name</td><td style="padding:6px 0;font-weight:500">${name}</td></tr>
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
                   </div>
                   <p style="color:#64748b;font-size:13px">Reply directly to this email to respond to ${name}.</p>
                   <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-                  <p style="color:#94a3b8;font-size:12px">Trade Source — sourceatrade.com</p>
+                  <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
                 </div>
               `,
             });
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL!,
           to: email,
-          subject: `Your quote request has been sent — Trade Source`,
+          subject: `Your quote request has been sent — Source A Trade`,
           html: `
             <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
               <h2>Quote request received, ${name}!</h2>
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
               </div>
               <p style="color:#64748b;font-size:13px">Timeline: ${timelineLabel}</p>
               <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-              <p style="color:#94a3b8;font-size:12px">Trade Source — sourceatrade.com</p>
+              <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
             </div>
           `,
         });

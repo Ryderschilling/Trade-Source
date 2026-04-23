@@ -6,7 +6,7 @@ export function AdminTopBar() {
   return (
     <header className="flex items-center justify-between px-6 py-3 border-b border-neutral-200 bg-white">
       <h1 className="text-sm font-semibold text-neutral-700">
-        Trade Source Admin
+        Source A Trade Admin
       </h1>
       <form action={adminLogout}>
         <Button

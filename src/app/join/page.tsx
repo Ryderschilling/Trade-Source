@@ -6,7 +6,7 @@ import type { Category } from "@/lib/supabase/types";
 export const metadata: Metadata = {
   title: "List Your Business",
   description:
-    "Add your contracting business to the Trade Source directory. Free to list — reach homeowners across 30A and Northwest Florida.",
+    "Add your contracting business to the Source A Trade directory. List today to get leads instantly. — reach homeowners across 30A and Northwest Florida.",
 };
 
 export default async function JoinPage() {
@@ -31,7 +31,7 @@ export default async function JoinPage() {
           </h1>
           <p className="mt-3 text-muted-foreground text-lg leading-relaxed max-w-xl">
             Join the only hyper-local trade directory built for the 30A
-            community. Free to list — we built this for you.
+            community. List today to get leads instantly.
           </p>
         </div>
       </div>

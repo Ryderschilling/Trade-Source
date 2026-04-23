@@ -11,26 +11,26 @@ import TradeMapClient from "@/components/trade-map-client";
 import { getContractorPins } from "@/lib/map-pins";
 
 export const metadata: Metadata = {
-  title: "Trade Source | Find Trusted Local Contractors Near 30A & NW Florida",
+  title: "Source A Trade | Find Trusted Local Contractors Near 30A & NW Florida",
   description:
-    "Trade Source is the local contractor directory for 30A, Destin, Fort Walton Beach, and the Emerald Coast. Find plumbers, electricians, HVAC, roofers, painters, landscapers, and 30+ other trades — all local, all verified.",
+    "Source A Trade is the local contractor directory for 30A, Destin, Fort Walton Beach, and the Emerald Coast. Find plumbers, electricians, HVAC, roofers, painters, landscapers, and 30+ other trades — all local, all verified.",
   keywords:
-    "contractors 30A, plumbers near 30A, electricians Destin, HVAC Santa Rosa Beach, roofers Fort Walton Beach, local contractors NW Florida, tradesmen 30A, contractor directory Emerald Coast, Trade Source",
+    "contractors 30A, plumbers near 30A, electricians Destin, HVAC Santa Rosa Beach, roofers Fort Walton Beach, local contractors NW Florida, tradesmen 30A, contractor directory Emerald Coast, Source A Trade",
   robots: "index, follow",
   alternates: {
     canonical: "https://sourceatrade.com",
   },
   openGraph: {
-    title: "Trade Source | Find Trusted Local Contractors Near 30A & NW Florida",
+    title: "Source A Trade | Find Trusted Local Contractors Near 30A & NW Florida",
     description:
       "The local contractor directory built for 30A and Northwest Florida. Browse verified tradesmen, read real reviews, get quotes.",
     type: "website",
     url: "https://sourceatrade.com",
-    siteName: "Trade Source",
+    siteName: "Source A Trade",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Trade Source | Find Trusted Local Contractors Near 30A",
+    title: "Source A Trade | Find Trusted Local Contractors Near 30A",
     description:
       "Find trusted local contractors across 30A and NW Florida. Free to browse. Verified reviews.",
   },
@@ -69,7 +69,7 @@ export default async function HomePage() {
             {
               "@context": "https://schema.org",
               "@type": "Organization",
-              name: "Trade Source",
+              name: "Source A Trade",
               url: "https://sourceatrade.com",
               description:
                 "Local contractor directory serving 30A and Northwest Florida",
@@ -99,7 +99,7 @@ export default async function HomePage() {
             {
               "@context": "https://schema.org",
               "@type": "WebSite",
-              name: "Trade Source",
+              name: "Source A Trade",
               url: "https://sourceatrade.com",
               potentialAction: {
                 "@type": "SearchAction",
@@ -120,28 +120,28 @@ export default async function HomePage() {
                   name: "How do I find a contractor near 30A?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Browse Trade Source by trade category or use the search bar to find local contractors serving 30A, Destin, Fort Walton Beach, and the Emerald Coast.",
+                    text: "Browse Source A Trade by trade category or use the search bar to find local contractors serving 30A, Destin, Fort Walton Beach, and the Emerald Coast.",
                   },
                 },
                 {
                   "@type": "Question",
-                  name: "Is Trade Source free to use?",
+                  name: "Is Source A Trade free to use?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Yes. Homeowners can browse and contact contractors for free. Contractors can create and manage a listing at no cost.",
+                    text: "Yes — homeowners can browse and contact any contractor completely free. Contractors pay a monthly fee to be listed on the platform. There are no premium tiers or pay-to-rank upgrades; every listed contractor gets equal visibility",
                   },
                 },
                 {
                   "@type": "Question",
-                  name: "What trades are listed on Trade Source?",
+                  name: "What trades are listed on Source A Trade?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Trade Source covers plumbers, electricians, HVAC technicians, roofers, painters, landscapers, pool service, pressure washing, general contractors, flooring, tile, remodeling, pest control, house cleaning, and 20+ more categories.",
+                    text: "Source A Trade covers plumbers, electricians, HVAC technicians, roofers, painters, landscapers, pool service, pressure washing, general contractors, flooring, tile, remodeling, pest control, house cleaning, and 20+ more categories.",
                   },
                 },
                 {
                   "@type": "Question",
-                  name: "What areas does Trade Source serve?",
+                  name: "What areas does Source A Trade serve?",
                   acceptedAnswer: {
                     "@type": "Answer",
                     text: "We focus on 30A and Northwest Florida — including Santa Rosa Beach, Destin, Fort Walton Beach, Niceville, Miramar Beach, Panama City Beach, Pensacola, and surrounding Emerald Coast communities.",
@@ -149,10 +149,10 @@ export default async function HomePage() {
                 },
                 {
                   "@type": "Question",
-                  name: "How is Trade Source different from Angi or HomeAdvisor?",
+                  name: "How is Source A Trade different from Angi or HomeAdvisor?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Trade Source is hyper-local — built specifically for 30A and NW Florida. We don't sell your contact info as leads. All reviews are from verified local users, not imported data. Listing your business is free.",
+                    text: "Source A Trade is hyper-local — built specifically for 30A and NW Florida. We don't sell your contact info as leads. All reviews are from verified local users, not imported data.",
                   },
                 },
               ],
@@ -222,7 +222,7 @@ export default async function HomePage() {
                 Local pros across the Emerald Coast
               </h2>
               <p className="mt-2 text-muted-foreground text-base sm:mt-3 sm:text-lg max-w-2xl mx-auto">
-                Every business on Trade Source serves your community. Browse
+                Every business on Source A Trade serves your community. Browse
                 contractors covering Destin, Santa Rosa Beach, Fort Walton
                 Beach, Panama City, and every neighborhood in between.
               </p>
@@ -252,12 +252,12 @@ export default async function HomePage() {
           </h2>
           <p className="mt-3 text-muted-foreground text-base max-w-2xl mx-auto leading-relaxed sm:mt-4 sm:text-lg">
             Get your business in front of homeowners across 30A and the
-            Emerald Coast. Free to list — we built this for the community.
+            Emerald Coast. — we built this for the community.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/join">
               <Button size="lg" className="w-full sm:w-auto px-8">
-                List Your Business Free
+                List Your Business Today
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

@@ -4,7 +4,7 @@ import { SignupForm } from "./signup-form";
 
 export const metadata: Metadata = {
   title: "Create Account",
-  description: "Create your Trade Source account.",
+  description: "Create your Source A Trade account.",
 };
 
 export default function SignupPage() {

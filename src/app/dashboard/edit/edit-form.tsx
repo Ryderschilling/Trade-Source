@@ -9,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { X, Building2, CheckCircle, Trash2 } from "lucide-react";
+import { X, Building2, CheckCircle, Trash2, Plus } from "lucide-react";
 import { updateContractor, deleteContractor, type EditListingFormState } from "@/app/actions/contractors";
+import { savePackages } from "@/app/actions/packages";
 import { SERVICE_AREAS } from "@/lib/constants";
-import type { Category, Contractor, PortfolioPhoto } from "@/lib/supabase/types";
+import type { Category, Contractor, ContractorPackage, PortfolioPhoto } from "@/lib/supabase/types";
 
 // ─── Image optimisation (mirrors join-form logic) ────────────────────────────
 
@@ -97,17 +98,57 @@ function setInputFiles(input: HTMLInputElement, files: File[]) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+interface PackageSlot {
+  name: string;
+  description: string;
+  price_label: string;
+}
+
 interface EditFormProps {
   contractor: Contractor & { categories: Category };
   portfolioPhotos: PortfolioPhoto[];
   categories: Pick<Category, "id" | "name" | "slug">[];
+  packages?: ContractorPackage[];
 }
 
 const initialState: EditListingFormState = {};
 
-export function EditListingForm({ contractor, portfolioPhotos, categories }: EditFormProps) {
+export function EditListingForm({ contractor, portfolioPhotos, categories, packages }: EditFormProps) {
   const [state, action, pending] = useActionState(updateContractor, initialState);
   const [deletepending, startDelete] = useTransition();
+  const [, startPackagesTransition] = useTransition();
+
+  const [localPackages, setLocalPackages] = useState<PackageSlot[]>(
+    (packages ?? []).map((p) => ({
+      name: p.name,
+      description: p.description ?? "",
+      price_label: p.price_label ?? "",
+    }))
+  );
+
+  function addPackage() {
+    if (localPackages.length >= 4) return;
+    setLocalPackages((prev) => [...prev, { name: "", description: "", price_label: "" }]);
+  }
+
+  function removePackage(i: number) {
+    setLocalPackages((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function updatePackageField(i: number, field: keyof PackageSlot, value: string) {
+    setLocalPackages((prev) => prev.map((p, idx) => idx === i ? { ...p, [field]: value } : p));
+  }
+
+  function handleFormSubmit() {
+    const validPackages = localPackages.filter((p) => p.name.trim());
+    startPackagesTransition(async () => {
+      await savePackages(contractor.id, validPackages.map((p) => ({
+        name: p.name.trim(),
+        description: p.description.trim() || undefined,
+        price_label: p.price_label.trim() || undefined,
+      })));
+    });
+  }
 
   function handleDeleteListing() {
     if (!confirm("Are you sure you want to permanently delete this listing? This cannot be undone.")) return;
@@ -186,7 +227,7 @@ export function EditListingForm({ contractor, portfolioPhotos, categories }: Edi
   }
 
   return (
-    <form action={action} className="space-y-8">
+    <form action={action} onSubmit={handleFormSubmit} className="space-y-8">
       {/* Hidden fields */}
       <input type="hidden" name="contractor_id" value={contractor.id} />
       <input type="hidden" name="deleted_photo_ids" value={[...deletedIds].join(",")} />
@@ -440,6 +481,76 @@ export function EditListingForm({ contractor, portfolioPhotos, categories }: Edi
             <p className="text-xs text-muted-foreground">Your total hands-on experience</p>
           </div>
         </div>
+      </section>
+
+      <Separator />
+
+      <Separator />
+
+      {/* ── Packages ── */}
+      <section className="space-y-5">
+        <div>
+          <h2 className="text-lg font-semibold">Packages</h2>
+          <p className="text-sm text-muted-foreground mt-1">Add up to 4 service packages visible on your profile.</p>
+        </div>
+
+        {localPackages.map((pkg, i) => (
+          <div key={i} className="rounded-lg border border-neutral-200 p-4 space-y-3 relative">
+            <button
+              type="button"
+              onClick={() => removePackage(i)}
+              className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 hover:bg-neutral-200 hover:text-neutral-800 transition-colors"
+              aria-label="Remove package"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+            <div className="space-y-1.5 pr-8">
+              <Label htmlFor={`pkg-name-${i}`}>Package name *</Label>
+              <Input
+                id={`pkg-name-${i}`}
+                value={pkg.name}
+                onChange={(e) => updatePackageField(i, "name", e.target.value)}
+                placeholder="e.g. Full Roof Replacement"
+                maxLength={100}
+                required={false}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`pkg-desc-${i}`}>Description</Label>
+              <Textarea
+                id={`pkg-desc-${i}`}
+                rows={2}
+                value={pkg.description}
+                onChange={(e) => updatePackageField(i, "description", e.target.value)}
+                placeholder="What's included, timeline, etc."
+                maxLength={500}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`pkg-price-${i}`}>Price</Label>
+              <Input
+                id={`pkg-price-${i}`}
+                value={pkg.price_label}
+                onChange={(e) => updatePackageField(i, "price_label", e.target.value)}
+                placeholder="e.g. $299, Starting at $150, Free estimate"
+                maxLength={100}
+              />
+            </div>
+          </div>
+        ))}
+
+        {localPackages.length < 4 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addPackage}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Package
+          </Button>
+        )}
       </section>
 
       <Separator />

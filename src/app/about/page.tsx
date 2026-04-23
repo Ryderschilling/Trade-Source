@@ -8,7 +8,7 @@ import { PageWrapper } from "@/components/ui/page-wrapper";
 export const metadata: Metadata = {
   title: `About | ${APP_NAME}`,
   description:
-    "Trade Source is the hyper-local contractor directory built for the 30A community. We connect homeowners with trusted, vetted tradesmen who actually live and work here.",
+    "Source A Trade is the hyper-local contractor directory built for the 30A community. We connect homeowners with trusted, vetted tradesmen who actually live and work here.",
 };
 
 export default function AboutPage() {
@@ -18,7 +18,7 @@ export default function AboutPage() {
       {/* Header */}
       <div className="bg-muted/40 border-b border-border py-12">
         <div className="container mx-auto max-w-4xl px-4 sm:px-6">
-          <h1 className="text-3xl font-bold tracking-tight">About Trade Source</h1>
+          <h1 className="text-3xl font-bold tracking-tight">About Source A Trade</h1>
           <p className="mt-3 text-muted-foreground text-lg">
             Built for the 30A community, by people who live here.
           </p>
@@ -32,7 +32,7 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold tracking-tight mb-4">Our mission</h2>
           <p className="text-muted-foreground leading-relaxed text-base">
             Finding a reliable contractor on the 30A corridor shouldn&apos;t require a leap of faith.
-            Trade Source exists to solve the one problem every homeowner and property manager here
+            Source A Trade exists to solve the one problem every homeowner and property manager here
             knows too well: you need a trusted plumber, electrician, or roofer — fast — and you
             don&apos;t know who to call.
           </p>
@@ -51,7 +51,7 @@ export default function AboutPage() {
         
           </p>
           <p className="mt-4 text-muted-foreground leading-relaxed text-base">
-            Trade Source is purpose-built for this market. The data is ours — not scraped from
+            Source A Trade is purpose-built for this market. The data is ours — not scraped from
             Google, not shared with outside lead brokers. When you find a pro here, they&apos;re
             actually local.
           </p>
@@ -98,7 +98,7 @@ export default function AboutPage() {
         <section className="rounded-xl border border-border bg-muted/30 p-8 text-center">
           <h2 className="text-xl font-bold tracking-tight">Ready to get started?</h2>
           <p className="mt-2 text-muted-foreground">
-            Whether you need a pro or you are one, Trade Source is free to use.
+            Whether you need a pro or you are one, Source A Trade is free to use.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/contractors">

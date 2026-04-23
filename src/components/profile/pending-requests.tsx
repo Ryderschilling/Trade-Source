@@ -42,7 +42,7 @@ function RequestRow({
   onResolve: (id: string) => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const name = request.full_name ?? "Trade Source Member";
+  const name = request.full_name ?? "Source A Trade Member";
   const initials = name
     .split(" ")
     .map((w) => w[0])

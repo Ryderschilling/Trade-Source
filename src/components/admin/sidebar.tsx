@@ -19,7 +19,7 @@ export function AdminSidebar() {
     <aside className="w-56 flex-shrink-0 flex flex-col bg-neutral-900 border-r border-neutral-800">
       <div className="px-5 py-4 border-b border-neutral-800">
         <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
-          Trade Source
+          Source A Trade
         </p>
         <p className="text-sm font-semibold text-white mt-0.5">Admin</p>
       </div>

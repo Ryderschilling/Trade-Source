@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EditListingForm } from "./edit-form";
-import type { Category, Contractor, PortfolioPhoto } from "@/lib/supabase/types";
+import type { Category, Contractor, ContractorPackage, PortfolioPhoto } from "@/lib/supabase/types";
 
 export const metadata = { title: "Edit Listing" };
 
@@ -26,6 +26,12 @@ export default async function EditListingPage() {
 
   const c = contractor as unknown as Contractor & { categories: Category; portfolio_photos: PortfolioPhoto[] };
 
+  const { data: packages } = await supabase
+    .from("contractor_packages")
+    .select("*")
+    .eq("contractor_id", c.id)
+    .order("sort_order", { ascending: true });
+
   return (
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 lg:px-8">
@@ -43,6 +49,7 @@ export default async function EditListingPage() {
           contractor={c}
           portfolioPhotos={c.portfolio_photos}
           categories={(categories ?? []) as Pick<Category, "id" | "name" | "slug">[]}
+          packages={(packages ?? []) as ContractorPackage[]}
         />
       </div>
     </main>

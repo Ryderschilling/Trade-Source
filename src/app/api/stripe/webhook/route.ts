@@ -54,8 +54,45 @@ export async function POST(req: NextRequest) {
   }
 
   switch (event.type) {
+    case "invoice.payment_succeeded": {
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+      if (customerId) {
+        await supabase
+          .from("contractors")
+          .update({ subscription_status: "active" })
+          .eq("stripe_customer_id", customerId);
+      }
+      break;
+    }
+
+    case "invoice.payment_failed": {
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+      if (customerId) {
+        await supabase
+          .from("contractors")
+          .update({ subscription_status: "past_due" })
+          .eq("stripe_customer_id", customerId);
+      }
+      break;
+    }
+
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
+
+      // Handle featured email one-time payment
+      if (session.mode === "payment" && session.metadata?.businessId) {
+        const { businessId, month } = session.metadata;
+        await supabase.from("business_addons").insert({
+          business_id: businessId,
+          addon_type: "featured_email",
+          status: "pending_review",
+          stripe_subscription_item_id: null,
+          reserved_month: month ?? null,
+        });
+        break;
+      }
 
       if (session.mode !== "subscription") break;
 
@@ -85,15 +122,15 @@ export async function POST(req: NextRequest) {
 
       await sendContractorEmail(
         contractorId,
-        "Your Trade Source listing is now live!",
+        "Your Source A Trade listing is now live!",
         `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-            <h2>You're live on Trade Source!</h2>
+            <h2>You're live on Source A Trade!</h2>
             <p>Payment confirmed. Your business listing is now active and visible to homeowners searching for contractors in your area.</p>
             ${contractorSlug ? `<p>View your listing: <a href="${appUrl}/contractors/${contractorSlug}">${appUrl}/contractors/${contractorSlug}</a></p>` : ""}
             <p>Manage your leads and messages from your <a href="${appUrl}/dashboard">dashboard</a>.</p>
             <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-            <p style="color:#94a3b8;font-size:12px">Trade Source — sourceatrade.com · Questions? Reply to this email or contact support@sourceatrade.com</p>
+            <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com · Questions? Reply to this email or contact support@sourceatrade.com</p>
           </div>
         `
       );
@@ -107,10 +144,18 @@ export async function POST(req: NextRequest) {
 
       const { data: contractor, error } = await supabase
         .from("contractors")
-        .update({ status: "suspended" })
+        .update({ status: "suspended", subscription_status: "cancelled" })
         .eq("stripe_subscription_id", subscription.id)
         .select("id, email, business_name")
         .single();
+
+      if (contractor?.id) {
+        await supabase
+          .from("business_addons")
+          .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+          .eq("business_id", contractor.id)
+          .in("status", ["active", "pending_review", "waitlisted"]);
+      }
 
       if (error) {
         console.error("Failed to suspend contractor on subscription delete:", error);
@@ -122,14 +167,14 @@ export async function POST(req: NextRequest) {
           await resend.emails.send({
             from: process.env.RESEND_FROM_EMAIL!,
             to: contractor.email,
-            subject: "Your Trade Source listing has been suspended",
+            subject: "Your Source A Trade listing has been suspended",
             html: `
               <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
                 <h2>Your listing has been suspended</h2>
-                <p>Your Trade Source subscription for <strong>${contractor.business_name}</strong> has been canceled and your listing is no longer visible to homeowners.</p>
+                <p>Your Source A Trade subscription for <strong>${contractor.business_name}</strong> has been canceled and your listing is no longer visible to homeowners.</p>
                 <p>To reactivate your listing, <a href="${appUrl}/dashboard">visit your dashboard</a> and renew your subscription.</p>
                 <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-                <p style="color:#94a3b8;font-size:12px">Trade Source — sourceatrade.com · Questions? Contact support@sourceatrade.com</p>
+                <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com · Questions? Contact support@sourceatrade.com</p>
               </div>
             `,
           });
@@ -165,15 +210,15 @@ export async function POST(req: NextRequest) {
             await resend.emails.send({
               from: process.env.RESEND_FROM_EMAIL!,
               to: contractor.email,
-              subject: "Your Trade Source listing has been suspended",
+              subject: "Your Source A Trade listing has been suspended",
               html: `
                 <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
                   <h2>Your listing has been suspended</h2>
-                  <p>Your Trade Source subscription for <strong>${contractor.business_name}</strong> has ${subscription.status === "unpaid" ? "a failed payment" : "been canceled"}. Your listing is no longer visible to homeowners.</p>
+                  <p>Your Source A Trade subscription for <strong>${contractor.business_name}</strong> has ${subscription.status === "unpaid" ? "a failed payment" : "been canceled"}. Your listing is no longer visible to homeowners.</p>
                   ${subscription.status === "unpaid" ? "<p>Please update your payment method to reactivate your listing.</p>" : ""}
                   <p><a href="${appUrl}/dashboard">Visit your dashboard</a> to manage your subscription.</p>
                   <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-                  <p style="color:#94a3b8;font-size:12px">Trade Source — sourceatrade.com · Questions? Contact support@sourceatrade.com</p>
+                  <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com · Questions? Contact support@sourceatrade.com</p>
                 </div>
               `,
             });

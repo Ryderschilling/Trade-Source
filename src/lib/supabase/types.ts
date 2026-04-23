@@ -283,6 +283,7 @@ export type Database = {
           city: string | null;
           bio: string | null;
           is_public: boolean;
+          address: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -296,6 +297,7 @@ export type Database = {
           city?: string | null;
           bio?: string | null;
           is_public?: boolean;
+          address?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -309,6 +311,7 @@ export type Database = {
           city?: string | null;
           bio?: string | null;
           is_public?: boolean;
+          address?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -350,6 +353,12 @@ export type Database = {
           view_count: number;
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
+          billing_plan: string;
+          billing_status: string;
+          subscription_status: string;
+          listing_status: string;
+          next_billing_date: string | null;
+          payment_last4: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -388,6 +397,12 @@ export type Database = {
           view_count?: number;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          billing_plan?: string;
+          billing_status?: string;
+          subscription_status?: string;
+          listing_status?: string;
+          next_billing_date?: string | null;
+          payment_last4?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -426,6 +441,12 @@ export type Database = {
           view_count?: number;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          billing_plan?: string;
+          billing_status?: string;
+          subscription_status?: string;
+          listing_status?: string;
+          next_billing_date?: string | null;
+          payment_last4?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -541,6 +562,44 @@ export type Database = {
           }
         ];
       };
+      contractor_packages: {
+        Row: {
+          id: string;
+          contractor_id: string;
+          name: string;
+          description: string | null;
+          price_label: string | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          contractor_id: string;
+          name: string;
+          description?: string | null;
+          price_label?: string | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          contractor_id?: string;
+          name?: string;
+          description?: string | null;
+          price_label?: string | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contractor_packages_contractor_id_fkey";
+            columns: ["contractor_id"];
+            isOneToOne: false;
+            referencedRelation: "contractors";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       leads: {
         Row: {
           id: string;
@@ -548,10 +607,12 @@ export type Database = {
           name: string;
           email: string;
           phone: string | null;
+          address: string | null;
           message: string;
           service_type: string | null;
           preferred_contact: "email" | "phone" | "either";
           status: "new" | "viewed" | "contacted" | "closed";
+          package_name: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -561,10 +622,12 @@ export type Database = {
           name: string;
           email: string;
           phone?: string | null;
+          address?: string | null;
           message: string;
           service_type?: string | null;
           preferred_contact?: "email" | "phone" | "either";
           status?: "new" | "viewed" | "contacted" | "closed";
+          package_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -574,10 +637,12 @@ export type Database = {
           name?: string;
           email?: string;
           phone?: string | null;
+          address?: string | null;
           message?: string;
           service_type?: string | null;
           preferred_contact?: "email" | "phone" | "either";
           status?: "new" | "viewed" | "contacted" | "closed";
+          package_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -700,6 +765,50 @@ export type Database = {
           }
         ];
       };
+      business_addons: {
+        Row: {
+          id: string;
+          business_id: string;
+          addon_type: "verified_badge" | "lead_notifications" | "homepage_slider" | "featured_email";
+          status: "active" | "paused" | "cancelled" | "waitlisted" | "pending_review";
+          started_at: string;
+          cancelled_at: string | null;
+          notes: string | null;
+          reserved_month: string | null;
+          stripe_subscription_item_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          addon_type: "verified_badge" | "lead_notifications" | "homepage_slider" | "featured_email";
+          status?: "active" | "paused" | "cancelled" | "waitlisted" | "pending_review";
+          started_at?: string;
+          cancelled_at?: string | null;
+          notes?: string | null;
+          reserved_month?: string | null;
+          stripe_subscription_item_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          addon_type?: "verified_badge" | "lead_notifications" | "homepage_slider" | "featured_email";
+          status?: "active" | "paused" | "cancelled" | "waitlisted" | "pending_review";
+          started_at?: string;
+          cancelled_at?: string | null;
+          notes?: string | null;
+          reserved_month?: string | null;
+          stripe_subscription_item_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "business_addons_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "contractors";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -742,3 +851,5 @@ export type CategoryGroup = Database["public"]["Tables"]["category_groups"]["Row
 export type QuoteRequest = Database["public"]["Tables"]["quote_requests"]["Row"];
 export type QuoteRequestRecipient = Database["public"]["Tables"]["quote_request_recipients"]["Row"];
 export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
+export type ContractorPackage = Database["public"]["Tables"]["contractor_packages"]["Row"];
+export type BusinessAddon = Database["public"]["Tables"]["business_addons"]["Row"];

@@ -55,6 +55,17 @@ export function SignupForm() {
       </div>
 
       <div className="space-y-1.5">
+        <Label htmlFor="address">Home address</Label>
+        <Input
+          id="address"
+          name="address"
+          placeholder="123 Main St, City, State"
+          required
+          autoComplete="street-address"
+        />
+      </div>
+
+      <div className="space-y-1.5">
         <Label htmlFor="password">Password</Label>
         <Input
           id="password"

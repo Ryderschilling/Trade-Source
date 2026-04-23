@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Star, MapPin, Shield } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ContractorWithCategory } from "@/lib/supabase/types";
@@ -71,8 +72,18 @@ function MarqueeCard({ contractor }: { contractor: ContractorWithCategory }) {
       <Card className="h-full transition-all duration-200 hover:-translate-y-[4px] hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)] hover:border-primary/40 cursor-pointer">
         <CardContent className="p-5">
           <div className="flex gap-3 items-start">
-            <div className="h-12 w-12 rounded-xl flex-shrink-0 bg-primary/10 text-primary flex items-center justify-center font-semibold text-sm">
-              {initials}
+            <div className="h-12 w-12 rounded-xl flex-shrink-0 bg-primary/10 text-primary flex items-center justify-center font-semibold text-sm overflow-hidden">
+              {contractor.logo_url ? (
+                <Image
+                  src={contractor.logo_url}
+                  alt={contractor.business_name}
+                  width={48}
+                  height={48}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                initials
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">

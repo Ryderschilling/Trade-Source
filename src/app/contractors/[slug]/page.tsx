@@ -15,7 +15,9 @@ import { QuoteRequestForm } from "@/components/contractors/quote-request-form";
 import { ReviewForm } from "@/components/contractors/review-form";
 import { ViewTracker } from "@/components/contractors/ViewTracker";
 import { PortfolioGallery } from "@/components/contractors/portfolio-gallery";
-import type { Contractor, Category, PortfolioPhoto } from "@/lib/supabase/types";
+import { DeleteReviewButton } from "@/components/contractors/delete-review-button";
+import { PackageRequestSection } from "@/components/contractors/package-request-section";
+import type { Contractor, Category, ContractorPackage, PortfolioPhoto } from "@/lib/supabase/types";
 
 type ReviewWithProfile = {
   id: string;
@@ -83,18 +85,42 @@ export default async function ContractorProfilePage({ params }: PageProps) {
 
   const c = contractor as unknown as FullContractor;
 
-  let userProfile: { full_name: string | null; email: string; phone: string | null } | null = null;
+  const { data: packages } = await supabase
+    .from("contractor_packages")
+    .select("*")
+    .eq("contractor_id", c.id)
+    .order("sort_order", { ascending: true });
+
+  const additionalCategoryIds: string[] = (c as unknown as { additional_categories?: string[] }).additional_categories ?? [];
+  let additionalCategoryNames: string[] = [];
+  if (additionalCategoryIds.length > 0) {
+    const { data: extraCats } = await supabase
+      .from("categories")
+      .select("id, name")
+      .in("id", additionalCategoryIds);
+    if (extraCats) {
+      const catMap: Record<string, string> = {};
+      for (const cat of extraCats) catMap[cat.id] = cat.name;
+      additionalCategoryNames = additionalCategoryIds.map((id) => catMap[id]).filter(Boolean);
+    }
+  }
+
+  const allTradeNames = [c.categories?.name, ...additionalCategoryNames].filter(Boolean) as string[];
+
+  let userProfile: { full_name: string | null; email: string; phone: string | null; address: string | null } | null = null;
   let hasReviewed = false;
   const isOwner = user?.id != null && c.user_id === user.id;
 
   if (user) {
     const [{ data: profile }, { data: existingReview }] = await Promise.all([
-      supabase.from("profiles").select("full_name, email, phone").eq("id", user.id).single(),
+      supabase.from("profiles").select("full_name, email, phone, address").eq("id", user.id).single(),
       supabase.from("reviews").select("id").eq("contractor_id", c.id).eq("user_id", user.id).maybeSingle(),
     ]);
     userProfile = profile ?? null;
     hasReviewed = !!existingReview;
   }
+
+  const userEmail = user ? (userProfile?.email ?? user.email ?? null) : null;
 
   const initials = c.business_name
     .split(" ")
@@ -169,7 +195,7 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                 </div>
 
                 <p className="text-muted-foreground mt-0.5">
-                  {c.categories?.name ?? "Unknown Category"}
+                  {allTradeNames.length > 0 ? allTradeNames.join(" · ") : "Unknown Category"}
                 </p>
 
                 {c.tagline && (
@@ -269,6 +295,18 @@ export default async function ContractorProfilePage({ params }: PageProps) {
               </section>
             )}
 
+            {/* Services & Packages */}
+            {packages && packages.length > 0 && (
+              <PackageRequestSection
+                packages={packages as ContractorPackage[]}
+                contractorId={c.id}
+                userEmail={isOwner ? null : userEmail}
+                userPhone={isOwner ? null : (userProfile?.phone ?? null)}
+                userName={isOwner ? null : (userProfile?.full_name ?? null)}
+                userAddress={isOwner ? null : (userProfile?.address ?? null)}
+              />
+            )}
+
             {/* Reviews */}
             <section>
               <h2 className="text-lg font-semibold mb-4">
@@ -338,6 +376,11 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                             {review.body}
                           </p>
                         )}
+                        {user?.id === review.user_id && (
+                          <div className="mt-3 flex justify-end">
+                            <DeleteReviewButton reviewId={review.id} contractorSlug={c.slug} />
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
@@ -359,9 +402,17 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                 <p className="mt-4 text-sm text-muted-foreground">You have already reviewed this business.</p>
               )}
               {!user && (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  <a href="/signup" className="text-primary hover:underline">Sign up to continue</a>
-                </p>
+                <div className="mt-6 rounded-xl border border-dashed border-border p-5 text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Create a free account to leave a review.
+                  </p>
+                  <Link
+                    href="/signup"
+                    className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+                  >
+                    Write a Review
+                  </Link>
+                </div>
               )}
             </section>
           </div>

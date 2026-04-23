@@ -4,7 +4,7 @@ import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
   title: "Sign In",
-  description: "Sign in to your Trade Source account.",
+  description: "Sign in to your Source A Trade account.",
 };
 
 interface PageProps {
@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to your Trade Source account
+            Sign in to your Source A Trade account
           </p>
         </div>
 

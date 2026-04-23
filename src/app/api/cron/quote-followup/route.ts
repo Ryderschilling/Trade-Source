@@ -75,11 +75,11 @@ export async function GET(req: NextRequest) {
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL!,
         to: quote.email,
-        subject: `How did your ${categoryName} project go? — Trade Source`,
+        subject: `How did your ${categoryName} project go? — Source A Trade`,
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
             <h2>Hey ${quote.name}, how did it go?</h2>
-            <p>A couple of weeks ago you requested quotes for <strong>${categoryName}</strong> work on Trade Source.</p>
+            <p>A couple of weeks ago you requested quotes for <strong>${categoryName}</strong> work on Source A Trade.</p>
             <p>If you hired one of these businesses, a quick review helps other homeowners in your area make great decisions:</p>
             <ul style="padding-left:20px;line-height:1.8">
               ${contractorListHtml}
@@ -87,8 +87,8 @@ export async function GET(req: NextRequest) {
             <p style="color:#64748b;font-size:14px">Reviews take less than 2 minutes and make a big difference for local contractors.</p>
             <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
             <p style="color:#94a3b8;font-size:12px">
-              You received this because you submitted a quote request for ${categoryName} on Trade Source.
-              <br/>Trade Source — sourceatrade.com
+              You received this because you submitted a quote request for ${categoryName} on Source A Trade.
+              <br/>Source A Trade — sourceatrade.com
             </p>
           </div>
         `,

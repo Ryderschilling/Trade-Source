@@ -7,7 +7,7 @@ import { PageWrapper } from "@/components/ui/page-wrapper";
 
 export const metadata: Metadata = {
   title: `Contact | ${APP_NAME}`,
-  description: "Get in touch with the Trade Source team.",
+  description: "Get in touch with the Source A Trade team.",
 };
 
 export default function ContactPage() {
@@ -76,7 +76,7 @@ export default function ContactPage() {
             <div>
               <h3 className="font-medium text-sm">I&apos;m a homeowner — is this free?</h3>
               <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                Yes. Finding and contacting contractors on Trade Source is completely free for
+                Yes. Finding and contacting contractors on Source A Trade is completely free for
                 homeowners and property managers.
               </p>
             </div>

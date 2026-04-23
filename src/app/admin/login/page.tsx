@@ -15,7 +15,7 @@ export default function AdminLoginPage() {
       <Card className="w-full max-w-sm border-neutral-800 bg-neutral-900 text-white shadow-2xl">
         <CardHeader className="pb-4 text-center space-y-1">
           <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
-            Trade Source
+            Source A Trade
           </p>
           <h1 className="text-xl font-bold text-white">Admin Access</h1>
         </CardHeader>

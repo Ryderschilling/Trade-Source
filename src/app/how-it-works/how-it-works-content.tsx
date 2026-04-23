@@ -150,8 +150,8 @@ const homeownerSteps = [
 
 const tradespeopleSteps = [
   {
-    title: "Create your free listing",
-    desc: "Build your profile in minutes. Add your trade, service area, photos, and contact info. Always free.",
+    title: "Create your listing today",
+    desc: "Build your profile in minutes. Add your trade, service area, photos, and contact info. Then get leads instantly.",
     icon: <IconClipboard />,
   },
   {
@@ -178,8 +178,8 @@ const valueProps = [
     icon: <IconNoDollar />,
   },
   {
-    title: "Free to start, forever",
-    desc: "Homeowners browse free. Contractors list free. We only charge if you want to grow faster with premium placement.",
+    title: "Start Now",
+    desc: "Homeowners browse free. Contractors list for low cost. No premium tiers or pay-to-rank upgrades.",
     icon: <IconTag />,
   },
 ];
@@ -231,7 +231,7 @@ export function HowItWorksContent({ mapPins = [] }: { mapPins?: MapPin[] }) {
               The local way to find a tradesman you can trust.
             </h1>
             <p className="mt-5 text-lg text-blue-300 leading-relaxed max-w-2xl mx-auto">
-              Trade Source connects 30A homeowners with verified local contractors — no algorithms, no middlemen.
+              Source A Trade connects 30A homeowners with verified local contractors — no algorithms, no middlemen.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/contractors">
@@ -288,7 +288,7 @@ export function HowItWorksContent({ mapPins = [] }: { mapPins?: MapPin[] }) {
               For Tradespeople
             </p>
             <h2 className="text-3xl font-bold text-zinc-900 mb-12">
-              Grow your local business — free
+              Grow your local business — Now
             </h2>
           </FadeUp>
 
@@ -336,7 +336,7 @@ export function HowItWorksContent({ mapPins = [] }: { mapPins?: MapPin[] }) {
         <div className="max-w-5xl mx-auto">
           <FadeUp duration={0.9}>
             <h2 className="text-3xl font-bold text-zinc-900 text-center mb-12">
-              Why Trade Source?
+              Why Source A Trade?
             </h2>
           </FadeUp>
 
@@ -360,7 +360,7 @@ export function HowItWorksContent({ mapPins = [] }: { mapPins?: MapPin[] }) {
           <div className="max-w-2xl mx-auto">
             <h2 className="text-3xl font-bold text-white">Ready to get started?</h2>
             <p className="mt-3 text-blue-300 text-base">
-              It takes 2 minutes to find a tradesman or build your free listing.
+              It takes 2 minutes to find a tradesman, or build your business listing today.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/contractors">

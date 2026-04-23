@@ -264,6 +264,28 @@ export async function joinAsContractor(
     }
   }
 
+  // Insert packages if provided
+  const packagesRaw = formData.get("packages_json") as string | null;
+  if (packagesRaw) {
+    try {
+      const pkgs = JSON.parse(packagesRaw) as Array<{ name: string; description?: string; price_label?: string }>;
+      const validPkgs = pkgs.filter((p) => p.name?.trim()).slice(0, 4);
+      if (validPkgs.length > 0) {
+        await serviceClient.from("contractor_packages").insert(
+          validPkgs.map((p, i) => ({
+            contractor_id: contractorId,
+            name: p.name.trim(),
+            description: p.description?.trim() || null,
+            price_label: p.price_label?.trim() || null,
+            sort_order: i,
+          }))
+        );
+      }
+    } catch {
+      // Non-fatal: packages are optional
+    }
+  }
+
   // Update profile role to contractor if logged in
   if (user) {
     await serviceClient
@@ -278,11 +300,11 @@ export async function joinAsContractor(
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL!,
         to: parsed.data.email,
-        subject: "Complete payment to activate your Trade Source listing",
+        subject: "Complete payment to activate your Source A Trade listing",
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
             <h2>Almost there, ${parsed.data.business_name}!</h2>
-            <p>Your listing on <strong>Trade Source</strong> has been created. To make it live, complete your $49.99/month subscription payment.</p>
+            <p>Your listing on <strong>Source A Trade</strong> has been created. To make it live, complete your $49.99/month subscription payment.</p>
             <p>If you were redirected to Stripe and completed payment, your listing will go live automatically within a few seconds.</p>
             <p>Once active, your listing will be at:<br/><a href="${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}">${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}</a></p>
             <hr />
@@ -308,7 +330,7 @@ export async function joinAsContractor(
     payment_method_types: ["card"],
     line_items: [
       {
-        price: process.env.STRIPE_PRICE_ID!,
+        price: process.env.STRIPE_PRICE_BASE_50!,
         quantity: 1,
       },
     ],

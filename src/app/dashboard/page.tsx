@@ -4,7 +4,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, ExternalLink, Pencil, ImageIcon, Search, Target } from "lucide-react";
+import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, ExternalLink, Pencil, ImageIcon, Search, Target, CreditCard } from "lucide-react";
 import type { PortfolioPhoto } from "@/lib/supabase/types";
 import { AdminCRMDashboard } from "@/components/dashboard/admin-crm";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
@@ -17,13 +17,14 @@ function formatDate(ts: string) {
 
 async function ContractorDashboard({ userId }: { userId: string }) {
   const supabase = await createClient();
-  const [{ data: contractor }, { data: quoteRecipients }, { data: unreadNotifs }, { data: recentNotifs }] = await Promise.all([
+  const [{ data: contractor }, { data: allCategories }, { data: quoteRecipients }, { data: unreadNotifs }, { data: recentNotifs }] = await Promise.all([
     supabase
       .from("contractors")
       .select("*, categories(name), portfolio_photos(*)")
       .eq("user_id", userId)
       .order("sort_order", { referencedTable: "portfolio_photos", ascending: true })
       .maybeSingle(),
+    supabase.from("categories").select("id, name"),
     supabase
       .from("quote_request_recipients")
       .select("*, quote_requests(name, email, phone, description, timeline, categories(name))")
@@ -52,6 +53,12 @@ async function ContractorDashboard({ userId }: { userId: string }) {
       : Promise.resolve({ data: [] as any[] }),
   ]);
 
+  const categoryMap = Object.fromEntries((allCategories ?? []).map((c: any) => [c.id, c.name]));
+  const allCategoryNames = [
+    (contractor as any)?.categories?.name,
+    ...((contractor as any)?.additional_categories ?? []).map((id: string) => categoryMap[id]).filter(Boolean),
+  ].filter(Boolean) as string[];
+
   const portfolioPhotos: PortfolioPhoto[] = (contractor as any)?.portfolio_photos ?? [];
   const myQuoteRecipients = contractor
     ? (quoteRecipients ?? []).filter((r: any) => r.contractor_id === contractor.id)
@@ -71,7 +78,7 @@ async function ContractorDashboard({ userId }: { userId: string }) {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Business Dashboard</h1>
           <div className="mt-1 flex items-center gap-2">
-            <p className="text-sm text-neutral-500">{contractor?.business_name ?? "Your Trade Source listing"}</p>
+            <p className="text-sm text-neutral-500">{contractor?.business_name ?? "Your Source A Trade listing"}</p>
             {contractor?.status === "active" && (
               <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
@@ -86,6 +93,9 @@ async function ContractorDashboard({ userId }: { userId: string }) {
             initialCount={unreadCount}
             initialNotifications={recentNotifs ?? []}
           />
+          <Link href="/dashboard/billing">
+            <Button variant="outline" size="sm" className="gap-1.5"><CreditCard className="h-3.5 w-3.5" />Billing</Button>
+          </Link>
           <Link href={`/profile/${userId}`}>
             <Button variant="outline" size="sm" className="gap-1.5">View My Profile <ExternalLink className="h-3.5 w-3.5" /></Button>
           </Link>
@@ -98,14 +108,14 @@ async function ContractorDashboard({ userId }: { userId: string }) {
           <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-6 py-12 text-center">
             <Building2 className="mx-auto mb-4 h-10 w-10 text-neutral-400" />
             <h2 className="text-xl font-semibold tracking-tight text-neutral-900">
-              List Your Business — It&apos;s Free
+              List Your Business
             </h2>
             <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-500">
               Reach homeowners and property managers searching for local tradesmen on the 30A corridor.
             </p>
             <Link href="/join">
               <Button className="mt-6 bg-neutral-900 px-6 hover:bg-neutral-800">
-                Get Started — Free
+                List Your Business Today
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -145,11 +155,11 @@ async function ContractorDashboard({ userId }: { userId: string }) {
                 <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100">
                   <TrendingUp className="h-4 w-4 text-neutral-700" />
                 </div>
-                <CardTitle className="text-sm font-semibold text-neutral-900">Grow for Free</CardTitle>
+                <CardTitle className="text-sm font-semibold text-neutral-900">Grow Your Business</CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
                 <CardDescription className="text-sm leading-relaxed text-neutral-500">
-                  No subscription required to get started. List your services, show your work, and get more calls.
+                  List your services, show your work, and get more calls — $50/month, cancel anytime.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -248,7 +258,7 @@ async function ContractorDashboard({ userId }: { userId: string }) {
                 )}
                 <div>
                   <CardTitle className="text-base font-semibold text-neutral-900">{contractor.business_name}</CardTitle>
-                  <CardDescription className="mt-0.5 text-xs">{(contractor.categories as any)?.name} · {contractor.city}, {contractor.state}</CardDescription>
+                  <CardDescription className="mt-0.5 text-xs">{allCategoryNames.join(" · ")} · {contractor.city}, {contractor.state}</CardDescription>
                   {contractor.tagline && <p className="mt-1 text-xs text-neutral-500 italic">&ldquo;{contractor.tagline}&rdquo;</p>}
                 </div>
               </div>
@@ -388,7 +398,7 @@ async function HomeownerDashboard({ userId, name }: { userId: string; email: str
         <CardContent className="flex items-center justify-between gap-6 p-6">
           <div>
             <h3 className="font-semibold text-neutral-900">Are you a local tradesman?</h3>
-            <p className="mt-1 text-sm text-neutral-500">List your business free — no lead fees, no commission.</p>
+            <p className="mt-1 text-sm text-neutral-500">$50/month — no lead fees, no commission.</p>
           </div>
           <Link href="/join" className="shrink-0">
             <Button className="bg-neutral-900 hover:bg-neutral-800 gap-1.5">List Your Business <ArrowRight className="h-4 w-4" /></Button>

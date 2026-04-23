@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
 
@@ -120,7 +121,7 @@ export async function submitReview(
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL!,
         to: contractor.email,
-        subject: `New ${parsed.data.rating}-star review on Trade Source`,
+        subject: `New ${parsed.data.rating}-star review on Source A Trade`,
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
             <h2>New Review for ${contractor.business_name}</h2>
@@ -154,7 +155,7 @@ export async function submitReview(
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
             <h2>Thanks for your review!</h2>
-            <p>Your ${parsed.data.rating}-star review for <strong>${contractor?.business_name ?? "this business"}</strong> has been posted on Trade Source.</p>
+            <p>Your ${parsed.data.rating}-star review for <strong>${contractor?.business_name ?? "this business"}</strong> has been posted on Source A Trade.</p>
             <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0">
               <p style="margin:0 0 6px 0;font-size:18px;letter-spacing:2px">${stars}</p>
               ${parsed.data.title ? `<p style="margin:0 0 6px 0;font-weight:600;color:#1e293b">${parsed.data.title}</p>` : ""}
@@ -162,7 +163,7 @@ export async function submitReview(
             </div>
             <p style="color:#64748b;font-size:13px">Reviews help other homeowners make informed decisions. Thank you for contributing to the community.</p>
             <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-            <p style="color:#94a3b8;font-size:12px">Trade Source — sourceatrade.com</p>
+            <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
           </div>
         `,
       });
@@ -172,4 +173,25 @@ export async function submitReview(
   }
 
   return { success: true };
+}
+
+export async function deleteReview(reviewId: string, contractorSlug: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Not signed in." };
+
+  const { error } = await supabase
+    .from("reviews")
+    .delete()
+    .eq("id", reviewId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("Delete review error:", error);
+    return { error: "Failed to delete review." };
+  }
+
+  revalidatePath(`/contractors/${contractorSlug}`);
+  return {};
 }

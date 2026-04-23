@@ -30,10 +30,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!profile) return { title: "Profile Not Found" };
 
-  const name = (profile as any).full_name ?? "Trade Source Member";
+  const name = (profile as any).full_name ?? "Source A Trade Member";
   const metadata: Metadata = {
-    title: `${name} — Trade Source`,
-    description: (profile as any).bio ?? `View ${name}'s profile on Trade Source`,
+    title: `${name} — Source A Trade`,
+    description: (profile as any).bio ?? `View ${name}'s profile on Source A Trade`,
   };
 
   if ((profile as any).avatar_url) {
@@ -93,7 +93,7 @@ export default async function ProfilePage({ params }: Props) {
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">{profile.full_name ?? "Trade Source Member"}</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">{profile.full_name ?? "Source A Trade Member"}</h1>
               {profile.role === "contractor" && (
                 <Badge variant="secondary" className="border-neutral-200 bg-neutral-100 text-neutral-700 text-xs">Pro</Badge>
               )}

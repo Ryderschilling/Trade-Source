@@ -3,7 +3,7 @@ import { APP_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: `Terms of Service | ${APP_NAME}`,
-  description: "Terms of Service for Trade Source.",
+  description: "Terms of Service for Source A Trade.",
 };
 
 export default function TermsPage() {
@@ -22,15 +22,15 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-bold text-foreground mb-3">1. Acceptance of terms</h2>
             <p>
-              By accessing or using Trade Source (&ldquo;the Service&rdquo;), you agree to be bound
+              By accessing or using Source A Trade (&ldquo;the Service&rdquo;), you agree to be bound
               by these Terms of Service. If you do not agree, do not use the Service.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-foreground mb-3">2. What Trade Source is</h2>
+            <h2 className="text-xl font-bold text-foreground mb-3">2. What Source A Trade is</h2>
             <p>
-              Trade Source is a local contractor directory that connects homeowners and property
+              Source A Trade is a local contractor directory that connects homeowners and property
               managers with tradesmen serving the 30A corridor and Northwest Florida. We are a
               directory — we do not employ contractors, guarantee their work, or act as a party to
               any transaction between a homeowner and a contractor.
@@ -56,7 +56,7 @@ export default function TermsPage() {
                 information.
               </li>
               <li>
-                Trade Source reserves the right to remove or reject any listing at our discretion.
+                Source A Trade reserves the right to remove or reject any listing at our discretion.
               </li>
             </ul>
           </section>
@@ -85,7 +85,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-bold text-foreground mb-3">7. Disclaimer of warranties</h2>
             <p>
-              The Service is provided &ldquo;as is&rdquo; without warranty of any kind. Trade Source
+              The Service is provided &ldquo;as is&rdquo; without warranty of any kind. Source A Trade
               does not warrant that contractors listed are licensed, insured, or qualified for any
               particular job. Users are responsible for independently verifying contractor
               credentials before hiring.
@@ -95,7 +95,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-bold text-foreground mb-3">8. Limitation of liability</h2>
             <p>
-              Trade Source is not liable for any damages arising from your use of the Service or
+              Source A Trade is not liable for any damages arising from your use of the Service or
               from interactions with contractors found through the platform. Our total liability to
               you shall not exceed the amount you paid to use the Service, if any.
             </p>
