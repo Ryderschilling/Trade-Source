@@ -7,7 +7,7 @@ import { adminUpdate } from '@/lib/admin/crud';
 import { audit } from '@/lib/admin/audit';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { stripe } from '@/lib/stripe/client';
+import { getStripe } from '@/lib/stripe/client';
 
 const id$ = z.string().uuid();
 
@@ -58,7 +58,7 @@ export async function syncFromStripe(id: string) {
     .single();
   if (error || !data?.stripe_subscription_id) throw new Error('No Stripe subscription found');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sub = await stripe.subscriptions.retrieve(data.stripe_subscription_id) as any;
+  const sub = await getStripe().subscriptions.retrieve(data.stripe_subscription_id) as any;
   await adminUpdate('contractors', id, {
     subscription_status: sub.status,
     billing_status: sub.status === 'active' ? 'active' : 'inactive',
@@ -79,7 +79,7 @@ export async function cancelSub(id: string) {
     .eq('id', id)
     .single();
   if (error || !data?.stripe_subscription_id) throw new Error('No Stripe subscription to cancel');
-  await stripe.subscriptions.cancel(data.stripe_subscription_id);
+  await getStripe().subscriptions.cancel(data.stripe_subscription_id);
   await adminUpdate('contractors', id, {
     subscription_status: 'canceled',
     billing_status: 'canceled',

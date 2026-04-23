@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { stripe } from './client'
+import { getStripe } from './client'
 import { PRICES, ADDON_PRICE_MAP } from './products'
 import { createClient } from '@/lib/supabase/server'
 
@@ -27,7 +27,7 @@ export async function createOrRetrieveCustomer(businessId: string): Promise<stri
 
   if (contractor.stripe_customer_id) return contractor.stripe_customer_id
 
-  const customer = await stripe.customers.create({
+  const customer = await getStripe().customers.create({
     name: contractor.business_name,
     email: contractor.email ?? undefined,
     metadata: { businessId },
@@ -48,7 +48,7 @@ export async function createSubscription(businessId: string) {
   try {
     const customerId = await createOrRetrieveCustomer(businessId)
 
-    const subscription = await stripe.subscriptions.create({
+    const subscription = await getStripe().subscriptions.create({
       customer: customerId,
       items: [{ price: PRICES.BASE_50 }],
       payment_behavior: 'default_incomplete',
@@ -81,7 +81,7 @@ export async function addAddon(businessId: string, addonType: string) {
   if (!stripe_subscription_id) return { error: 'No active subscription' }
 
   try {
-    const item = await stripe.subscriptionItems.create({
+    const item = await getStripe().subscriptionItems.create({
       subscription: stripe_subscription_id,
       price,
     })
@@ -116,7 +116,7 @@ export async function removeAddon(businessId: string, addonType: string) {
 
   if (addon.stripe_subscription_item_id) {
     try {
-      await stripe.subscriptionItems.del(addon.stripe_subscription_item_id, {
+      await getStripe().subscriptionItems.del(addon.stripe_subscription_item_id, {
         proration_behavior: 'create_prorations',
       })
     } catch (err: any) {
@@ -157,7 +157,7 @@ export async function cancelSubscription(businessId: string) {
   const { stripe_subscription_id } = contractor
   if (stripe_subscription_id) {
     try {
-      await stripe.subscriptions.cancel(stripe_subscription_id)
+      await getStripe().subscriptions.cancel(stripe_subscription_id)
     } catch (err: any) {
       return { error: err.message ?? 'Stripe error' }
     }
@@ -183,7 +183,7 @@ export async function createFeaturedEmailCheckout(businessId: string, month: str
   if (error || !supabase || !contractor) return { error: error ?? 'Not found' }
 
   try {
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
       line_items: [{ price: PRICES.FEATURED_EMAIL, quantity: 1 }],
       metadata: { businessId, month },
