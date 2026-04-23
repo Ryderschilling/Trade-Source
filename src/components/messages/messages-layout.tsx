@@ -537,7 +537,7 @@ function ChatWindow({
             e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
           }}
           onKeyDown={handleKeyDown}
-          placeholder="iMessage"
+          placeholder="Type a message"
           rows={1}
           className="flex-1 resize-none rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm outline-none focus:border-neutral-300 focus:bg-white transition-colors placeholder:text-neutral-400 leading-relaxed overflow-hidden"
           style={{ minHeight: "42px" }}

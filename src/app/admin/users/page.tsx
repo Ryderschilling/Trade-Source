@@ -1,7 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Profile } from '@/lib/supabase/types';
-import { DataTable } from '@/components/admin/data-table';
-import { userColumns } from '@/components/admin/user-columns';
+import { UsersTable } from '@/components/admin/user-columns';
 
 async function getUsers(): Promise<Profile[]> {
   const supabase = createAdminClient();
@@ -26,11 +25,7 @@ export default async function AdminUsersPage() {
         </p>
       </div>
 
-      <DataTable
-        columns={userColumns}
-        data={users}
-        searchPlaceholder="Search by email or name…"
-      />
+      <UsersTable data={users} />
     </div>
   );
 }

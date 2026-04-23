@@ -12,11 +12,10 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { QuoteRequestForm } from "@/components/contractors/quote-request-form";
-import { ReviewForm } from "@/components/contractors/review-form";
 import { ViewTracker } from "@/components/contractors/ViewTracker";
 import { PortfolioGallery } from "@/components/contractors/portfolio-gallery";
-import { DeleteReviewButton } from "@/components/contractors/delete-review-button";
 import { PackageRequestSection } from "@/components/contractors/package-request-section";
+import { ReviewsSection } from "@/components/contractors/reviews-section";
 import type { Contractor, Category, ContractorPackage, PortfolioPhoto } from "@/lib/supabase/types";
 
 type ReviewWithProfile = {
@@ -38,6 +37,7 @@ type FullContractor = Contractor & {
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -60,8 +60,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function ContractorProfilePage({ params }: PageProps) {
+export default async function ContractorProfilePage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const reviewOpen = sp.review === "open";
   const supabase = await createClient();
 
   const [{ data: contractor }, { data: { user } }] = await Promise.all([
@@ -107,13 +109,13 @@ export default async function ContractorProfilePage({ params }: PageProps) {
 
   const allTradeNames = [c.categories?.name, ...additionalCategoryNames].filter(Boolean) as string[];
 
-  let userProfile: { full_name: string | null; email: string; phone: string | null; address: string | null } | null = null;
+  let userProfile: { full_name: string | null; email: string; phone: string | null; address: string | null; avatar_url: string | null } | null = null;
   let hasReviewed = false;
   const isOwner = user?.id != null && c.user_id === user.id;
 
   if (user) {
     const [{ data: profile }, { data: existingReview }] = await Promise.all([
-      supabase.from("profiles").select("full_name, email, phone, address").eq("id", user.id).single(),
+      supabase.from("profiles").select("full_name, email, phone, address, avatar_url").eq("id", user.id).single(),
       supabase.from("reviews").select("id").eq("contractor_id", c.id).eq("user_id", user.id).maybeSingle(),
     ]);
     userProfile = profile ?? null;
@@ -172,6 +174,14 @@ export default async function ContractorProfilePage({ params }: PageProps) {
       )}
 
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 pt-14 pb-8">
+        {isOwner && (
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+            <span>This is your business listing. Homeowners see your full public profile here.</span>
+            <Link href="/dashboard/edit" className="shrink-0 inline-flex h-8 items-center justify-center rounded-md border border-amber-300 bg-white px-3 text-xs font-medium text-amber-900 shadow-sm hover:bg-amber-50 transition-colors dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200 dark:hover:bg-amber-900/30">
+              Edit Listing
+            </Link>
+          </div>
+        )}
         <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
           {/* Left — main content */}
           <div className="space-y-8">
@@ -300,121 +310,28 @@ export default async function ContractorProfilePage({ params }: PageProps) {
               <PackageRequestSection
                 packages={packages as ContractorPackage[]}
                 contractorId={c.id}
-                userEmail={isOwner ? null : userEmail}
-                userPhone={isOwner ? null : (userProfile?.phone ?? null)}
-                userName={isOwner ? null : (userProfile?.full_name ?? null)}
-                userAddress={isOwner ? null : (userProfile?.address ?? null)}
+                isOwner={isOwner}
+                userEmail={userEmail}
+                userPhone={userProfile?.phone ?? null}
+                userName={userProfile?.full_name ?? null}
+                userAddress={userProfile?.address ?? null}
               />
             )}
 
-            {/* Reviews */}
-            <section>
-              <h2 className="text-lg font-semibold mb-4">
-                Reviews{" "}
-                {c.review_count > 0 && (
-                  <span className="text-muted-foreground font-normal text-base">
-                    ({c.review_count})
-                  </span>
-                )}
-              </h2>
-
-              {c.reviews.length > 0 ? (
-                <div className="space-y-4">
-                  {c.reviews.map((review) => (
-                    <Card key={review.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            {review.is_anonymous || !review.user_id ? (
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback className="text-xs">A</AvatarFallback>
-                              </Avatar>
-                            ) : (
-                              <Link href={`/profile/${review.user_id}`}>
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={review.profiles?.avatar_url ?? undefined} />
-                                  <AvatarFallback className="text-xs">
-                                    {review.profiles?.full_name?.[0] ?? "?"}
-                                  </AvatarFallback>
-                                </Avatar>
-                              </Link>
-                            )}
-                            <div>
-                              {review.is_anonymous || !review.user_id ? (
-                                <p className="text-sm font-medium text-muted-foreground">Anonymous</p>
-                              ) : (
-                                <Link
-                                  href={`/profile/${review.user_id}`}
-                                  className="text-sm font-medium hover:underline underline-offset-2"
-                                >
-                                  {review.profiles?.full_name ?? "Anonymous"}
-                                </Link>
-                              )}
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(review.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-0.5">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < review.rating
-                                    ? "fill-yellow-400 text-yellow-400"
-                                    : "text-muted-foreground/30"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        {review.title && (
-                          <p className="mt-2 font-medium text-sm">{review.title}</p>
-                        )}
-                        {review.body && (
-                          <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                            {review.body}
-                          </p>
-                        )}
-                        {user?.id === review.user_id && (
-                          <div className="mt-3 flex justify-end">
-                            <DeleteReviewButton reviewId={review.id} contractorSlug={c.slug} />
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No reviews yet. Be the first to leave one.
-                </p>
-              )}
-
-              {/* Write a review */}
-              {user && !isOwner && !hasReviewed && (
-                <div className="mt-6 rounded-xl border border-border p-5">
-                  <h3 className="text-base font-semibold mb-4">Write a Review</h3>
-                  <ReviewForm contractorId={c.id} businessName={c.business_name} />
-                </div>
-              )}
-              {user && !isOwner && hasReviewed && (
-                <p className="mt-4 text-sm text-muted-foreground">You have already reviewed this business.</p>
-              )}
-              {!user && (
-                <div className="mt-6 rounded-xl border border-dashed border-border p-5 text-center">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Create a free account to leave a review.
-                  </p>
-                  <Link
-                    href="/signup"
-                    className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
-                  >
-                    Write a Review
-                  </Link>
-                </div>
-              )}
-            </section>
+            <ReviewsSection
+              initialReviews={c.reviews}
+              initialReviewCount={c.review_count}
+              initialAvgRating={c.avg_rating}
+              contractorId={c.id}
+              contractorSlug={c.slug}
+              businessName={c.business_name}
+              userId={user?.id ?? null}
+              userName={userProfile?.full_name ?? null}
+              userAvatarUrl={userProfile?.avatar_url ?? null}
+              hasReviewed={hasReviewed}
+              isOwner={isOwner}
+              reviewOpen={reviewOpen}
+            />
           </div>
 
           {/* Right — sidebar */}
@@ -461,7 +378,9 @@ export default async function ContractorProfilePage({ params }: PageProps) {
                 <CardTitle className="text-base">Request a Quote</CardTitle>
               </CardHeader>
               <CardContent>
-                {user ? (
+                {isOwner ? (
+                  <p className="text-sm text-muted-foreground">Visible to homeowners only</p>
+                ) : user ? (
                   <QuoteRequestForm
                     contractorId={c.id}
                     categoryId={c.categories?.id ?? ""}

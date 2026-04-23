@@ -3,15 +3,13 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "@/lib/email";
 
 const reviewSchema = z.object({
   contractor_id: z.string().uuid(),
   rating: z.coerce.number().int().min(1, "Rating is required").max(5),
   title: z.string().max(100).optional(),
-  body: z.string().min(10, "Review must be at least 10 characters"),
+  body: z.string().min(20, "Review must be at least 20 characters"),
   is_anonymous: z.enum(["true", "false"]).transform((v) => v === "true").default(false),
 });
 
@@ -76,7 +74,6 @@ export async function submitReview(
     return { success: false, error: "Failed to submit review. Please try again." };
   }
 
-  // Recalculate avg_rating and review_count
   const { data: allReviews } = await serviceClient
     .from("reviews")
     .select("rating")
@@ -92,7 +89,7 @@ export async function submitReview(
 
   const { data: contractor } = await serviceClient
     .from("contractors")
-    .select("user_id, business_name, email")
+    .select("user_id, business_name, email, slug")
     .eq("id", parsed.data.contractor_id)
     .single();
 
@@ -115,63 +112,57 @@ export async function submitReview(
 
   const reviewerDisplayName = parsed.data.is_anonymous ? "Anonymous" : (reviewer?.full_name ?? user.email ?? "Anonymous");
 
-  if (contractor?.email && process.env.RESEND_API_KEY) {
+  if (contractor?.email) {
     const stars = "★".repeat(parsed.data.rating) + "☆".repeat(5 - parsed.data.rating);
-    try {
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL!,
-        to: contractor.email,
-        subject: `New ${parsed.data.rating}-star review on Source A Trade`,
-        html: `
-          <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-            <h2>New Review for ${contractor.business_name}</h2>
-            <p><strong>Rating:</strong> ${stars} (${parsed.data.rating}/5)</p>
-            <p><strong>From:</strong> ${reviewerDisplayName}</p>
-            ${parsed.data.title ? `<p><strong>Title:</strong> ${parsed.data.title}</p>` : ""}
-            <blockquote style="border-left:3px solid #e2e8f0;margin:0;padding:8px 16px;color:#64748b">
-              ${parsed.data.body.replace(/\n/g, "<br/>")}
-            </blockquote>
-            <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-            <p style="color:#64748b;font-size:14px">
-              View your reviews in your <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">dashboard</a>.
-            </p>
-          </div>
-        `,
-      });
-    } catch (e) {
-      console.error("Review email failed:", e);
-    }
+    await sendEmail({
+      to: contractor.email,
+      subject: `New ${parsed.data.rating}-star review on Source A Trade`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+          <h2>New Review for ${contractor.business_name}</h2>
+          <p><strong>Rating:</strong> ${stars} (${parsed.data.rating}/5)</p>
+          <p><strong>From:</strong> ${reviewerDisplayName}</p>
+          ${parsed.data.title ? `<p><strong>Title:</strong> ${parsed.data.title}</p>` : ""}
+          <blockquote style="border-left:3px solid #e2e8f0;margin:0;padding:8px 16px;color:#64748b">
+            ${parsed.data.body.replace(/\n/g, "<br/>")}
+          </blockquote>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+          <p style="color:#64748b;font-size:14px">
+            View your reviews in your <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">dashboard</a>.
+          </p>
+        </div>
+      `,
+      kind: "transactional:review",
+      meta: { contractor_id: parsed.data.contractor_id },
+    });
   }
 
-  // Send confirmation to the reviewer
   const reviewerEmail = reviewer?.email ?? user.email;
-  if (reviewerEmail && process.env.RESEND_API_KEY) {
+  if (reviewerEmail) {
     const stars = "★".repeat(parsed.data.rating) + "☆".repeat(5 - parsed.data.rating);
-    try {
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL!,
-        to: reviewerEmail,
-        subject: `Your review for ${contractor?.business_name ?? "this business"} has been posted`,
-        html: `
-          <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-            <h2>Thanks for your review!</h2>
-            <p>Your ${parsed.data.rating}-star review for <strong>${contractor?.business_name ?? "this business"}</strong> has been posted on Source A Trade.</p>
-            <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0">
-              <p style="margin:0 0 6px 0;font-size:18px;letter-spacing:2px">${stars}</p>
-              ${parsed.data.title ? `<p style="margin:0 0 6px 0;font-weight:600;color:#1e293b">${parsed.data.title}</p>` : ""}
-              <p style="margin:0;color:#374151;font-size:15px">${parsed.data.body.replace(/\n/g, "<br/>")}</p>
-            </div>
-            <p style="color:#64748b;font-size:13px">Reviews help other homeowners make informed decisions. Thank you for contributing to the community.</p>
-            <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-            <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
+    await sendEmail({
+      to: reviewerEmail,
+      subject: `Your review for ${contractor?.business_name ?? "this business"} has been posted`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+          <h2>Thanks for your review!</h2>
+          <p>Your ${parsed.data.rating}-star review for <strong>${contractor?.business_name ?? "this business"}</strong> has been posted on Source A Trade.</p>
+          <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0">
+            <p style="margin:0 0 6px 0;font-size:18px;letter-spacing:2px">${stars}</p>
+            ${parsed.data.title ? `<p style="margin:0 0 6px 0;font-weight:600;color:#1e293b">${parsed.data.title}</p>` : ""}
+            <p style="margin:0;color:#374151;font-size:15px">${parsed.data.body.replace(/\n/g, "<br/>")}</p>
           </div>
-        `,
-      });
-    } catch (e) {
-      console.error("Reviewer confirmation email failed:", e);
-    }
+          <p style="color:#64748b;font-size:13px">Reviews help other homeowners make informed decisions. Thank you for contributing to the community.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+          <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
+        </div>
+      `,
+      kind: "transactional:review:confirmation",
+      meta: { contractor_id: parsed.data.contractor_id },
+    });
   }
 
+  revalidatePath(`/contractors/${contractor?.slug ?? parsed.data.contractor_id}`);
   return { success: true };
 }
 

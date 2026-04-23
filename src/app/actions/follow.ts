@@ -12,23 +12,17 @@ export async function sendFollowRequest(
 
   const { data: existing } = await supabase
     .from("user_follows")
-    .select("status")
+    .select("follower_id")
     .eq("follower_id", user.id)
     .eq("following_id", followingId)
     .maybeSingle();
 
-  if (existing) {
-    return {
-      success: false,
-      error: existing.status === "pending" ? "Request already sent" : "Already following",
-    };
-  }
+  if (existing) return { success: false, error: "Already following" };
 
   const serviceClient = await createServiceClient();
   const { error } = await serviceClient.from("user_follows").insert({
     follower_id: user.id,
     following_id: followingId,
-    status: "pending",
   });
   if (error) return { success: false, error: error.message };
 
@@ -40,9 +34,9 @@ export async function sendFollowRequest(
 
   await serviceClient.from("notifications").insert({
     user_id: followingId,
-    type: "follow_request",
-    title: "New follow request",
-    body: `${requester?.full_name ?? "Someone"} wants to follow you.`,
+    type: "new_follower",
+    title: "New follower",
+    body: `${requester?.full_name ?? "Someone"} is now following you.`,
     link: `/profile/${user.id}`,
   });
 
@@ -52,38 +46,13 @@ export async function sendFollowRequest(
 export async function cancelFollowRequest(
   followingId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
-
-  const serviceClient = await createServiceClient();
-  const { error } = await serviceClient
-    .from("user_follows")
-    .delete()
-    .eq("follower_id", user.id)
-    .eq("following_id", followingId)
-    .eq("status", "pending");
-
-  if (error) return { success: false, error: error.message };
-  return { success: true };
+  return unfollowUser(followingId);
 }
 
 export async function acceptFollowRequest(
-  followerId: string
+  _followerId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
-
-  const serviceClient = await createServiceClient();
-  const { error } = await serviceClient
-    .from("user_follows")
-    .update({ status: "accepted" })
-    .eq("follower_id", followerId)
-    .eq("following_id", user.id)
-    .eq("status", "pending");
-
-  if (error) return { success: false, error: error.message };
+  // No status column on user_follows — follow is created directly
   return { success: true };
 }
 
@@ -99,8 +68,7 @@ export async function declineFollowRequest(
     .from("user_follows")
     .delete()
     .eq("follower_id", followerId)
-    .eq("following_id", user.id)
-    .eq("status", "pending");
+    .eq("following_id", user.id);
 
   if (error) return { success: false, error: error.message };
   return { success: true };

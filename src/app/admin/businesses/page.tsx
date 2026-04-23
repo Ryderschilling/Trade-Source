@@ -1,6 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { DataTable } from '@/components/admin/data-table';
-import { businessColumns, type BusinessRow } from '@/components/admin/business-columns';
+import { BusinessesTable, type BusinessRow } from '@/components/admin/business-columns';
 
 async function getBusinesses(): Promise<BusinessRow[]> {
   const supabase = createAdminClient();
@@ -27,7 +26,7 @@ async function getBusinesses(): Promise<BusinessRow[]> {
     category_name: (row as any).categories?.name ?? '—',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     owner_email: (row as any).profiles?.email ?? null,
-    status: row.status,
+    status: row.status as BusinessRow['status'],
     review_count: row.review_count,
     created_at: row.created_at,
   }));
@@ -45,11 +44,7 @@ export default async function AdminBusinessesPage() {
         </p>
       </div>
 
-      <DataTable
-        columns={businessColumns}
-        data={businesses}
-        searchPlaceholder="Search by business name, category, or email…"
-      />
+      <BusinessesTable data={businesses} />
     </div>
   );
 }

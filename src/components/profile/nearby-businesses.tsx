@@ -17,9 +17,10 @@ type BusinessCard = {
 
 interface Props {
   profileCity: string | null;
+  profileUserId?: string | null;
 }
 
-export function NearbyBusinesses({ profileCity }: Props) {
+export function NearbyBusinesses({ profileCity, profileUserId }: Props) {
   const [businesses, setBusinesses] = useState<BusinessCard[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +53,10 @@ export function NearbyBusinesses({ profileCity }: Props) {
 
     if (targetCity) {
       query = query.ilike("city", `%${targetCity}%`);
+    }
+
+    if (profileUserId) {
+      query = query.neq("user_id", profileUserId);
     }
 
     const { data } = await query;

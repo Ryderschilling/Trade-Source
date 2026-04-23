@@ -4,10 +4,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import slugify from "slugify";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { Resend } from "resend";
+import { sendEmail } from "@/lib/email";
 import { SERVICE_AREAS } from "@/lib/constants";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 const LOGO_BUCKET = "contractor-logos";
 const PORTFOLIO_BUCKET = "portfolio-photos";
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
@@ -295,27 +293,22 @@ export async function joinAsContractor(
   }
 
   // Send confirmation email
-  if (process.env.RESEND_API_KEY) {
-    try {
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL!,
-        to: parsed.data.email,
-        subject: "Complete payment to activate your Source A Trade listing",
-        html: `
-          <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-            <h2>Almost there, ${parsed.data.business_name}!</h2>
-            <p>Your listing on <strong>Source A Trade</strong> has been created. To make it live, complete your $49.99/month subscription payment.</p>
-            <p>If you were redirected to Stripe and completed payment, your listing will go live automatically within a few seconds.</p>
-            <p>Once active, your listing will be at:<br/><a href="${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}">${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}</a></p>
-            <hr />
-            <p style="color:#64748b;font-size:14px">Questions? Reply to this email or contact us at support@sourceatrade.com</p>
-          </div>
-        `,
-      });
-    } catch (e) {
-      console.error("Welcome email failed:", e);
-    }
-  }
+  await sendEmail({
+    to: parsed.data.email,
+    subject: "Complete payment to activate your Source A Trade listing",
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <h2>Almost there, ${parsed.data.business_name}!</h2>
+        <p>Your listing on <strong>Source A Trade</strong> has been created. To make it live, complete your $49.99/month subscription payment.</p>
+        <p>If you were redirected to Stripe and completed payment, your listing will go live automatically within a few seconds.</p>
+        <p>Once active, your listing will be at:<br/><a href="${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}">${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}</a></p>
+        <hr />
+        <p style="color:#64748b;font-size:14px">Questions? Reply to this email or contact us at support@sourceatrade.com</p>
+      </div>
+    `,
+    kind: "transactional:contractor:welcome",
+    meta: { contractor_id: contractorId },
+  });
 
   // Create Stripe Checkout Session
   const Stripe = (await import("stripe")).default;

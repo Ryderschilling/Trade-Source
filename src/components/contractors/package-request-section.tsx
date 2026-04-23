@@ -17,9 +17,10 @@ interface Props {
   userPhone: string | null;
   userName: string | null;
   userAddress: string | null;
+  isOwner?: boolean;
 }
 
-export function PackageRequestSection({ packages, contractorId, userEmail, userPhone, userName, userAddress }: Props) {
+export function PackageRequestSection({ packages, contractorId, userEmail, userPhone, userName, userAddress, isOwner }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [name, setName] = useState(userName ?? "");
   const [email, setEmail] = useState(userEmail ?? "");
@@ -99,7 +100,9 @@ export function PackageRequestSection({ packages, contractorId, userEmail, userP
                 )}
               </div>
               <div className="shrink-0">
-                {successIds.has(pkg.id) ? (
+                {isOwner ? (
+                  <span className="text-sm text-muted-foreground">Visible to homeowners only</span>
+                ) : successIds.has(pkg.id) ? (
                   <div className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
                     <CheckCircle className="h-4 w-4" />
                     Request sent!

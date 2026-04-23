@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StickyNote, Pencil, Phone, Download, X } from "lucide-react";
+import { StickyNote, Pencil, Phone, Download, X, Link2 } from "lucide-react";
 import { updateLeadStatus, updateLeadNotes } from "@/app/dashboard/actions";
 import { LeadMessageButton } from "@/components/dashboard/lead-message-button";
 import type { Lead } from "@/lib/supabase/types";
@@ -147,14 +147,51 @@ function exportCSV(leads: CRMLead[]) {
   URL.revokeObjectURL(url);
 }
 
+function CopyReviewLinkButton({ slug }: { slug: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    const url = `${window.location.origin}/contractors/${slug}?review=open`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div>
+      <p className="text-[11px] text-neutral-400 font-medium uppercase tracking-wide mb-1.5">
+        Review Link
+      </p>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-1.5 min-w-0 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+          <Link2 className="h-3 w-3 shrink-0 text-neutral-400" />
+          <span className="truncate">/contractors/{slug}?review=open</span>
+        </div>
+        <button
+          onClick={handleCopy}
+          className="shrink-0 rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+        >
+          {copied ? <span className="text-green-600">Copied!</span> : "Copy"}
+        </button>
+      </div>
+      <p className="text-[10px] text-neutral-400 mt-1">
+        Send to your client to request a review
+      </p>
+    </div>
+  );
+}
+
 function LeadDetailModal({
   lead,
   onClose,
   onStatusUpdate,
+  contractorSlug,
 }: {
   lead: CRMLead;
   onClose: () => void;
   onStatusUpdate: (id: string, s: LeadStatus) => void;
+  contractorSlug?: string;
 }) {
   const [notes, setNotes] = useState(lead.notes ?? "");
   const [, startTransition] = useTransition();
@@ -246,6 +283,10 @@ function LeadDetailModal({
               onBlur={handleNotesSave}
             />
           </div>
+
+          {lead.status === "won" && contractorSlug && (
+            <CopyReviewLinkButton slug={contractorSlug} />
+          )}
         </div>
 
         <div className="px-5 pb-5">
@@ -265,7 +306,7 @@ const EMPTY_MESSAGES: Record<string, string> = {
   lost:      "No lost leads.",
 };
 
-export function LeadCRMTable({ leads: initialLeads }: { leads: CRMLead[] }) {
+export function LeadCRMTable({ leads: initialLeads, contractorSlug }: { leads: CRMLead[]; contractorSlug?: string }) {
   const [leads, setLeads] = useState(initialLeads);
   const [activeTab, setActiveTab] = useState<"all" | LeadStatus>("all");
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
@@ -389,6 +430,7 @@ export function LeadCRMTable({ leads: initialLeads }: { leads: CRMLead[] }) {
           lead={leads.find((l) => l.id === selectedLead.id) ?? selectedLead}
           onClose={() => setSelectedLead(null)}
           onStatusUpdate={handleStatusUpdate}
+          contractorSlug={contractorSlug}
         />
       )}
     </div>

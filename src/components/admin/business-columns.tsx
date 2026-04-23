@@ -3,6 +3,7 @@
 import { type ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { DataTable } from './data-table';
 
 export interface BusinessRow {
   id: string;
@@ -93,3 +94,13 @@ export const businessColumns: ColumnDef<BusinessRow, unknown>[] = [
     ),
   },
 ];
+
+export function BusinessesTable({ data }: { data: BusinessRow[] }) {
+  return (
+    <DataTable
+      columns={businessColumns}
+      data={data}
+      searchPlaceholder="Search by business name, category, or email…"
+    />
+  );
+}

@@ -1,8 +1,7 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/quote-followup",
-      "schedule": "0 14 * * *"
-    }
+    { "path": "/api/cron/quote-followup",          "schedule": "0 14 * * *" },
+    { "path": "/api/cron/leaderboard-snapshot",    "schedule": "0 3 * * *" },
+    { "path": "/api/cron/send-scheduled-campaigns","schedule": "*/15 * * * *" }
   ]
 }

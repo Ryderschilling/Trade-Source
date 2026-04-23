@@ -194,7 +194,7 @@ async function ContractorDashboard({ userId }: { userId: string }) {
         </CardHeader>
         <CardContent>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <LeadCRMTable leads={leads as any} />
+          <LeadCRMTable leads={leads as any} contractorSlug={contractor?.slug ?? undefined} />
         </CardContent>
       </Card>
 

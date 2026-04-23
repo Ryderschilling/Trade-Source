@@ -4,6 +4,7 @@ import { type ColumnDef } from '@tanstack/react-table';
 import type { Profile } from '@/lib/supabase/types';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { DataTable } from './data-table';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -64,3 +65,13 @@ export const userColumns: ColumnDef<Profile, unknown>[] = [
     ),
   },
 ];
+
+export function UsersTable({ data }: { data: Profile[] }) {
+  return (
+    <DataTable
+      columns={userColumns}
+      data={data}
+      searchPlaceholder="Search by email or name…"
+    />
+  );
+}

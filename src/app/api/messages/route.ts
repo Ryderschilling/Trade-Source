@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { Resend } from "resend";
+import { sendEmail } from "@/lib/email";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
@@ -35,7 +35,6 @@ export async function GET(req: NextRequest) {
 
   const service = await createServiceClient();
 
-  // Verify participation
   const { data: participation } = await service
     .from("conversation_participants")
     .select("conversation_id")
@@ -65,7 +64,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Mark as read on initial load (not incremental polls)
   if (!after) {
     await service
       .from("conversation_participants")
@@ -106,7 +104,6 @@ export async function POST(req: NextRequest) {
 
   const service = await createServiceClient();
 
-  // Verify the user is a participant before inserting
   const { data: participation } = await service
     .from("conversation_participants")
     .select("conversation_id")
@@ -128,14 +125,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Update last_read_at for sender so their own messages don't appear unread
   await service
     .from("conversation_participants")
     .update({ last_read_at: new Date().toISOString() })
     .eq("conversation_id", conversation_id)
     .eq("user_id", user.id);
 
-  // Notify other participants
   const [{ data: otherParticipants }, { data: senderProfile }] = await Promise.all([
     service
       .from("conversation_participants")
@@ -152,6 +147,7 @@ export async function POST(req: NextRequest) {
   if (otherParticipants?.length) {
     const senderName = senderProfile?.full_name ?? senderProfile?.email ?? "Someone";
     const preview = body.trim().length > 80 ? body.trim().slice(0, 77) + "…" : body.trim();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sourceatrade.com";
 
     await service.from("notifications").insert(
       otherParticipants.map((p) => ({
@@ -163,42 +159,34 @@ export async function POST(req: NextRequest) {
       }))
     );
 
-    // Email each recipient
-    if (process.env.RESEND_API_KEY) {
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sourceatrade.com";
-      await Promise.all(
-        otherParticipants.map(async (p) => {
-          const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
-          const recipientEmail = (profile as { email?: string } | null)?.email;
-          if (!recipientEmail) return;
-          try {
-            await resend.emails.send({
-              from: process.env.RESEND_FROM_EMAIL!,
-              to: recipientEmail,
-              subject: `New message from ${senderName} — Source A Trade`,
-              html: `
-                <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-                  <h2>You have a new message</h2>
-                  <p><strong>${senderName}</strong> sent you a message on Source A Trade:</p>
-                  <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0;border-left:3px solid #3b82f6">
-                    <p style="margin:0;color:#374151;font-size:15px">${preview}</p>
-                  </div>
-                  <a href="${appUrl}/messages?c=${conversation_id}"
-                     style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:600;font-size:14px;margin:8px 0">
-                    Reply in Source A Trade
-                  </a>
-                  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-                  <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
-                </div>
-              `,
-            });
-          } catch (e) {
-            console.error("Message email notification failed for user", p.user_id, e);
-          }
-        })
-      );
-    }
+    await Promise.all(
+      otherParticipants.map(async (p) => {
+        const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
+        const recipientEmail = (profile as { email?: string } | null)?.email;
+        if (!recipientEmail) return;
+        await sendEmail({
+          to: recipientEmail,
+          subject: `New message from ${senderName} — Source A Trade`,
+          html: `
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+              <h2>You have a new message</h2>
+              <p><strong>${senderName}</strong> sent you a message on Source A Trade:</p>
+              <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0;border-left:3px solid #3b82f6">
+                <p style="margin:0;color:#374151;font-size:15px">${preview}</p>
+              </div>
+              <a href="${appUrl}/messages?c=${conversation_id}"
+                 style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:600;font-size:14px;margin:8px 0">
+                Reply in Source A Trade
+              </a>
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+              <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
+            </div>
+          `,
+          kind: "transactional:message",
+          meta: { conversation_id, sender_id: user.id },
+        });
+      })
+    );
   }
 
   return NextResponse.json({ message: data });

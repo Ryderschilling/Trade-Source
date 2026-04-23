@@ -1,8 +1,7 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifyAdminToken } from '@/lib/admin-auth';
-import { AdminSidebar } from '@/components/admin/sidebar';
-import { AdminTopBar } from '@/components/admin/top-bar';
+import { AdminShell } from '@/components/admin/shell';
 
 export default async function AdminLayout({
   children,
@@ -21,13 +20,5 @@ export default async function AdminLayout({
     if (!valid) redirect('/admin/login');
   }
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex bg-neutral-100 overflow-hidden">
-      <AdminSidebar />
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <AdminTopBar />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
-      </div>
-    </div>
-  );
+  return <AdminShell>{children}</AdminShell>;
 }

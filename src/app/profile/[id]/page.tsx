@@ -182,7 +182,7 @@ export default async function ProfilePage({ params }: Props) {
           )}
         </div>
 
-        <NearbyBusinesses profileCity={(profile as any).city ?? null} />
+        <NearbyBusinesses profileCity={(profile as any).city ?? null} profileUserId={id} />
       </div>
     </main>
   );
