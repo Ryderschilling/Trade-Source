@@ -1,68 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { DataTable } from '@/components/admin/data-table';
-import { type ColumnDef } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
-
-interface StripeEventRow {
-  id: string;
-  type: string;
-  processed_at: string | null;
-  processing_error: string | null;
-  created_at: string;
-}
-
-const columns: ColumnDef<StripeEventRow, unknown>[] = [
-  {
-    accessorKey: 'type',
-    header: 'Event Type',
-    cell: ({ getValue }) => (
-      <span className="font-mono text-xs text-neutral-700">{getValue() as string}</span>
-    ),
-  },
-  {
-    accessorKey: 'processed_at',
-    header: 'Status',
-    cell: ({ row }) => {
-      if (row.original.processing_error) {
-        return <Badge variant="destructive" className="text-xs">Error</Badge>;
-      }
-      return row.original.processed_at
-        ? <Badge variant="default" className="text-xs">Processed</Badge>
-        : <Badge variant="secondary" className="text-xs">Pending</Badge>;
-    },
-  },
-  {
-    accessorKey: 'processing_error',
-    header: 'Error',
-    cell: ({ getValue }) => {
-      const v = getValue() as string | null;
-      return v
-        ? <span className="text-xs text-red-600 truncate max-w-xs block">{v}</span>
-        : <span className="text-neutral-400">—</span>;
-    },
-  },
-  {
-    id: 'event_id',
-    header: 'Event ID',
-    cell: ({ row }) => (
-      <span className="font-mono text-xs text-neutral-400" title={row.original.id}>
-        {row.original.id.slice(0, 24)}…
-      </span>
-    ),
-  },
-  {
-    accessorKey: 'created_at',
-    header: 'Received',
-    cell: ({ getValue }) => (
-      <span className="text-neutral-500 text-xs">
-        {new Date(getValue() as string).toLocaleString('en-US', {
-          month: 'short', day: 'numeric', year: 'numeric',
-          hour: 'numeric', minute: '2-digit',
-        })}
-      </span>
-    ),
-  },
-];
+import { StripeEventsTable, type StripeEventRow } from '@/components/admin/stripe-event-columns';
 
 export default async function AdminStripeEventsPage() {
   const supabase = createAdminClient();
@@ -86,11 +23,7 @@ export default async function AdminStripeEventsPage() {
           {errors > 0 && ` · ${errors} errors`}
         </p>
       </div>
-      <DataTable
-        columns={columns}
-        data={events}
-        searchPlaceholder="Search by event type or ID…"
-      />
+      <StripeEventsTable data={events} />
     </div>
   );
 }

@@ -339,7 +339,7 @@ export async function joinAsContractor(
       },
     },
     success_url: `${appUrl}/join/success?slug=${contractor.slug}&paid=1`,
-    cancel_url: `${appUrl}/join?canceled=1`,
+    cancel_url: `${appUrl}/join/cancel?slug=${contractor.slug}`,
   });
 
   if (!session.url) {
@@ -550,6 +550,61 @@ export async function updateContractor(
   }
 
   return { success: true };
+}
+
+// ─── Resume checkout for an existing pending contractor ──────────────────────
+
+export async function resumeContractorCheckout(formData: FormData): Promise<void> {
+  const contractorId = formData.get("contractor_id") as string;
+  if (!contractorId) redirect("/join");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login?redirect=/dashboard");
+  }
+
+  const { data: contractor } = await supabase
+    .from("contractors")
+    .select("id, slug, email")
+    .eq("id", contractorId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!contractor) redirect("/join");
+
+  const Stripe = (await import("stripe")).default;
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2025-03-31.basil" as any,
+  });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    payment_method_types: ["card"],
+    line_items: [{ price: process.env.STRIPE_PRICE_BASE_50!, quantity: 1 }],
+    customer_email: contractor.email ?? undefined,
+    metadata: {
+      contractor_id: contractor.id,
+      contractor_slug: contractor.slug,
+    },
+    subscription_data: {
+      metadata: {
+        contractor_id: contractor.id,
+        contractor_slug: contractor.slug,
+      },
+    },
+    success_url: `${appUrl}/join/success?slug=${contractor.slug}&paid=1`,
+    cancel_url: `${appUrl}/join/cancel?slug=${contractor.slug}`,
+  });
+
+  if (!session.url) redirect(`/join/cancel?slug=${contractor.slug}&error=1`);
+
+  redirect(session.url);
 }
 
 export async function deleteContractor(contractorId: string): Promise<void> {

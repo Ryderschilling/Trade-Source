@@ -1,5 +1,8 @@
+'use client';
+
 import { type ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
+import { DataTable } from './data-table';
 
 export interface EmailSendRow {
   id: string;
@@ -74,3 +77,13 @@ export const emailSendColumns: ColumnDef<EmailSendRow, unknown>[] = [
     ),
   },
 ];
+
+export function EmailSendsTable({ data }: { data: EmailSendRow[] }) {
+  return (
+    <DataTable
+      columns={emailSendColumns}
+      data={data}
+      searchPlaceholder="Search by kind, email, or status…"
+    />
+  );
+}

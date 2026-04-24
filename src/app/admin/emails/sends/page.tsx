@@ -1,6 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { DataTable } from '@/components/admin/data-table';
-import { emailSendColumns, type EmailSendRow } from '@/components/admin/email-send-columns';
+import { EmailSendsTable, type EmailSendRow } from '@/components/admin/email-send-columns';
 
 async function getEmailSends(): Promise<EmailSendRow[]> {
   const supabase = createAdminClient();
@@ -25,11 +24,7 @@ export default async function AdminEmailSendsPage() {
           {rows.length.toLocaleString()} total · {failed} failed
         </p>
       </div>
-      <DataTable
-        columns={emailSendColumns}
-        data={rows}
-        searchPlaceholder="Search by kind, email, or status…"
-      />
+      <EmailSendsTable data={rows} />
     </div>
   );
 }

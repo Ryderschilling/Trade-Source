@@ -29,19 +29,28 @@ export default async function JoinSuccessPage({ searchParams }: PageProps) {
 
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {isPaid ? "You're live!" : "Listing submitted!"}
+            {isPaid ? "You're live!" : "Your listing is saved!"}
           </h1>
           <p className="mt-3 text-muted-foreground leading-relaxed">
             {isPaid
               ? "Payment confirmed. Your listing is now active on Source A Trade. Welcome to the directory."
-              : "Thanks for joining Source A Trade. Complete payment to make your listing go live."
-            }
+              : "Your business profile is ready. Go to your dashboard to complete payment and start receiving leads."}
           </p>
         </div>
 
         <div className="flex flex-col gap-3">
+          {!isPaid && params.slug && (
+            <Link href={`/join/cancel?slug=${params.slug}`}>
+              <Button className="w-full">Complete Payment</Button>
+            </Link>
+          )}
           <Link href="/dashboard">
-            <Button className="w-full">Go to Dashboard</Button>
+            <Button
+              className="w-full"
+              variant={isPaid ? "default" : "outline"}
+            >
+              Go to Dashboard
+            </Button>
           </Link>
           {params.slug && isPaid && (
             <Link href={`/contractors/${params.slug}`}>

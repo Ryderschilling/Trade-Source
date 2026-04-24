@@ -1,9 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { DataTable } from '@/components/admin/data-table';
-import { type ColumnDef } from '@tanstack/react-table';
 import { type UnsubscribeRow } from '@/components/admin/unsubscribe-columns';
-import { unsubscribeColumns } from '@/components/admin/unsubscribe-columns';
-import { RemoveUnsubscribeButton } from './remove-button';
+import { UnsubscribesTable } from './unsubscribes-table';
 
 async function getUnsubscribes(): Promise<UnsubscribeRow[]> {
   const supabase = createAdminClient();
@@ -16,16 +13,6 @@ async function getUnsubscribes(): Promise<UnsubscribeRow[]> {
   return (data ?? []) as UnsubscribeRow[];
 }
 
-const columns: ColumnDef<UnsubscribeRow, unknown>[] = [
-  ...unsubscribeColumns,
-  {
-    id: 'actions',
-    header: '',
-    enableSorting: false,
-    cell: ({ row }) => <RemoveUnsubscribeButton email={row.original.email} />,
-  },
-];
-
 export default async function AdminUnsubscribesPage() {
   const rows = await getUnsubscribes();
 
@@ -37,11 +24,7 @@ export default async function AdminUnsubscribesPage() {
           {rows.length.toLocaleString()} global unsubscribes
         </p>
       </div>
-      <DataTable
-        columns={columns}
-        data={rows}
-        searchPlaceholder="Search by email or reason…"
-      />
+      <UnsubscribesTable data={rows} />
     </div>
   );
 }

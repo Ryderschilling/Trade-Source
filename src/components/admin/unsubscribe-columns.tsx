@@ -1,4 +1,7 @@
+'use client';
+
 import { type ColumnDef } from '@tanstack/react-table';
+import { DataTable } from './data-table';
 
 export interface UnsubscribeRow {
   email: string;
@@ -37,3 +40,13 @@ export const unsubscribeColumns: ColumnDef<UnsubscribeRow, unknown>[] = [
     ),
   },
 ];
+
+export function UnsubscribesTable({ data }: { data: UnsubscribeRow[] }) {
+  return (
+    <DataTable
+      columns={unsubscribeColumns}
+      data={data}
+      searchPlaceholder="Search by email or reason…"
+    />
+  );
+}

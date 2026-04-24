@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Star, MapPin, Shield } from "lucide-react";
@@ -8,9 +9,69 @@ import type { ContractorWithCategory } from "@/lib/supabase/types";
 
 interface Props { contractors: ContractorWithCategory[]; }
 
+const SPEED_DESKTOP = 0.7;  // px/frame at 60fps
+const SPEED_MOBILE  = 1.4;  // faster on small screens
+
 export function FeaturedMarquee({ contractors }: Props) {
   if (!contractors.length) return null;
   const track = [...contractors, ...contractors];
+
+  const trackRef    = useRef<HTMLDivElement>(null);
+  const animRef     = useRef<number>(0);
+  const posRef      = useRef(0);
+  const pausedRef   = useRef(false);
+  const draggingRef = useRef(false);
+  const dragStartX  = useRef(0);
+  const dragStartPos = useRef(0);
+  const speedRef    = useRef(SPEED_DESKTOP);
+
+  useEffect(() => {
+    const sync = () => { speedRef.current = window.innerWidth < 640 ? SPEED_MOBILE : SPEED_DESKTOP; };
+    sync();
+    window.addEventListener("resize", sync);
+    return () => window.removeEventListener("resize", sync);
+  }, []);
+
+  const animate = useCallback(() => {
+    const el = trackRef.current;
+    if (el && !pausedRef.current && !draggingRef.current) {
+      const half = el.scrollWidth / 2;
+      if (half > 0) {
+        posRef.current += speedRef.current;
+        if (posRef.current >= half) posRef.current -= half;
+        el.style.transform = `translateX(-${posRef.current}px)`;
+      }
+    }
+    animRef.current = requestAnimationFrame(animate);
+  }, []);
+
+  useEffect(() => {
+    animRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [animate]);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    draggingRef.current = true;
+    dragStartX.current = e.clientX;
+    dragStartPos.current = posRef.current;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.currentTarget.style.cursor = "grabbing";
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current || !trackRef.current) return;
+    const half = trackRef.current.scrollWidth / 2;
+    let p = dragStartPos.current + (dragStartX.current - e.clientX);
+    if (p < 0) p += half;
+    if (p >= half) p -= half;
+    posRef.current = p;
+    trackRef.current.style.transform = `translateX(-${p}px)`;
+  };
+
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    draggingRef.current = false;
+    e.currentTarget.style.cursor = "grab";
+  };
 
   return (
     <section className="py-12 sm:py-20 bg-background">
@@ -31,35 +92,37 @@ export function FeaturedMarquee({ contractors }: Props) {
           </p>
         </div>
 
-        <div className="ts-marquee-wrap relative">
+        <div
+          className="ts-marquee-wrap relative overflow-hidden"
+          style={{ cursor: "grab", touchAction: "pan-y" }}
+          onMouseEnter={() => { pausedRef.current = true; }}
+          onMouseLeave={() => { pausedRef.current = false; draggingRef.current = false; }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
           <div className="ts-marquee-fade ts-marquee-fade-left" />
           <div className="ts-marquee-fade ts-marquee-fade-right" />
-          <div className="ts-marquee-track py-2">
+          <div ref={trackRef} className="ts-marquee-track py-2">
             {track.map((c, i) => (<MarqueeCard key={`${c.id}-${i}`} contractor={c} />))}
           </div>
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          Hover to pause · {contractors.length} verified local businesses
+          Hover to pause · drag to browse · {contractors.length} verified local businesses
         </p>
       </div>
 
       <style jsx>{`
-        @keyframes tsMarqueeScroll {
-          from { transform: translateX(0); }
-          to   { transform: translateX(-50%); }
-        }
-        .ts-marquee-wrap { overflow: hidden; }
         .ts-marquee-track {
           display: flex; gap: 1rem; width: max-content;
-          animation: tsMarqueeScroll 40s linear infinite;
           will-change: transform;
         }
-        .ts-marquee-wrap:hover .ts-marquee-track { animation-play-state: paused; }
         .ts-marquee-fade { position: absolute; top: 0; bottom: 0; width: 80px; pointer-events: none; z-index: 2; }
         .ts-marquee-fade-left  { left: 0;  background: linear-gradient(to right, var(--background), transparent); }
         .ts-marquee-fade-right { right: 0; background: linear-gradient(to left,  var(--background), transparent); }
-        @media (prefers-reduced-motion: reduce) { .ts-marquee-track { animation: none; } }
+        @media (prefers-reduced-motion: reduce) { .ts-marquee-track { will-change: auto; } }
       `}</style>
     </section>
   );
@@ -68,7 +131,7 @@ export function FeaturedMarquee({ contractors }: Props) {
 function MarqueeCard({ contractor }: { contractor: ContractorWithCategory }) {
   const initials = contractor.business_name.split(/\s+/).slice(0, 2).map((w) => w[0] ?? "").join("").toUpperCase();
   return (
-    <Link href={`/contractors/${contractor.slug}`} className="group shrink-0 w-[320px]">
+    <Link href={`/contractors/${contractor.slug}`} className="group shrink-0 w-[280px] sm:w-[320px]">
       <Card className="h-full transition-all duration-200 hover:-translate-y-[4px] hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)] hover:border-primary/40 cursor-pointer">
         <CardContent className="p-5">
           <div className="flex gap-3 items-start">
