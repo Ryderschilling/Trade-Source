@@ -12,13 +12,15 @@ export default async function AdminLayout({
   const pathname = headerStore.get('x-pathname') ?? '';
   const isLoginPage = pathname.startsWith('/admin/login');
 
-  if (!isLoginPage) {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('admin_token')?.value;
-    const secret = process.env.ADMIN_SECRET_KEY;
-    const valid = token && secret ? await verifyAdminToken(token, secret) : null;
-    if (!valid) redirect('/admin/login');
+  if (isLoginPage) {
+    return <>{children}</>;
   }
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get('admin_token')?.value;
+  const secret = process.env.ADMIN_SECRET_KEY;
+  const valid = token && secret ? await verifyAdminToken(token, secret) : null;
+  if (!valid) redirect('/admin/login');
 
   return <AdminShell>{children}</AdminShell>;
 }
