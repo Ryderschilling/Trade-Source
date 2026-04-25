@@ -344,6 +344,8 @@ export type Database = {
           billing_plan: string
           billing_status: string
           business_name: string
+          cancel_at: string | null
+          cancel_pending: boolean
           category_id: string
           city: string
           cover_url: string | null
@@ -388,6 +390,8 @@ export type Database = {
           billing_plan?: string
           billing_status?: string
           business_name: string
+          cancel_at?: string | null
+          cancel_pending?: boolean
           category_id: string
           city?: string
           cover_url?: string | null
@@ -432,6 +436,8 @@ export type Database = {
           billing_plan?: string
           billing_status?: string
           business_name?: string
+          cancel_at?: string | null
+          cancel_pending?: boolean
           category_id?: string
           city?: string
           cover_url?: string | null

@@ -26,6 +26,7 @@ import {
 } from "@/app/actions/billing";
 import {
   cancelSubscription,
+  undoCancelSubscription,
   removeAddon as stripeRemoveAddon,
   createFeaturedEmailCheckout,
 } from "@/lib/stripe/actions";
@@ -43,6 +44,8 @@ interface Contractor {
   listing_status: string;
   next_billing_date: string | null;
   payment_last4: string | null;
+  cancel_pending?: boolean | null;
+  cancel_at?: string | null;
 }
 
 interface BillingClientProps {
@@ -148,6 +151,9 @@ export function BillingClient({
 }: BillingClientProps) {
   const [isPending, startTransition] = useTransition();
   const searchParams = useSearchParams();
+  // Local state to reflect cancel_pending after user cancels without a page reload
+  const [localCancelAt, setLocalCancelAt] = useState<string | null>(contractor.cancel_at ?? null);
+  const [localCancelPending, setLocalCancelPending] = useState<boolean>(contractor.cancel_pending ?? false);
 
   useEffect(() => {
     if (searchParams.get("email_reserved") === "true") {
@@ -166,10 +172,12 @@ export function BillingClient({
   const [confirmAddon, setConfirmAddon] = useState<AddonType | null>(null);
 
   const subscriptionStatus = contractor.subscription_status;
-  const plan = subscriptionStatus === "active"
-    ? { name: "Standard", price: 50 }
-    : subscriptionStatus === "cancelled"
+  const plan = subscriptionStatus === "cancelled" && !localCancelPending
     ? { name: "Free", price: null }
+    : subscriptionStatus === "active" || localCancelPending
+    ? localCancelPending && localCancelAt
+      ? { name: `Standard (cancels ${formatDate(localCancelAt)})`, price: 50 }
+      : { name: "Standard", price: 50 }
     : PLAN_INFO[contractor.billing_plan] ?? { name: contractor.billing_plan, price: null };
   const billingStatus = contractor.listing_status || contractor.billing_status;
 
@@ -239,6 +247,30 @@ export function BillingClient({
         <p className="mt-1 text-sm text-neutral-500">{contractor.business_name}</p>
       </div>
 
+      {/* Cancel-pending banner */}
+      {localCancelPending && localCancelAt && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <span>
+            Your subscription is set to cancel on{" "}
+            <strong>{formatDate(localCancelAt)}</strong>. Your listing stays active until then.{" "}
+            <button
+              className="underline underline-offset-2 hover:text-amber-900 disabled:opacity-50"
+              disabled={isPending}
+              onClick={() =>
+                run(() => undoCancelSubscription(contractor.id), () => {
+                  setLocalCancelPending(false);
+                  setLocalCancelAt(null);
+                  toast.success("Subscription renewal restored. You will continue to be billed normally.");
+                })
+              }
+            >
+              Resume subscription
+            </button>
+          </span>
+        </div>
+      )}
+
       {/* ── Section 1: Current Plan ── */}
       <section className="space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-neutral-400">Current Plan</h2>
@@ -280,14 +312,16 @@ export function BillingClient({
                       Pause Listing
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={isPending}
-                    onClick={() => setCancelOpen(true)}
-                  >
-                    Cancel Subscription
-                  </Button>
+                  {!localCancelPending && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={isPending}
+                      onClick={() => setCancelOpen(true)}
+                    >
+                      Cancel Subscription
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -581,8 +615,10 @@ export function BillingClient({
             </div>
             <DialogTitle>Cancel Subscription</DialogTitle>
             <DialogDescription>
-              Your listing will be deactivated at the end of the current billing period. All your
-              data — reviews, portfolio, and leads — will be preserved.
+              Your listing will deactivate on{" "}
+              {contractor.next_billing_date ? formatDate(contractor.next_billing_date) : "the end of your current billing period"}{" "}
+              — the last day of your current billing period. You can resume your subscription anytime before then.
+              Addons will remain active until that date.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -596,12 +632,21 @@ export function BillingClient({
               size="sm"
               variant="destructive"
               disabled={isPending}
-              onClick={() =>
-                run(() => cancelSubscription(contractor.id), () => {
-                  setCancelOpen(false);
-                  toast.success("Subscription cancelled. Your listing will deactivate at period end.");
-                })
-              }
+              onClick={() => {
+                startTransition(async () => {
+                  const result = await cancelSubscription(contractor.id);
+                  if (result?.error) {
+                    toast.error(result.error);
+                  } else {
+                    setCancelOpen(false);
+                    if ("cancel_at" in result && result.cancel_at) {
+                      setLocalCancelAt(result.cancel_at);
+                      setLocalCancelPending(true);
+                    }
+                    toast.success("Subscription cancelled. Your listing will deactivate at period end.");
+                  }
+                });
+              }}
             >
               Yes, Cancel
             </Button>

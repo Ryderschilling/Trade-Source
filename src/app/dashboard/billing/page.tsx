@@ -11,7 +11,7 @@ export default async function BillingPage() {
 
   const { data: contractor } = await supabase
     .from("contractors")
-    .select("id, business_name, billing_plan, billing_status, subscription_status, stripe_subscription_id, listing_status, next_billing_date, payment_last4")
+    .select("id, business_name, billing_plan, billing_status, subscription_status, stripe_subscription_id, listing_status, next_billing_date, payment_last4, cancel_pending, cancel_at")
     .eq("user_id", user.id)
     .maybeSingle();
 

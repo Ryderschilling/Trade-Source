@@ -138,20 +138,12 @@ export async function POST(req: NextRequest) {
       }
 
       if (session.mode === "payment") {
+        const businessId = session.metadata?.businessId;
+        const month = session.metadata?.month;
+        if (!businessId || !month) break;
+
         try {
-          const businessId = session.metadata?.businessId;
-          const month = session.metadata?.month;
-          if (!businessId || !month) break;
-
-          const db = supabase as any;
-          const { data: existing } = await db
-            .from("business_addons")
-            .select("id")
-            .eq("stripe_payment_intent_id", session.payment_intent as string)
-            .maybeSingle();
-          if (existing) break;
-
-          const { error } = await db.from("business_addons").insert({
+          const { error: insertError } = await (supabase as any).from("business_addons").insert({
             business_id: businessId,
             addon_type: "featured_email",
             status: "reserved",
@@ -159,9 +151,33 @@ export async function POST(req: NextRequest) {
             stripe_payment_intent_id: session.payment_intent as string,
             amount_paid_cents: session.amount_total,
           });
-          if (error) dbError = error.message;
+
+          if (insertError) {
+            if (insertError.code === "23505") {
+              // Idempotency dupe — safe to 200
+              break;
+            }
+            // Unexpected DB error — log orphan and return 500 so Stripe retries
+            await (supabase as any).from("stripe_orphans").insert({
+              business_id: businessId,
+              stripe_object_type: "checkout_session",
+              stripe_object_id: session.payment_intent as string,
+              source: "webhook:featured_email",
+              reason: insertError.message,
+              metadata: { session },
+            });
+            return NextResponse.json({ error: "db_error" }, { status: 500 });
+          }
         } catch (err: any) {
-          dbError = err?.message ?? "checkout.session.completed payment handler error";
+          await (supabase as any).from("stripe_orphans").insert({
+            business_id: businessId,
+            stripe_object_type: "checkout_session",
+            stripe_object_id: session.payment_intent as string,
+            source: "webhook:featured_email",
+            reason: err?.message ?? "unknown",
+            metadata: { session },
+          });
+          return NextResponse.json({ error: "unexpected" }, { status: 500 });
         }
         break;
       }
@@ -251,6 +267,8 @@ export async function POST(req: NextRequest) {
             subscription_status: "cancelled",
             billing_plan: "free",
             next_billing_date: null,
+            cancel_pending: false,
+            cancel_at: null,
           })
           .eq("stripe_subscription_id", sub.id);
 

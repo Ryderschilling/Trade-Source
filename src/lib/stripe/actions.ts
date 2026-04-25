@@ -1,5 +1,6 @@
 'use server'
 
+import Stripe from 'stripe'
 import { revalidatePath } from 'next/cache'
 import { getStripe } from './client'
 import { PRICES, ADDON_PRICE_MAP } from './products'
@@ -12,7 +13,7 @@ async function getContractor(businessId: string) {
 
   const { data: contractor } = await supabase
     .from('contractors')
-    .select('id, user_id, business_name, email, stripe_customer_id, stripe_subscription_id, subscription_status, listing_status')
+    .select('id, user_id, business_name, email, stripe_customer_id, stripe_subscription_id, subscription_status, listing_status, cancel_pending, cancel_at')
     .eq('id', businessId)
     .eq('user_id', user.id)
     .maybeSingle()
@@ -154,28 +155,60 @@ export async function cancelSubscription(businessId: string) {
   const { error, supabase, contractor } = await getContractor(businessId)
   if (error || !supabase || !contractor) return { error: error ?? 'Not found' }
 
-  const { stripe_subscription_id } = contractor
-  if (stripe_subscription_id) {
-    try {
-      await getStripe().subscriptions.cancel(stripe_subscription_id)
-    } catch (err: any) {
-      return { error: err.message ?? 'Stripe error' }
-    }
+  if (!contractor.stripe_subscription_id) return { error: 'No active subscription found.' }
+
+  try {
+    const updated = await getStripe().subscriptions.update(
+      contractor.stripe_subscription_id,
+      { cancel_at_period_end: true }
+    ) as Stripe.Subscription
+
+    // cancel_at is set by Stripe when cancel_at_period_end=true (equals current_period_end)
+    const periodEnd = updated.cancel_at ?? updated.items?.data?.[0]?.current_period_end
+    const cancelAt = periodEnd ? new Date(periodEnd * 1000).toISOString() : null
+
+    await supabase
+      .from('contractors')
+      .update({
+        subscription_status: 'active', // still active until period end
+        cancel_pending: true,
+        cancel_at: cancelAt,
+      })
+      .eq('id', businessId)
+
+    revalidatePath('/dashboard/billing')
+    return { success: true, cancel_at: cancelAt }
+  } catch (err: any) {
+    return { error: err.message ?? 'Stripe error' }
   }
+}
 
-  await supabase
-    .from('contractors')
-    .update({ subscription_status: 'cancelled' })
-    .eq('id', businessId)
+export async function undoCancelSubscription(businessId: string) {
+  const { error, supabase, contractor } = await getContractor(businessId)
+  if (error || !supabase || !contractor) return { error: error ?? 'Not found' }
 
-  await supabase
-    .from('business_addons')
-    .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
-    .eq('business_id', businessId)
-    .in('status', ['active', 'pending_review', 'waitlisted'])
+  if (!contractor.stripe_subscription_id) return { error: 'No active subscription found.' }
 
-  revalidatePath('/dashboard/billing')
-  return { success: true }
+  try {
+    await getStripe().subscriptions.update(
+      contractor.stripe_subscription_id,
+      { cancel_at_period_end: false }
+    )
+
+    await supabase
+      .from('contractors')
+      .update({
+        subscription_status: 'active',
+        cancel_pending: false,
+        cancel_at: null,
+      })
+      .eq('id', businessId)
+
+    revalidatePath('/dashboard/billing')
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message ?? 'Stripe error' }
+  }
 }
 
 export async function createFeaturedEmailCheckout(businessId: string, month: string) {
