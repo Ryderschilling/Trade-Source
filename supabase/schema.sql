@@ -66,17 +66,17 @@ create table public.categories (
 
 -- Seed categories — representative cross-section for fresh installs.
 -- The full 70-trade taxonomy is populated by migrations 006 and 015.
-insert into public.categories (name, slug, icon, description, sort_order) values
-  ('Roofing',              'roofing',          'Home',        'Roof installation, repair, and replacement',                        10),
-  ('Electrical',           'electrical',       'Zap',         'Licensed electricians for all residential and commercial work',     22),
-  ('Plumbing',             'plumbing',         'Droplets',    'Plumbers for repairs, installs, and remodels',                      20),
-  ('HVAC',                 'hvac',             'Thermometer', 'Heating, ventilation, and air conditioning specialists',            21),
-  ('Flooring',             'flooring',         'Grid',        'Hardwood, tile, LVP, and carpet installation',                      31),
-  ('Landscaping',          'landscaping',      'Trees',       'Full landscaping design, hardscape, and new installs',              40),
-  ('Pool & Spa',           'pool-spa',         'Waves',       'Pool construction, maintenance, and repair',                        44),
-  ('Pest Control',         'pest-control',     'Bug',         'Termite, pest, and wildlife control',                               62),
-  ('Handyman',             'handyman',         'Wrench',      'General repairs, installs, and honey-do lists',                     65),
-  ('House Cleaning',       'house-cleaning',   'Sparkles',    'Residential and vacation rental cleaning services',                 67);
+insert into public.categories (name, slug, icon, description, sort_order, category_group) values
+  ('Roofing',              'roofing',          'Home',        'Roof installation, repair, and replacement',                        10, 'Home Services'),
+  ('Electrical',           'electrical',       'Zap',         'Licensed electricians for all residential and commercial work',     22, 'Home Services'),
+  ('Plumbing',             'plumbing',         'Droplets',    'Plumbers for repairs, installs, and remodels',                      20, 'Home Services'),
+  ('HVAC',                 'hvac',             'Thermometer', 'Heating, ventilation, and air conditioning specialists',            21, 'Home Services'),
+  ('Flooring',             'flooring',         'Grid',        'Hardwood, tile, LVP, and carpet installation',                      31, 'Home Services'),
+  ('Landscaping',          'landscaping',      'Trees',       'Full landscaping design, hardscape, and new installs',              40, 'Home Services'),
+  ('Pool & Spa',           'pool-spa',         'Waves',       'Pool construction, maintenance, and repair',                        44, 'Home Services'),
+  ('Pest Control',         'pest-control',     'Bug',         'Termite, pest, and wildlife control',                               62, 'Home Services'),
+  ('Handyman',             'handyman',         'Wrench',      'General repairs, installs, and honey-do lists',                     65, 'Home Services'),
+  ('House Cleaning',       'house-cleaning',   'Sparkles',    'Residential and vacation rental cleaning services',                 67, 'Home Services');
 
 -- ============================================================
 -- CONTRACTORS

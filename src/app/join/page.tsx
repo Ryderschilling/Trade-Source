@@ -14,7 +14,7 @@ export default async function JoinPage() {
 
   const { data: categories } = await supabase
     .from("categories")
-    .select("id, name, slug")
+    .select("id, name, slug, category_group")
     .order("sort_order");
 
   const {
@@ -38,7 +38,7 @@ export default async function JoinPage() {
 
       <div className="container mx-auto max-w-3xl px-4 sm:px-6 py-10">
         <JoinForm
-          categories={(categories ?? []) as Pick<Category, "id" | "name" | "slug">[]}
+          categories={(categories ?? []) as Pick<Category, "id" | "name" | "slug" | "category_group">[]}
           userEmail={user?.email}
           userId={user?.id}
         />

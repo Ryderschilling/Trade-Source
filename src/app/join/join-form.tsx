@@ -165,22 +165,37 @@ async function optimizeRasterImage(
 function MultiCategoryPicker({
   categories,
 }: {
-  categories: Pick<Category, "id" | "name" | "slug">[];
+  categories: Pick<Category, "id" | "name" | "slug" | "category_group">[];
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
-  const catBySlug: Record<string, Pick<Category, "id" | "name" | "slug">> = {};
+  const catBySlug: Record<string, Pick<Category, "id" | "name" | "slug" | "category_group">> = {};
   for (const c of categories) catBySlug[c.slug] = c;
 
   const groups = CATEGORY_GROUPS.map((g) => ({
     ...g,
-    items: g.slugs.map((s) => catBySlug[s]).filter(Boolean) as Pick<Category, "id" | "name" | "slug">[],
+    items: g.slugs.map((s) => catBySlug[s]).filter(Boolean) as Pick<Category, "id" | "name" | "slug" | "category_group">[],
   })).filter((g) => g.items.length > 0);
 
   const knownSlugs = new Set(CATEGORY_GROUPS.flatMap((g) => g.slugs));
   const ungrouped = categories.filter((c) => !knownSlugs.has(c.slug) && c.slug !== "other");
-  const allGroups = [...groups, ...(ungrouped.length ? [{ id: "other", name: "Other", items: ungrouped }] : [])];
+
+  // Group unknown categories by their category_group text from the DB
+  const ungroupedByText: Record<string, typeof ungrouped> = {};
+  for (const c of ungrouped) {
+    const g = c.category_group || "Other";
+    if (!ungroupedByText[g]) ungroupedByText[g] = [];
+    ungroupedByText[g].push(c);
+  }
+  const textGroups = Object.entries(ungroupedByText).map(([name, items]) => ({
+    id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+    name,
+    slugs: [] as string[],
+    items,
+  }));
+
+  const allGroups = [...groups, ...textGroups];
 
   function toggle(id: string) {
     setSelectedIds((prev) =>
@@ -390,7 +405,7 @@ function PackagesEditor({ onChange }: { onChange: (pkgs: PackageEntry[]) => void
 }
 
 interface JoinFormProps {
-  categories: Pick<Category, "id" | "name" | "slug">[];
+  categories: Pick<Category, "id" | "name" | "slug" | "category_group">[];
   userEmail?: string;
   userId?: string;
 }
@@ -488,7 +503,7 @@ function BusinessDetailsStep({
   categories,
   userEmail,
 }: {
-  categories: Pick<Category, "id" | "name" | "slug">[];
+  categories: Pick<Category, "id" | "name" | "slug" | "category_group">[];
   userEmail?: string;
 }) {
   const [state, formAction, pending] = useActionState(joinAsContractor, initialJoinState);

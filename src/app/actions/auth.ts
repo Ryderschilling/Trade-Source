@@ -13,7 +13,7 @@ const signUpSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8, "Password must be at least 8 characters"),
   full_name: z.string().min(2, "Full name is required"),
-  address: z.string().min(5, "Address is required"),
+  address: z.string().optional(),
 });
 
 export type AuthFormState = {
@@ -55,7 +55,7 @@ export async function signUp(
     email: formData.get("email"),
     password: formData.get("password"),
     full_name: formData.get("full_name"),
-    address: formData.get("address"),
+    address: formData.get("address") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -70,7 +70,7 @@ export async function signUp(
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: { full_name: parsed.data.full_name, role, address: parsed.data.address },
+      data: { full_name: parsed.data.full_name, role, ...(parsed.data.address ? { address: parsed.data.address } : {}) },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
     },
   });
@@ -88,7 +88,7 @@ export async function signUp(
     return { error: signInError.message };
   }
 
-  redirect("/dashboard");
+  return { success: true };
 }
 
 export async function resetPassword(

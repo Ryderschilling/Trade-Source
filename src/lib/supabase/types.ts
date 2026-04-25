@@ -96,6 +96,7 @@ export type Database = {
       }
       categories: {
         Row: {
+          category_group: string
           created_at: string
           description: string | null
           group_id: string | null
@@ -106,6 +107,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          category_group?: string
           created_at?: string
           description?: string | null
           group_id?: string | null
@@ -116,6 +118,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          category_group?: string
           created_at?: string
           description?: string | null
           group_id?: string | null

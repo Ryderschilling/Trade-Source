@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { APP_NAME } from "@/lib/constants";
@@ -10,11 +11,8 @@ export function Footer() {
       <div className="container mx-auto max-w-7xl px-4 py-5 sm:py-12 sm:px-6">
         <div className="grid grid-cols-2 gap-5 sm:gap-8 md:grid-cols-4">
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-bold sm:h-8 sm:w-8 sm:text-sm">
-                TS
-              </div>
-              <span className="text-sm font-semibold sm:text-base">{APP_NAME}</span>
+            <Link href="/">
+              <Image src="/logo-wordmark.svg" alt={APP_NAME} width={150} height={26} />
             </Link>
             <p className="mt-2 hidden text-sm text-muted-foreground leading-relaxed sm:block sm:mt-3">
               The trusted local directory for tradesmen serving the 30A corridor

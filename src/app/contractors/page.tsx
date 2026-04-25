@@ -26,6 +26,18 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
   return <Icon className={className ?? "h-4 w-4"} />;
 }
 
+const GROUP_ICON_MAP: Record<string, string> = {
+  "Home Services":           "Home",
+  "Real Estate & Property":  "Building2",
+  "Legal & Financial":       "Scale",
+  "Health & Wellness":       "Heart",
+  "Design & Architecture":   "PenTool",
+};
+
+function slugifyGroup(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
 // Hard-coded groups used as fallback when migration hasn't run
 const FALLBACK_GROUPS = [
   { id: "exterior-structure",   name: "Exterior & Structure",  icon: "Building2",  slugs: ["roofing","siding","windows-doors","gutters","painting-exterior","pressure-washing","driveway-paving","foundation-structural","stucco"] },
@@ -248,6 +260,25 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
       icon: g.icon,
       categories: catsByGroupId[g.id] ?? [],
     }));
+    // Categories with no group_id: group by category_group text
+    const ungrouped = catsByGroupId["__none__"] ?? [];
+    if (ungrouped.length > 0) {
+      const byText: Record<string, any[]> = {};
+      for (const cat of ungrouped) {
+        const g = (cat as any).category_group ?? "Other";
+        if (!byText[g]) byText[g] = [];
+        byText[g].push(cat);
+      }
+      for (const [name, cats] of Object.entries(byText)) {
+        sidebarGroups.push({
+          id: slugifyGroup(name),
+          name,
+          icon: GROUP_ICON_MAP[name] ?? "Folder",
+          categories: cats,
+        });
+      }
+    }
+    sidebarGroups = sidebarGroups.filter((g) => g.categories.length > 0);
   } else {
     const catBySlug: Record<string, any> = {};
     for (const cat of allCategories ?? []) catBySlug[(cat as any).slug] = cat;
@@ -259,9 +290,17 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
     })).filter((g) => g.categories.length > 0);
   }
 
-  const activeGroupId = hasGroups
-    ? (activeCategory as any)?.group_id
-    : FALLBACK_GROUPS.find((g) => g.slugs.includes(categorySlug ?? ""))?.id;
+  let activeGroupId: string | undefined;
+  if (hasGroups) {
+    const gid = (activeCategory as any)?.group_id;
+    if (gid) {
+      activeGroupId = gid;
+    } else if (activeCategory) {
+      activeGroupId = slugifyGroup((activeCategory as any).category_group ?? "");
+    }
+  } else {
+    activeGroupId = FALLBACK_GROUPS.find((g) => g.slugs.includes(categorySlug ?? ""))?.id;
+  }
 
   return (
     <div className="min-h-screen bg-background">
