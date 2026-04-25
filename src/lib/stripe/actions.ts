@@ -182,15 +182,25 @@ export async function createFeaturedEmailCheckout(businessId: string, month: str
   const { error, supabase, contractor } = await getContractor(businessId)
   if (error || !supabase || !contractor) return { error: error ?? 'Not found' }
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://sourceatrade.com'
+
   try {
-    const session = await getStripe().checkout.sessions.create({
+    const sessionParams: any = {
       mode: 'payment',
       line_items: [{ price: PRICES.FEATURED_EMAIL, quantity: 1 }],
       metadata: { businessId, month },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://sourceatrade.com'}/dashboard/billing?email_reserved=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://sourceatrade.com'}/dashboard/billing`,
-    })
+      success_url: `${appUrl}/dashboard/billing?email_reserved=true`,
+      cancel_url: `${appUrl}/dashboard/billing`,
+    }
 
+    if (contractor.stripe_customer_id) {
+      sessionParams.customer = contractor.stripe_customer_id
+    } else if (contractor.email) {
+      sessionParams.customer_email = contractor.email
+      sessionParams.customer_creation = 'always'
+    }
+
+    const session = await getStripe().checkout.sessions.create(sessionParams)
     return { url: session.url }
   } catch (err: any) {
     return { error: err.message ?? 'Stripe error' }

@@ -63,29 +63,34 @@ const PLAN_INFO: Record<string, { name: string; price: number | null }> = {
 
 const ADDON_META: Record<
   AddonType,
-  { name: string; price: number | null; pitch: string; icon: React.ReactNode }
+  { name: string; price: number | null; priceLabel: string; pitch: string; icon: React.ReactNode; oneTime?: boolean }
 > = {
   verified_badge: {
     name: "Verified Badge",
     price: 30,
+    priceLabel: "$30/mo",
     pitch: "Build instant trust — stand out from [STAT]+ local businesses with a verified badge.",
     icon: <Shield className="h-5 w-5" />,
   },
   lead_notifications: {
     name: "Lead Notifications",
     price: 25,
+    priceLabel: "$25/mo",
     pitch: "Beat [STAT]+ other pros — be first to respond with instant email and SMS lead alerts.",
     icon: <Bell className="h-5 w-5" />,
   },
   homepage_slider: {
     name: "Homepage Slider",
     price: 20,
+    priceLabel: "$20/mo",
     pitch: "Prime homepage placement seen by homeowners browsing all [STAT]+ local contractors.",
     icon: <Layout className="h-5 w-5" />,
   },
   featured_email: {
     name: "Featured Email",
-    price: null,
+    price: 250,
+    priceLabel: "$250 one-time",
+    oneTime: true,
     pitch: "The only contractor featured in our monthly email — reaching homeowners across [STAT]+ listings.",
     icon: <Mail className="h-5 w-5" />,
   },
@@ -176,13 +181,13 @@ export function BillingClient({
   const upcomingMonths = getNextMonths(12);
   const removeTarget = addons.find((a) => a.id === removeTargetId);
 
-  // Bug 3: monthly total
+  // Bug 3: monthly total — excludes one-time addons like Featured Email
   const activeAddonTotal = addons
-    .filter((a) => a.status === "active" && ADDON_META[a.addon_type].price != null)
+    .filter((a) => a.status === "active" && ADDON_META[a.addon_type].price != null && !ADDON_META[a.addon_type].oneTime)
     .reduce((sum, a) => sum + (ADDON_META[a.addon_type].price ?? 0), 0);
   const monthlyTotal = (plan.price ?? 0) + activeAddonTotal;
-  const hasTbdAddon = addons.some(
-    (a) => (a.status === "active" || a.status === "pending_review") && ADDON_META[a.addon_type].price == null
+  const hasOneTimeAddon = addons.some(
+    (a) => (a.status === "active" || a.status === "pending_review" || a.status === "reserved") && ADDON_META[a.addon_type].oneTime
   );
 
   function run<T>(action: () => Promise<{ error?: string | null; success?: boolean } | T>, onSuccess?: () => void) {
@@ -318,20 +323,20 @@ export function BillingClient({
                 </div>
               )}
               {addons
-                .filter((a) => a.status === "active" && ADDON_META[a.addon_type].price != null)
+                .filter((a) => a.status === "active" && ADDON_META[a.addon_type].price != null && !ADDON_META[a.addon_type].oneTime)
                 .map((a) => (
                   <div key={a.id} className="flex justify-between text-neutral-500">
                     <span>{ADDON_META[a.addon_type].name}</span>
-                    <span>${ADDON_META[a.addon_type].price}/mo</span>
+                    <span>{ADDON_META[a.addon_type].priceLabel}</span>
                   </div>
                 ))}
               <div className="flex items-baseline justify-between border-t border-neutral-100 pt-2 mt-1">
                 <p className="text-xs text-neutral-500">Monthly Total</p>
                 <p className="text-lg font-semibold text-neutral-900">${monthlyTotal}/mo</p>
               </div>
-              {hasTbdAddon && (
+              {hasOneTimeAddon && (
                 <p className="text-xs text-neutral-400">
-                  * Excludes Featured Email (pricing confirmed at reservation)
+                  * Excludes Featured Email ($250 one-time, not a recurring charge)
                 </p>
               )}
             </div>
@@ -360,10 +365,15 @@ export function BillingClient({
                       <div>
                         <p className="font-medium text-neutral-900 text-sm">{meta.name}</p>
                         <p className="text-xs text-neutral-500 mt-0.5">
-                          {meta.price != null ? `$${meta.price}/mo` : "Pricing TBD"}
+                          {meta.priceLabel}
                           {" · "}
                           {addon.reserved_month
-                            ? `Reserved: ${new Date(addon.reserved_month + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" })}`
+                            ? (() => {
+                                const [y, m] = addon.reserved_month.split("-").map(Number);
+                                const reservedDate = new Date(y, m - 1, 1);
+                                const reservedLabel = reservedDate.toLocaleDateString(undefined, { month: "short", year: "numeric" });
+                                return `Reserved: ${reservedLabel}`;
+                              })()
                             : `Since ${formatDate(addon.started_at)}`}
                         </p>
                         <div className="mt-1.5">{statusBadge(addon.status)}</div>
@@ -403,7 +413,7 @@ export function BillingClient({
                       <div>
                         <p className="font-medium text-neutral-900">{meta.name}</p>
                         <p className="text-sm text-neutral-500">
-                          {meta.price != null ? `$${meta.price}/mo` : "Pricing TBD"}
+                          {meta.priceLabel}
                         </p>
                       </div>
                     </div>
@@ -500,7 +510,11 @@ export function BillingClient({
                           <span className="font-medium text-neutral-700">{meta.name}</span>
                           {item.reserved_month && (
                             <span className="text-xs text-neutral-400">
-                              ({new Date(item.reserved_month + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" })})
+                              {(() => {
+                                const [y, m] = item.reserved_month.split("-").map(Number);
+                                const reservedDate = new Date(y, m - 1, 1);
+                                return `(${reservedDate.toLocaleDateString(undefined, { month: "short", year: "numeric" })})`;
+                              })()}
                             </span>
                           )}
                         </div>
@@ -510,7 +524,7 @@ export function BillingClient({
                         {item.cancelled_at ? formatDate(item.cancelled_at) : "—"}
                       </td>
                       <td className="px-4 py-3 text-right text-neutral-500">
-                        {meta.price != null ? `$${meta.price}/mo` : "Custom"}
+                        {meta.priceLabel}
                       </td>
                     </tr>
                   );
@@ -532,11 +546,11 @@ export function BillingClient({
             )}
             <DialogTitle>{confirmMeta?.name}</DialogTitle>
             <DialogDescription>
-              {confirmMeta?.price != null
-                ? `$${confirmMeta.price}/mo · `
-                : "Pricing TBD · "}
+              {confirmMeta ? `${confirmMeta.priceLabel} · ` : ""}
               {confirmIsReview
                 ? "Your request will be submitted for review."
+                : confirmMeta?.oneTime
+                ? "You will be redirected to complete a one-time payment."
                 : "This will be added to your monthly bill starting today."}
             </DialogDescription>
           </DialogHeader>
@@ -725,7 +739,7 @@ export function BillingClient({
                 <span className="font-medium">
                   {upcomingMonths.find((m) => m.value === selectedMonth)?.label}
                 </span>{" "}
-                — Pricing TBD · Your request will be submitted for review.
+                — $250 one-time · You will be redirected to complete payment.
               </p>
             )}
           </div>

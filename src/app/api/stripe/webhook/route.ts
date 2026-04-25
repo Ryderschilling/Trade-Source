@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
+import { priceIdToPlan, getBasePriceId, getNextBillingDate, getCardLast4 } from "@/lib/stripe/mapping";
 
 export async function POST(req: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -80,183 +81,232 @@ export async function POST(req: NextRequest) {
   let dbError: string | null = null;
 
   switch (event.type) {
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+
+      if (session.mode === "subscription") {
+        try {
+          const subscriptionId = session.subscription as string;
+          const customerId = session.customer as string;
+          const contractorId = session.metadata?.contractor_id ?? session.metadata?.businessId;
+          const contractorSlug = session.metadata?.contractor_slug;
+          if (!contractorId || !subscriptionId) break;
+
+          const sub = await stripe.subscriptions.retrieve(subscriptionId, {
+            expand: ["default_payment_method"],
+          });
+
+          const { error } = await supabase
+            .from("contractors")
+            .update({
+              status: "active",
+              stripe_customer_id: customerId ?? undefined,
+              stripe_subscription_id: subscriptionId,
+              billing_plan: priceIdToPlan(getBasePriceId(sub)),
+              subscription_status: sub.status === "trialing" ? "active" : sub.status,
+              next_billing_date: getNextBillingDate(sub),
+              payment_last4: getCardLast4(sub),
+            })
+            .eq("id", contractorId);
+
+          if (error) {
+            dbError = error.message;
+            break;
+          }
+
+          await sendContractorEmail(
+            contractorId,
+            "Your Source A Trade listing is now live!",
+            `
+              <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+                <h2>You're live on Source A Trade!</h2>
+                <p>Payment confirmed. Your business listing is now active and visible to homeowners searching for contractors in your area.</p>
+                ${contractorSlug ? `<p>View your listing: <a href="${appUrl}/contractors/${contractorSlug}">${appUrl}/contractors/${contractorSlug}</a></p>` : ""}
+                <p>Manage your leads and messages from your <a href="${appUrl}/dashboard">dashboard</a>.</p>
+                <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+                <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com · Questions? Reply to this email or contact support@sourceatrade.com</p>
+              </div>
+            `,
+            "transactional:stripe:activated"
+          );
+
+          console.log(`Contractor ${contractorId} activated via Stripe checkout`);
+        } catch (err: any) {
+          dbError = err?.message ?? "checkout.session.completed subscription handler error";
+        }
+        break;
+      }
+
+      if (session.mode === "payment") {
+        try {
+          const businessId = session.metadata?.businessId;
+          const month = session.metadata?.month;
+          if (!businessId || !month) break;
+
+          const db = supabase as any;
+          const { data: existing } = await db
+            .from("business_addons")
+            .select("id")
+            .eq("stripe_payment_intent_id", session.payment_intent as string)
+            .maybeSingle();
+          if (existing) break;
+
+          const { error } = await db.from("business_addons").insert({
+            business_id: businessId,
+            addon_type: "featured_email",
+            status: "reserved",
+            reserved_month: month,
+            stripe_payment_intent_id: session.payment_intent as string,
+            amount_paid_cents: session.amount_total,
+          });
+          if (error) dbError = error.message;
+        } catch (err: any) {
+          dbError = err?.message ?? "checkout.session.completed payment handler error";
+        }
+        break;
+      }
+
+      break;
+    }
+
     case "invoice.payment_succeeded": {
-      const invoice = event.data.object as Stripe.Invoice;
-      const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
-      if (customerId) {
+      try {
+        const invoice = event.data.object as Stripe.Invoice;
+        const rawSub = invoice.parent?.subscription_details?.subscription;
+        const subscriptionId = rawSub ? (typeof rawSub === "string" ? rawSub : rawSub.id) : null;
+        if (!subscriptionId) break;
+
+        const sub = await stripe.subscriptions.retrieve(subscriptionId, {
+          expand: ["default_payment_method"],
+        });
+
         const { error } = await supabase
           .from("contractors")
-          .update({ subscription_status: "active" })
-          .eq("stripe_customer_id", customerId);
+          .update({
+            subscription_status: "active",
+            billing_plan: priceIdToPlan(getBasePriceId(sub)),
+            next_billing_date: getNextBillingDate(sub),
+            payment_last4: getCardLast4(sub),
+          })
+          .eq("stripe_subscription_id", subscriptionId);
+
         if (error) dbError = error.message;
+      } catch (err: any) {
+        dbError = err?.message ?? "invoice.payment_succeeded handler error";
       }
       break;
     }
 
     case "invoice.payment_failed": {
-      const invoice = event.data.object as Stripe.Invoice;
-      const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
-      if (customerId) {
+      try {
+        const invoice = event.data.object as Stripe.Invoice;
+        const rawSub = invoice.parent?.subscription_details?.subscription;
+        const subscriptionId = rawSub ? (typeof rawSub === "string" ? rawSub : rawSub.id) : null;
+        if (!subscriptionId) break;
+
         const { error } = await supabase
           .from("contractors")
           .update({ subscription_status: "past_due" })
-          .eq("stripe_customer_id", customerId);
+          .eq("stripe_subscription_id", subscriptionId);
+
         if (error) dbError = error.message;
+      } catch (err: any) {
+        dbError = err?.message ?? "invoice.payment_failed handler error";
       }
       break;
     }
 
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-
-      if (session.mode === "payment" && session.metadata?.businessId) {
-        const { businessId, month } = session.metadata;
-        const { error } = await supabase.from("business_addons").insert({
-          business_id: businessId,
-          addon_type: "featured_email",
-          status: "pending_review",
-          stripe_subscription_item_id: null,
-          reserved_month: month ?? null,
+    case "customer.subscription.created":
+    case "customer.subscription.updated": {
+      try {
+        const sub = event.data.object as Stripe.Subscription;
+        const fullSub = await stripe.subscriptions.retrieve(sub.id, {
+          expand: ["default_payment_method"],
         });
+
+        const { error } = await supabase
+          .from("contractors")
+          .update({
+            subscription_status: fullSub.status === "trialing" ? "active" : fullSub.status,
+            billing_plan: priceIdToPlan(getBasePriceId(fullSub)),
+            next_billing_date: getNextBillingDate(fullSub),
+            payment_last4: getCardLast4(fullSub),
+          })
+          .eq("stripe_subscription_id", sub.id);
+
         if (error) dbError = error.message;
-        break;
+      } catch (err: any) {
+        dbError = err?.message ?? "customer.subscription.updated handler error";
       }
-
-      if (session.mode !== "subscription") break;
-
-      const contractorId = session.metadata?.contractor_id;
-      const contractorSlug = session.metadata?.contractor_slug;
-      const subscriptionId = session.subscription as string | null;
-      const customerId = session.customer as string | null;
-
-      if (!contractorId) {
-        console.error("Webhook: missing contractor_id in metadata");
-        break;
-      }
-
-      const { error } = await supabase
-        .from("contractors")
-        .update({
-          status: "active",
-          stripe_customer_id: customerId ?? undefined,
-          stripe_subscription_id: subscriptionId ?? undefined,
-        })
-        .eq("id", contractorId);
-
-      if (error) {
-        dbError = error.message;
-        break;
-      }
-
-      await sendContractorEmail(
-        contractorId,
-        "Your Source A Trade listing is now live!",
-        `
-          <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-            <h2>You're live on Source A Trade!</h2>
-            <p>Payment confirmed. Your business listing is now active and visible to homeowners searching for contractors in your area.</p>
-            ${contractorSlug ? `<p>View your listing: <a href="${appUrl}/contractors/${contractorSlug}">${appUrl}/contractors/${contractorSlug}</a></p>` : ""}
-            <p>Manage your leads and messages from your <a href="${appUrl}/dashboard">dashboard</a>.</p>
-            <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-            <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com · Questions? Reply to this email or contact support@sourceatrade.com</p>
-          </div>
-        `,
-        "transactional:stripe:activated"
-      );
-
-      console.log(`Contractor ${contractorId} activated via Stripe checkout`);
       break;
     }
 
     case "customer.subscription.deleted": {
-      const subscription = event.data.object as Stripe.Subscription;
+      try {
+        const sub = event.data.object as Stripe.Subscription;
 
-      const { data: contractor, error } = await supabase
-        .from("contractors")
-        .update({ status: "suspended", subscription_status: "cancelled" })
-        .eq("stripe_subscription_id", subscription.id)
-        .select("id, email, business_name")
-        .single();
-
-      if (error) {
-        dbError = error.message;
-        break;
-      }
-
-      if (contractor?.id) {
-        await supabase
-          .from("business_addons")
-          .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
-          .eq("business_id", contractor.id)
-          .in("status", ["active", "pending_review", "waitlisted"]);
-      }
-
-      if (contractor?.email) {
-        await sendEmail({
-          to: contractor.email,
-          subject: "Your Source A Trade listing has been suspended",
-          html: `
-            <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-              <h2>Your listing has been suspended</h2>
-              <p>Your Source A Trade subscription for <strong>${contractor.business_name}</strong> has been canceled and your listing is no longer visible to homeowners.</p>
-              <p>To reactivate your listing, <a href="${appUrl}/dashboard">visit your dashboard</a> and renew your subscription.</p>
-              <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-              <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com · Questions? Contact support@sourceatrade.com</p>
-            </div>
-          `,
-          kind: "transactional:stripe:suspended",
-          meta: { subscription_id: subscription.id },
-        });
-      }
-
-      console.log(`Contractor suspended — subscription ${subscription.id} deleted`);
-      break;
-    }
-
-    case "customer.subscription.updated": {
-      const subscription = event.data.object as Stripe.Subscription;
-
-      if (subscription.status === "active") {
         const { error } = await supabase
           .from("contractors")
-          .update({ status: "active" })
-          .eq("stripe_subscription_id", subscription.id);
-        if (error) dbError = error.message;
-      }
-
-      if (subscription.status === "canceled" || subscription.status === "unpaid") {
-        const { data: contractor, error } = await supabase
-          .from("contractors")
-          .update({ status: "suspended" })
-          .eq("stripe_subscription_id", subscription.id)
-          .select("id, email, business_name")
-          .single();
+          .update({
+            subscription_status: "cancelled",
+            billing_plan: "free",
+            next_billing_date: null,
+          })
+          .eq("stripe_subscription_id", sub.id);
 
         if (error) {
           dbError = error.message;
           break;
         }
 
-        if (contractor?.email) {
-          await sendEmail({
-            to: contractor.email,
-            subject: "Your Source A Trade listing has been suspended",
-            html: `
-              <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-                <h2>Your listing has been suspended</h2>
-                <p>Your Source A Trade subscription for <strong>${contractor.business_name}</strong> has ${subscription.status === "unpaid" ? "a failed payment" : "been canceled"}. Your listing is no longer visible to homeowners.</p>
-                ${subscription.status === "unpaid" ? "<p>Please update your payment method to reactivate your listing.</p>" : ""}
-                <p><a href="${appUrl}/dashboard">Visit your dashboard</a> to manage your subscription.</p>
-                <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-                <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com · Questions? Contact support@sourceatrade.com</p>
-              </div>
-            `,
-            kind: "transactional:stripe:suspended",
-            meta: { subscription_id: subscription.id },
-          });
-        }
-      }
+        const { data: affectedContractors } = await supabase
+          .from("contractors")
+          .select("id")
+          .eq("stripe_subscription_id", sub.id);
 
+        const ids = affectedContractors?.map((c) => c.id) ?? [];
+
+        if (ids.length > 0) {
+          await supabase
+            .from("business_addons")
+            .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+            .in("status", ["active", "waitlisted", "pending_review"])
+            .in("business_id", ids);
+        }
+
+        // Send cancellation email
+        try {
+          const { data: contractor } = await supabase
+            .from("contractors")
+            .select("id, email, business_name")
+            .eq("stripe_subscription_id", sub.id)
+            .single();
+
+          if (contractor?.email) {
+            await sendEmail({
+              to: contractor.email,
+              subject: "Your Source A Trade listing has been suspended",
+              html: `
+                <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+                  <h2>Your listing has been suspended</h2>
+                  <p>Your Source A Trade subscription for <strong>${contractor.business_name}</strong> has been canceled and your listing is no longer visible to homeowners.</p>
+                  <p>To reactivate your listing, <a href="${appUrl}/dashboard">visit your dashboard</a> and renew your subscription.</p>
+                  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+                  <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com · Questions? Contact support@sourceatrade.com</p>
+                </div>
+              `,
+              kind: "transactional:stripe:suspended",
+              meta: { subscription_id: sub.id },
+            });
+          }
+        } catch (e) {
+          console.error("Stripe webhook cancellation email failed:", e);
+        }
+
+        console.log(`Contractor subscription deleted — ${sub.id}`);
+      } catch (err: any) {
+        dbError = err?.message ?? "customer.subscription.deleted handler error";
+      }
       break;
     }
 
@@ -278,10 +328,7 @@ export async function POST(req: NextRequest) {
     // table may not exist before migration 023
   }
 
-  if (dbError) {
-    return NextResponse.json({ error: dbError }, { status: 500 });
-  }
-
+  // Always return 200 so Stripe doesn't retry
   return NextResponse.json({ received: true });
 }
 

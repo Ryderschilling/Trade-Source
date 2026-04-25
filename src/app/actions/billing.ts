@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getStripe } from "@/lib/stripe/client";
+import { ADDON_PRICE_MAP } from "@/lib/stripe/products";
 
 type AddonType = "verified_badge" | "lead_notifications" | "homepage_slider" | "featured_email";
 
@@ -14,7 +16,7 @@ async function getContractorForUser() {
 
   const { data: contractor } = await supabase
     .from("contractors")
-    .select("id, user_id")
+    .select("id, user_id, stripe_subscription_id")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -45,42 +47,6 @@ export async function resumeListing() {
     .from("contractors")
     .update({ billing_status: "active" })
     .eq("id", contractor.id);
-
-  if (updateError) return { error: updateError.message };
-  revalidatePath("/dashboard/billing");
-  return { success: true };
-}
-
-export async function cancelSubscription() {
-  const { error, supabase, contractor } = await getContractorForUser();
-  if (error || !supabase || !contractor) return { error };
-
-  const { error: updateError } = await supabase
-    .from("contractors")
-    .update({ billing_status: "cancelled" })
-    .eq("id", contractor.id);
-
-  if (updateError) return { error: updateError.message };
-  revalidatePath("/dashboard/billing");
-  return { success: true };
-}
-
-export async function removeAddon(addonId: string) {
-  const { error, supabase, contractor } = await getContractorForUser();
-  if (error || !supabase || !contractor) return { error };
-
-  const { data: addon } = await supabase
-    .from("business_addons")
-    .select("id, business_id")
-    .eq("id", addonId)
-    .single();
-
-  if (!addon || addon.business_id !== contractor.id) return { error: "Not found" };
-
-  const { error: updateError } = await supabase
-    .from("business_addons")
-    .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
-    .eq("id", addonId);
 
   if (updateError) return { error: updateError.message };
   revalidatePath("/dashboard/billing");
@@ -119,13 +85,53 @@ export async function enableLeadNotifications() {
   const { error, supabase, contractor } = await getContractorForUser();
   if (error || !supabase || !contractor) return { error };
 
+  const { data: existing } = await supabase
+    .from("business_addons")
+    .select("id")
+    .eq("business_id", contractor.id)
+    .eq("addon_type", "lead_notifications" satisfies AddonType)
+    .in("status", ["active", "waitlisted", "pending_review"])
+    .maybeSingle();
+  if (existing) return { error: "Lead Notifications are already active." };
+
+  if (!contractor.stripe_subscription_id) return { error: "No active subscription. Subscribe to a plan before adding addons." };
+
+  const price = ADDON_PRICE_MAP["lead_notifications"];
+  if (!price) return { error: "Stripe price not configured for lead_notifications." };
+
+  let stripeItemId: string;
+  try {
+    const item = await getStripe().subscriptionItems.create({
+      subscription: contractor.stripe_subscription_id,
+      price,
+      proration_behavior: "create_prorations",
+    });
+    stripeItemId = item.id;
+  } catch (err: any) {
+    return { error: err.message ?? "Stripe error creating subscription item" };
+  }
+
   const { error: insertError } = await supabase.from("business_addons").insert({
     business_id: contractor.id,
     addon_type: "lead_notifications",
     status: "active",
+    stripe_subscription_item_id: stripeItemId,
   });
 
-  if (insertError) return { error: insertError.message };
+  if (insertError) {
+    try {
+      await getStripe().subscriptionItems.del(stripeItemId, { proration_behavior: "create_prorations" });
+    } catch (rollbackErr: any) {
+      await (supabase as any).from("stripe_orphans").insert({
+        business_id: contractor.id,
+        stripe_object_type: "subscription_item",
+        stripe_object_id: stripeItemId,
+        reason: `rollback_failed_after_db_insert_error: ${rollbackErr?.message ?? "unknown"}`,
+      });
+    }
+    return { error: insertError.message };
+  }
+
   revalidatePath("/dashboard/billing");
   return { success: true };
 }
@@ -134,31 +140,64 @@ export async function joinHomepageSlider(asWaitlist: boolean) {
   const { error, supabase, contractor } = await getContractorForUser();
   if (error || !supabase || !contractor) return { error };
 
+  const { data: existing } = await supabase
+    .from("business_addons")
+    .select("id")
+    .eq("business_id", contractor.id)
+    .eq("addon_type", "homepage_slider" satisfies AddonType)
+    .in("status", ["active", "waitlisted", "pending_review"])
+    .maybeSingle();
+  if (existing) return { error: "Homepage Slider is already active or waitlisted." };
+
+  if (asWaitlist) {
+    const { error: insertError } = await supabase.from("business_addons").insert({
+      business_id: contractor.id,
+      addon_type: "homepage_slider",
+      status: "waitlisted",
+    });
+    if (insertError) return { error: insertError.message };
+    revalidatePath("/dashboard/billing");
+    return { success: true };
+  }
+
+  if (!contractor.stripe_subscription_id) return { error: "No active subscription. Subscribe to a plan before adding addons." };
+
+  const price = ADDON_PRICE_MAP["homepage_slider"];
+  if (!price) return { error: "Stripe price not configured for homepage_slider." };
+
+  let stripeItemId: string;
+  try {
+    const item = await getStripe().subscriptionItems.create({
+      subscription: contractor.stripe_subscription_id,
+      price,
+      proration_behavior: "create_prorations",
+    });
+    stripeItemId = item.id;
+  } catch (err: any) {
+    return { error: err.message ?? "Stripe error creating subscription item" };
+  }
+
   const { error: insertError } = await supabase.from("business_addons").insert({
     business_id: contractor.id,
     addon_type: "homepage_slider",
-    status: asWaitlist ? "waitlisted" : "active",
+    status: "active",
+    stripe_subscription_item_id: stripeItemId,
   });
 
-  if (insertError) return { error: insertError.message };
-  revalidatePath("/dashboard/billing");
-  return { success: true };
-}
+  if (insertError) {
+    try {
+      await getStripe().subscriptionItems.del(stripeItemId, { proration_behavior: "create_prorations" });
+    } catch (rollbackErr: any) {
+      await (supabase as any).from("stripe_orphans").insert({
+        business_id: contractor.id,
+        stripe_object_type: "subscription_item",
+        stripe_object_id: stripeItemId,
+        reason: `rollback_failed_after_db_insert_error: ${rollbackErr?.message ?? "unknown"}`,
+      });
+    }
+    return { error: insertError.message };
+  }
 
-export async function reserveFeaturedEmail(month: string) {
-  if (!/^\d{4}-\d{2}$/.test(month)) return { error: "Invalid month format" };
-
-  const { error, supabase, contractor } = await getContractorForUser();
-  if (error || !supabase || !contractor) return { error };
-
-  const { error: insertError } = await supabase.from("business_addons").insert({
-    business_id: contractor.id,
-    addon_type: "featured_email",
-    status: "pending_review",
-    reserved_month: month,
-  });
-
-  if (insertError) return { error: insertError.message };
   revalidatePath("/dashboard/billing");
   return { success: true };
 }

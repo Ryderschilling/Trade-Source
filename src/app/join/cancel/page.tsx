@@ -143,7 +143,7 @@ export default async function JoinCancelPage({ searchParams }: PageProps) {
             <form action={resumeContractorCheckout}>
               <input type="hidden" name="contractor_id" value={contractor.id} />
               <Button type="submit" size="lg" className="w-full gap-2">
-                Complete Payment — $49.99/month
+                Complete Payment — $50/month
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </form>
@@ -156,7 +156,7 @@ export default async function JoinCancelPage({ searchParams }: PageProps) {
             </Link>
           )}
           <p className="text-xs text-center text-muted-foreground">
-            $49.99/month · Cancel anytime · No long-term contract
+            $50/month · Cancel anytime · No long-term contract
           </p>
           <Link href="/">
             <Button variant="ghost" className="w-full text-muted-foreground">

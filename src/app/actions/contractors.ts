@@ -101,8 +101,8 @@ export async function joinAsContractor(
     state: (formData.get("state") as string) || "FL",
     zip: (formData.get("zip") as string) || undefined,
     license_number: (formData.get("license_number") as string) || undefined,
-    is_licensed: formData.get("is_licensed") === "on",
-    is_insured: formData.get("is_insured") === "on",
+    is_licensed: formData.get("is_licensed") === "on" || formData.get("is_licensed") === "true",
+    is_insured:  formData.get("is_insured")  === "on" || formData.get("is_insured")  === "true",
     years_in_business: formData.get("years_in_business")
       ? Number(formData.get("years_in_business"))
       : undefined,
@@ -299,7 +299,7 @@ export async function joinAsContractor(
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
         <h2>Almost there, ${parsed.data.business_name}!</h2>
-        <p>Your listing on <strong>Source A Trade</strong> has been created. To make it live, complete your $49.99/month subscription payment.</p>
+        <p>Your listing on <strong>Source A Trade</strong> has been created. To make it live, complete your $50/month subscription payment.</p>
         <p>If you were redirected to Stripe and completed payment, your listing will go live automatically within a few seconds.</p>
         <p>Once active, your listing will be at:<br/><a href="${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}">${process.env.NEXT_PUBLIC_APP_URL}/contractors/${slug}</a></p>
         <hr />
@@ -408,8 +408,8 @@ export async function updateContractor(
     state: (formData.get("state") as string) || "FL",
     zip: (formData.get("zip") as string) || undefined,
     license_number: (formData.get("license_number") as string) || undefined,
-    is_licensed: formData.get("is_licensed") === "on",
-    is_insured: formData.get("is_insured") === "on",
+    is_licensed: formData.get("is_licensed") === "on" || formData.get("is_licensed") === "true",
+    is_insured:  formData.get("is_insured")  === "on" || formData.get("is_insured")  === "true",
     years_in_business: formData.get("years_in_business")
       ? Number(formData.get("years_in_business"))
       : undefined,
