@@ -61,3 +61,24 @@ export async function updateProfile(
 
   return { success: true };
 }
+
+export async function saveAddress(
+  _prev: ProfileFormState,
+  formData: FormData
+): Promise<ProfileFormState> {
+  const address = (formData.get("address") as string | null)?.trim();
+  if (!address) return { error: "Please enter your address." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ address })
+    .eq("id", user.id);
+
+  if (error) return { error: error.message };
+
+  return { success: true };
+}

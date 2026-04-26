@@ -27,11 +27,20 @@ function CategoryIcon({ name, className }: { name: string; className?: string })
 }
 
 const GROUP_ICON_MAP: Record<string, string> = {
-  "Home Services":           "Home",
+  "Home Services":           "Sparkles",
   "Real Estate & Property":  "Building2",
   "Legal & Financial":       "Scale",
   "Health & Wellness":       "Heart",
   "Design & Architecture":   "PenTool",
+  "Construction":            "HardHat",
+  "Interior":                "Paintbrush",
+  "Exterior":                "Building2",
+  "Outdoors & Yard":         "Leaf",
+  "Systems & Mechanical":    "Zap",
+  "Waterfront":              "Waves",
+  "Vacation Rentals":        "Key",
+  "Automotive":              "Car",
+  "Professional Services":   "Briefcase",
 };
 
 function slugifyGroup(name: string) {

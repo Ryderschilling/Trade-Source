@@ -318,29 +318,36 @@ export async function joinAsContractor(
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    payment_method_types: ["card"],
-    line_items: [
-      {
-        price: process.env.STRIPE_PRICE_BASE_50!,
-        quantity: 1,
-      },
-    ],
-    customer_email: parsed.data.email,
-    metadata: {
-      contractor_id: contractorId,
-      contractor_slug: contractor.slug,
-    },
-    subscription_data: {
+  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: process.env.STRIPE_PRICE_BASE_50!,
+          quantity: 1,
+        },
+      ],
+      customer_email: parsed.data.email,
       metadata: {
         contractor_id: contractorId,
         contractor_slug: contractor.slug,
       },
-    },
-    success_url: `${appUrl}/join/success?slug=${contractor.slug}&paid=1`,
-    cancel_url: `${appUrl}/join/cancel?slug=${contractor.slug}`,
-  });
+      subscription_data: {
+        metadata: {
+          contractor_id: contractorId,
+          contractor_slug: contractor.slug,
+        },
+      },
+      allow_promotion_codes: true,
+      success_url: `${appUrl}/join/success?slug=${contractor.slug}&paid=1`,
+      cancel_url: `${appUrl}/join/cancel?slug=${contractor.slug}`,
+    });
+  } catch (err) {
+    console.error("Stripe checkout session error:", err);
+    return { error: "We couldn't start the payment flow. Please try again or contact support." };
+  }
 
   if (!session.url) {
     return { error: "Failed to create payment session. Please try again." };
@@ -583,24 +590,31 @@ export async function resumeContractorCheckout(formData: FormData): Promise<void
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    payment_method_types: ["card"],
-    line_items: [{ price: process.env.STRIPE_PRICE_BASE_50!, quantity: 1 }],
-    customer_email: contractor.email ?? undefined,
-    metadata: {
-      contractor_id: contractor.id,
-      contractor_slug: contractor.slug,
-    },
-    subscription_data: {
+  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      payment_method_types: ["card"],
+      line_items: [{ price: process.env.STRIPE_PRICE_BASE_50!, quantity: 1 }],
+      customer_email: contractor.email ?? undefined,
       metadata: {
         contractor_id: contractor.id,
         contractor_slug: contractor.slug,
       },
-    },
-    success_url: `${appUrl}/join/success?slug=${contractor.slug}&paid=1`,
-    cancel_url: `${appUrl}/join/cancel?slug=${contractor.slug}`,
-  });
+      subscription_data: {
+        metadata: {
+          contractor_id: contractor.id,
+          contractor_slug: contractor.slug,
+        },
+      },
+      allow_promotion_codes: true,
+      success_url: `${appUrl}/join/success?slug=${contractor.slug}&paid=1`,
+      cancel_url: `${appUrl}/join/cancel?slug=${contractor.slug}`,
+    });
+  } catch (err) {
+    console.error("Stripe checkout session error:", err);
+    redirect(`/join/cancel?slug=${contractor.slug}&error=1`);
+  }
 
   if (!session.url) redirect(`/join/cancel?slug=${contractor.slug}&error=1`);
 

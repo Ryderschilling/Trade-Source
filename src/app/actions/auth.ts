@@ -88,7 +88,7 @@ export async function signUp(
     return { error: signInError.message };
   }
 
-  return { success: true };
+  redirect("/dashboard");
 }
 
 export async function resetPassword(

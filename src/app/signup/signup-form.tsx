@@ -11,17 +11,6 @@ const initialState: AuthFormState = {};
 export function SignupForm() {
   const [state, action, pending] = useActionState(signUp, initialState);
 
-  if (state.success) {
-    return (
-      <div className="rounded-md bg-green-50 border border-green-200 px-4 py-4 text-sm text-green-700 dark:bg-green-950/30 dark:border-green-800 dark:text-green-400">
-        <p className="font-medium">Check your email!</p>
-        <p className="mt-1">
-          We sent a confirmation link. Click it to activate your account.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="role" value="homeowner" />
@@ -51,17 +40,6 @@ export function SignupForm() {
           placeholder="you@example.com"
           required
           autoComplete="email"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="address">Home address</Label>
-        <Input
-          id="address"
-          name="address"
-          placeholder="123 Main St, City, State"
-          required
-          autoComplete="street-address"
         />
       </div>
 

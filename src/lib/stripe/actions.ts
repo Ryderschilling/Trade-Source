@@ -222,6 +222,7 @@ export async function createFeaturedEmailCheckout(businessId: string, month: str
       mode: 'payment',
       line_items: [{ price: PRICES.FEATURED_EMAIL, quantity: 1 }],
       metadata: { businessId, month },
+      allow_promotion_codes: true,
       success_url: `${appUrl}/dashboard/billing?email_reserved=true`,
       cancel_url: `${appUrl}/dashboard/billing`,
     }

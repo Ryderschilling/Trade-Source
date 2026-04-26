@@ -10,6 +10,7 @@ import { AdminCRMDashboard } from "@/components/dashboard/admin-crm";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { QuoteRequestsCard } from "@/components/dashboard/quote-requests-card";
 import { LeadCRMTable } from "@/components/dashboard/lead-crm-table";
+import { AddressPromptModal } from "@/components/dashboard/address-prompt-modal";
 
 function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -342,7 +343,7 @@ async function ContractorDashboard({ userId }: { userId: string }) {
 }
 
 
-async function HomeownerDashboard({ userId, name }: { userId: string; email: string; name: string }) {
+async function HomeownerDashboard({ userId, name, hasAddress }: { userId: string; email: string; name: string; hasAddress: boolean }) {
   const supabase = await createClient();
   const { data: reviews } = await supabase
     .from("reviews").select("*, contractors(business_name, slug)")
@@ -350,6 +351,7 @@ async function HomeownerDashboard({ userId, name }: { userId: string; email: str
 
   return (
     <div className="space-y-8">
+      <AddressPromptModal hasAddress={hasAddress} />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Welcome back, {name.split(" ")[0]}</h1>
         <p className="mt-1 text-sm text-neutral-500">Find and manage your connections with local tradesmen.</p>
@@ -423,7 +425,7 @@ export default async function DashboardPage() {
           ? <AdminCRMDashboard />
           : profile.role === "contractor"
             ? <ContractorDashboard userId={user.id} />
-            : <HomeownerDashboard userId={user.id} email={user.email ?? ""} name={profile.full_name ?? user.email ?? "there"} />
+            : <HomeownerDashboard userId={user.id} email={user.email ?? ""} name={profile.full_name ?? user.email ?? "there"} hasAddress={!!profile.address} />
         }
       </div>
     </main>
