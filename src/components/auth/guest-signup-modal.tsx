@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -55,12 +56,12 @@ export function GuestSignupModal() {
         </DialogHeader>
 
         <div className="flex flex-col gap-2 pt-1">
-          <Button asChild className="w-full">
-            <a href="/signup">Create free account</a>
-          </Button>
-          <Button asChild variant="outline" className="w-full">
-            <a href="/login">Sign in</a>
-          </Button>
+          <a href="/signup" className={cn(buttonVariants({ variant: "default" }), "w-full justify-center")}>
+            Create free account
+          </a>
+          <a href="/login" className={cn(buttonVariants({ variant: "outline" }), "w-full justify-center")}>
+            Sign in
+          </a>
           <button
             onClick={dismiss}
             className="text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
