@@ -175,6 +175,18 @@ export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0
           {userEmail ? (
             <>
               <NotificationBell userId={userId!} initialCount={unreadCount} initialNotifications={notifications} />
+              {userId && (
+                <Link
+                  href="/messages"
+                  className="relative flex items-center justify-center h-9 w-9 rounded-full hover:bg-accent transition-colors"
+                  aria-label="Messages"
+                >
+                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                  {unreadMessages > 0 && (
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-blue-500" />
+                  )}
+                </Link>
+              )}
               <UserMenu userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} unreadMessages={unreadMessages} onSignOut={handleSignOut} />
             </>
           ) : (

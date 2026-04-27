@@ -16,6 +16,7 @@ import { ViewTracker } from "@/components/contractors/ViewTracker";
 import { PortfolioGallery } from "@/components/contractors/portfolio-gallery";
 import { PackageRequestSection } from "@/components/contractors/package-request-section";
 import { ReviewsSection } from "@/components/contractors/reviews-section";
+import { MessageButton } from "@/components/contractors/message-button";
 import type { Contractor, Category, ContractorPackage, PortfolioPhoto } from "@/lib/supabase/types";
 
 type ReviewWithProfile = {
@@ -243,6 +244,16 @@ export default async function ContractorProfilePage({ params, searchParams }: Pa
                   )}
                 </div>
               </div>
+
+              {!isOwner && (
+                <MessageButton
+                  contractorId={c.id}
+                  businessName={c.business_name}
+                  isLoggedIn={!!user}
+                  defaultName={userProfile?.full_name ?? undefined}
+                  defaultEmail={userEmail ?? undefined}
+                />
+              )}
             </div>
 
             <Separator />

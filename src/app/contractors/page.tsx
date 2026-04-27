@@ -88,29 +88,40 @@ async function ContractorGrid({ searchTerm, zipTerm, activeCategory, allCategori
       orParts.push(`category_id.in.(${matchingCatIds.join(",")})`);
     }
 
-    let query = supabase
+    const { data } = await supabase
       .from("contractors")
       .select("*, categories(*)")
       .eq("status", "active")
-      .or(orParts.join(","));
+      .or(orParts.join(","))
+      .order("is_featured", { ascending: false })
+      .order("avg_rating", { ascending: false, nullsFirst: false })
+      .order("review_count", { ascending: false });
 
-    if (zipTerm) query = query.contains("service_areas", [zipTerm]);
+    const all = (data ?? []) as ContractorWithCategory[];
 
-    const { data } = await query
+    if (zipTerm) {
+      const inZip = all.filter((c) => (c.service_areas ?? []).includes(zipTerm));
+      const outZip = all.filter((c) => !(c.service_areas ?? []).includes(zipTerm));
+      contractors = [...inZip, ...outZip];
+    } else {
+      contractors = all;
+    }
+  } else if (zipTerm) {
+    const { data } = await supabase
+      .from("contractors")
+      .select("*, categories(*)")
+      .eq("status", "active")
+      .contains("service_areas", [zipTerm])
       .order("is_featured", { ascending: false })
       .order("avg_rating", { ascending: false, nullsFirst: false })
       .order("review_count", { ascending: false });
     contractors = (data ?? []) as ContractorWithCategory[];
   } else if (activeCategory) {
-    let query = supabase
+    const { data } = await supabase
       .from("contractors")
       .select("*, categories(*)")
       .eq("status", "active")
-      .or(`category_id.eq.${activeCategory.id},additional_categories.cs.{${activeCategory.id}}`);
-
-    if (zipTerm) query = query.contains("service_areas", [zipTerm]);
-
-    const { data } = await query
+      .or(`category_id.eq.${activeCategory.id},additional_categories.cs.{${activeCategory.id}}`)
       .order("is_featured", { ascending: false })
       .order("avg_rating", { ascending: false, nullsFirst: false })
       .order("review_count", { ascending: false });
@@ -118,13 +129,16 @@ async function ContractorGrid({ searchTerm, zipTerm, activeCategory, allCategori
   }
 
   if (searchTerm) {
+    const zipNote = zipTerm
+      ? ` — contractors in ${zipTerm} shown first`
+      : "";
     return (
       <>
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="font-semibold text-neutral-900">Search results</h2>
             <p className="text-sm text-muted-foreground">
-              {contractors.length} contractor{contractors.length !== 1 ? "s" : ""} matching &quot;{searchTerm}&quot;{zipTerm ? ` near ${zipTerm}` : ""}
+              {contractors.length} contractor{contractors.length !== 1 ? "s" : ""} matching &quot;{searchTerm}&quot;{zipNote}
             </p>
           </div>
         </div>
@@ -139,6 +153,35 @@ async function ContractorGrid({ searchTerm, zipTerm, activeCategory, allCategori
             <p className="text-lg font-medium text-neutral-700">No results found</p>
             <p className="mt-2 text-sm text-muted-foreground">
               Try a different search term or browse by category.
+            </p>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  if (zipTerm) {
+    return (
+      <>
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="font-semibold text-neutral-900">Contractors near {zipTerm}</h2>
+            <p className="text-sm text-muted-foreground">
+              {contractors.length} contractor{contractors.length !== 1 ? "s" : ""} serving {zipTerm}
+            </p>
+          </div>
+        </div>
+        {contractors.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {contractors.map((contractor) => (
+              <ContractorCard key={contractor.id} contractor={contractor} categoryMap={categoryMap} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
+            <p className="text-lg font-medium text-neutral-700">No contractors found for {zipTerm}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Try a different ZIP code or browse by category.
             </p>
           </div>
         )}
@@ -319,7 +362,9 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-bold tracking-tight">Find a Contractor</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {searchTerm
-              ? `Showing results for "${searchTerm}"${zipTerm ? ` near ${zipTerm}` : ""}`
+              ? `Showing results for "${searchTerm}"${zipTerm ? ` — ${zipTerm} contractors listed first` : ""}`
+              : zipTerm
+              ? `Showing all contractors serving ${zipTerm}.`
               : activeCategory
               ? `${(activeCategory as any).description ?? ""} Serving 30A and Northwest Florida.`
               : "Browse trusted local tradesmen serving 30A and Northwest Florida."}

@@ -50,16 +50,23 @@ export function FeaturedMarquee({ contractors }: Props) {
     return () => cancelAnimationFrame(animRef.current);
   }, [animate]);
 
+  const pointerDownRef = useRef(false);
+
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    draggingRef.current = true;
+    pointerDownRef.current = true;
     dragStartX.current = e.clientX;
     dragStartPos.current = posRef.current;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    e.currentTarget.style.cursor = "grabbing";
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!draggingRef.current || !trackRef.current) return;
+    if (!pointerDownRef.current || !trackRef.current) return;
+    const delta = Math.abs(e.clientX - dragStartX.current);
+    if (!draggingRef.current && delta > 5) {
+      draggingRef.current = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      e.currentTarget.style.cursor = "grabbing";
+    }
+    if (!draggingRef.current) return;
     const half = trackRef.current.scrollWidth / 2;
     let p = dragStartPos.current + (dragStartX.current - e.clientX);
     if (p < 0) p += half;
@@ -69,6 +76,7 @@ export function FeaturedMarquee({ contractors }: Props) {
   };
 
   const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    pointerDownRef.current = false;
     draggingRef.current = false;
     e.currentTarget.style.cursor = "grab";
   };

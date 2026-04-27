@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { IntroAnimation } from "@/components/intro-animation";
+import { GuestSignupModal } from "@/components/auth/guest-signup-modal";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { APP_NAME, APP_TAGLINE, APP_URL } from "@/lib/constants";
 import { headers } from "next/headers";
@@ -140,6 +141,7 @@ export default async function RootLayout({
             <Navbar userEmail={userEmail} userId={userId} hasBusiness={hasBusiness} unreadCount={unreadCount} unreadMessages={unreadMessages} notifications={navNotifications} />
             <main className="flex-1">{children}</main>
             <Footer />
+            {!userId && <GuestSignupModal />}
           </IntroAnimation>
           <Toaster richColors position="top-right" />
         </ThemeProvider>

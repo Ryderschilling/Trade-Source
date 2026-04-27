@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { sendEmail } from "@/lib/email";
 
 export async function sendFollowRequest(
   followingId: string
@@ -26,19 +27,42 @@ export async function sendFollowRequest(
   });
   if (error) return { success: false, error: error.message };
 
-  const { data: requester } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("id", user.id)
-    .single();
+  const [{ data: requester }, { data: followed }] = await Promise.all([
+    supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+    serviceClient.from("profiles").select("full_name, email").eq("id", followingId).single(),
+  ]);
+
+  const followerName = requester?.full_name ?? "Someone";
 
   await serviceClient.from("notifications").insert({
     user_id: followingId,
     type: "new_follower",
     title: "New follower",
-    body: `${requester?.full_name ?? "Someone"} is now following you.`,
+    body: `${followerName} is now following you.`,
     link: `/profile/${user.id}`,
   });
+
+  if (followed?.email) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sourceatrade.com";
+    await sendEmail({
+      to: followed.email,
+      subject: `${followerName} is now following you on Source A Trade`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+          <h2>You have a new follower!</h2>
+          <p><strong>${followerName}</strong> is now following you on Source A Trade.</p>
+          <a href="${appUrl}/profile/${user.id}"
+             style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:600;font-size:14px;margin:8px 0">
+            View their profile
+          </a>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+          <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
+        </div>
+      `,
+      kind: "transactional:follow",
+      meta: { follower_id: user.id, following_id: followingId },
+    });
+  }
 
   return { success: true };
 }

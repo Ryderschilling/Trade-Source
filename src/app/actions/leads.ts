@@ -134,6 +134,105 @@ export async function submitLead(
   return { success: true };
 }
 
+export type MessageFormState = {
+  success: boolean;
+  error?: string;
+  fieldErrors?: Partial<Record<"name" | "email" | "message", string[]>>;
+};
+
+const messageSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters").max(100),
+  email: z.string().email("Enter a valid email address"),
+  message: z.string().min(5, "Message must be at least 5 characters").max(2000),
+  contractor_id: z.string().uuid("Invalid contractor"),
+});
+
+export async function submitMessage(
+  _prev: MessageFormState,
+  formData: FormData
+): Promise<MessageFormState> {
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) return { success: false, error: "You must be signed in to send a message." };
+
+  const raw = {
+    name: formData.get("name") as string,
+    email: formData.get("email") as string,
+    message: formData.get("message") as string,
+    contractor_id: formData.get("contractor_id") as string,
+  };
+
+  const parsed = messageSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Please fix the errors below.",
+      fieldErrors: parsed.error.flatten().fieldErrors as Partial<Record<"name" | "email" | "message", string[]>>,
+    };
+  }
+
+  const supabase = await createServiceClient();
+
+  const { data: contractor } = await supabase
+    .from("contractors")
+    .select("user_id, business_name, email")
+    .eq("id", parsed.data.contractor_id)
+    .single();
+
+  const { error: insertError } = await supabase.from("leads").insert({
+    contractor_id: parsed.data.contractor_id,
+    name: parsed.data.name,
+    email: parsed.data.email,
+    message: parsed.data.message,
+    service_type: "general_inquiry",
+    preferred_contact: "either",
+  });
+
+  if (insertError) {
+    console.error("Message insert error:", insertError);
+    return { success: false, error: "Failed to send message. Please try again." };
+  }
+
+  if (contractor?.user_id) {
+    const truncated = parsed.data.message.length > 120 ? parsed.data.message.slice(0, 117) + "…" : parsed.data.message;
+    await supabase.from("notifications").insert({
+      user_id: contractor.user_id,
+      type: "lead",
+      title: `New message from ${parsed.data.name}`,
+      body: truncated,
+      link: "/dashboard",
+    });
+  }
+
+  if (contractor?.email) {
+    await sendEmail({
+      to: contractor.email,
+      subject: `New message from ${parsed.data.name} — Source A Trade`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+          <h2>New Message</h2>
+          <p>Someone reached out to <strong>${contractor.business_name}</strong> on Source A Trade.</p>
+          <hr />
+          <p><strong>From:</strong> ${parsed.data.name}</p>
+          <p><strong>Email:</strong> <a href="mailto:${parsed.data.email}">${parsed.data.email}</a></p>
+          <p><strong>Message:</strong></p>
+          <blockquote style="border-left:3px solid #e2e8f0;margin:0;padding:8px 16px;color:#64748b">
+            ${parsed.data.message.replace(/\n/g, "<br/>")}
+          </blockquote>
+          <hr />
+          <p style="color:#64748b;font-size:14px">
+            Reply directly to <a href="mailto:${parsed.data.email}">${parsed.data.email}</a> or log into your <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">dashboard</a>.
+          </p>
+        </div>
+      `,
+      kind: "transactional:lead",
+      meta: { contractor_id: parsed.data.contractor_id },
+    });
+  }
+
+  return { success: true };
+}
+
 export type PackageRequestFormState = {
   success: boolean;
   error?: string;
