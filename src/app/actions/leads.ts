@@ -195,12 +195,66 @@ export async function submitMessage(
 
   if (contractor?.user_id) {
     const truncated = parsed.data.message.length > 120 ? parsed.data.message.slice(0, 117) + "…" : parsed.data.message;
+
+    // Find or create a direct conversation so the lead message is accessible in-app
+    let conversationId: string | null = null;
+    if (contractor.user_id !== user.id) {
+      const { data: submitterParticipations } = await supabase
+        .from("conversation_participants")
+        .select("conversation_id")
+        .eq("user_id", user.id);
+
+      if (submitterParticipations && submitterParticipations.length > 0) {
+        const myIds = submitterParticipations.map((p: { conversation_id: string }) => p.conversation_id);
+        const { data: shared } = await supabase
+          .from("conversation_participants")
+          .select("conversation_id")
+          .eq("user_id", contractor.user_id)
+          .in("conversation_id", myIds);
+
+        if (shared && shared.length > 0) {
+          const sharedIds = shared.map((p: { conversation_id: string }) => p.conversation_id);
+          const { data: direct } = await supabase
+            .from("conversations")
+            .select("id")
+            .is("quote_request_id", null)
+            .in("id", sharedIds)
+            .limit(1)
+            .maybeSingle();
+          if (direct) conversationId = direct.id;
+        }
+      }
+
+      if (!conversationId) {
+        const { data: convo } = await supabase
+          .from("conversations")
+          .insert({ quote_request_id: null })
+          .select("id")
+          .single();
+        if (convo) {
+          await supabase.from("conversation_participants").insert([
+            { conversation_id: convo.id, user_id: user.id },
+            { conversation_id: convo.id, user_id: contractor.user_id },
+          ]);
+          conversationId = convo.id;
+        }
+      }
+
+      if (conversationId) {
+        await supabase.from("messages").insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          body: parsed.data.message,
+        });
+      }
+    }
+
     await supabase.from("notifications").insert({
       user_id: contractor.user_id,
       type: "lead",
       title: `New message from ${parsed.data.name}`,
       body: truncated,
-      link: "/dashboard",
+      link: conversationId ? `/messages?c=${conversationId}` : "/dashboard",
     });
   }
 
