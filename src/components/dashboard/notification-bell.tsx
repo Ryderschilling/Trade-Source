@@ -85,6 +85,23 @@ export function NotificationBell({ userId, initialCount, initialNotifications }:
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }
 
+  async function handleNotificationClick(n: Notification, e: React.MouseEvent<HTMLAnchorElement>) {
+    if (!n.read) {
+      e.preventDefault();
+      const href = resolveLink(n);
+      await fetch("/api/notifications/mark-read", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: n.id }),
+      });
+      setNotifications((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, read: true } : x))
+      );
+      setCount((prev) => Math.max(0, prev - 1));
+      window.location.href = href;
+    }
+  }
+
   return (
     <div>
       <button
@@ -124,6 +141,7 @@ export function NotificationBell({ userId, initialCount, initialNotifications }:
                   <a
                     key={n.id}
                     href={resolveLink(n)}
+                    onClick={(e) => handleNotificationClick(n, e)}
                     className={`block px-4 py-3 hover:bg-neutral-50 border-b border-neutral-50 last:border-0 transition-colors ${!n.read ? "bg-blue-50/50" : ""}`}
                   >
                     <p className="text-sm font-medium text-neutral-900 leading-snug">{n.title}</p>

@@ -24,6 +24,8 @@ import {
   enableLeadNotifications,
   joinHomepageSlider,
 } from "@/app/actions/billing";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import {
   cancelSubscription,
   undoCancelSubscription,
@@ -56,6 +58,7 @@ interface BillingClientProps {
   sliderSlotTaken: boolean;
   reservedMonths: string[];
   contractorCount: number;
+  backHref?: string;
 }
 
 const PLAN_INFO: Record<string, { name: string; price: number | null }> = {
@@ -148,6 +151,7 @@ export function BillingClient({
   sliderSlotTaken,
   reservedMonths,
   contractorCount,
+  backHref,
 }: BillingClientProps) {
   const [isPending, startTransition] = useTransition();
   const searchParams = useSearchParams();
@@ -216,11 +220,11 @@ export function BillingClient({
 
     switch (type) {
       case "lead_notifications":
-        run(enableLeadNotifications, () => toast.success("Lead notifications enabled!"));
+        run(() => enableLeadNotifications(contractor.id), () => toast.success("Lead notifications enabled!"));
         break;
       case "homepage_slider":
         run(
-          () => joinHomepageSlider(sliderSlotTaken),
+          () => joinHomepageSlider(contractor.id, sliderSlotTaken),
           () =>
             toast.success(
               sliderSlotTaken ? "You've been added to the waitlist." : "Homepage Slider added!"
@@ -243,6 +247,11 @@ export function BillingClient({
     <div className="space-y-10">
       {/* Page header */}
       <div>
+        {backHref && (
+          <Link href={backHref} className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-900 transition-colors mb-4">
+            <ChevronLeft className="h-4 w-4" /> Back to Dashboard
+          </Link>
+        )}
         <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Billing &amp; Add-ons</h1>
         <p className="mt-1 text-sm text-neutral-500">{contractor.business_name}</p>
       </div>
@@ -298,7 +307,7 @@ export function BillingClient({
                       size="sm"
                       variant="outline"
                       disabled={isPending}
-                      onClick={() => run(resumeListing)}
+                      onClick={() => run(() => resumeListing(contractor.id))}
                     >
                       Resume Listing
                     </Button>
@@ -307,7 +316,7 @@ export function BillingClient({
                       size="sm"
                       variant="outline"
                       disabled={isPending}
-                      onClick={() => run(pauseListing)}
+                      onClick={() => run(() => pauseListing(contractor.id))}
                     >
                       Pause Listing
                     </Button>
@@ -593,7 +602,7 @@ export function BillingClient({
               disabled={isPending || !licenseNumber.trim()}
               onClick={() =>
                 run(
-                  () => requestVerification(licenseNumber),
+                  () => requestVerification(contractor.id, licenseNumber),
                   () => {
                     setVerifyOpen(false);
                     setLicenseNumber("");

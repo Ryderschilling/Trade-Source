@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { X, Building2, CheckCircle, Trash2, Plus } from "lucide-react";
+import { X, Building2, CheckCircle, Trash2, Plus, ChevronDown } from "lucide-react";
 import { updateContractor, deleteContractor, type EditListingFormState } from "@/app/actions/contractors";
 import { savePackages } from "@/app/actions/packages";
 import { SERVICE_AREAS } from "@/lib/constants";
@@ -96,6 +96,180 @@ function setInputFiles(input: HTMLInputElement, files: File[]) {
   input.files = dt.files;
 }
 
+// ─── Category picker ──────────────────────────────────────────────────────────
+
+const CATEGORY_GROUPS = [
+  { id: "exterior-structure",    name: "Exterior & Structure",   slugs: ["roofing","siding","windows-doors","gutters","painting-exterior","pressure-washing","driveway-paving","foundation-structural","stucco"] },
+  { id: "mechanical-systems",    name: "Mechanical Systems",     slugs: ["plumbing","hvac","electrical","solar","generator","water-treatment","gas-lines"] },
+  { id: "interior-remodel",      name: "Interior & Remodel",     slugs: ["painting-interior","flooring","drywall","insulation","carpentry-trim","cabinetry-countertops","tile-stone","kitchen-remodel","bathroom-remodel"] },
+  { id: "outdoor-landscape",     name: "Outdoor & Landscape",    slugs: ["landscaping","lawn-care","irrigation","tree-service","pool-spa","outdoor-lighting","fencing","decks-patios","outdoor-kitchen"] },
+  { id: "coastal-marine",        name: "Coastal & Marine",       slugs: ["dock-boathouse","seawall-bulkhead","hurricane-shutters","flood-mitigation"] },
+  { id: "property-services",     name: "Property Services",      slugs: ["property-management","home-watch","pest-control","security-systems","locksmith","handyman","junk-removal","house-cleaning"] },
+  { id: "vacation-rentals",      name: "Vacation Rentals",       slugs: ["rental-management","turnover-cleaning","linen-service","rental-photography","staging-rentals"] },
+  { id: "automotive",            name: "Automotive",             slugs: ["auto-repair","auto-body-paint","oil-change","tire-shop","car-detailing","towing","golf-cart-repair"] },
+  { id: "health-wellness",       name: "Health & Wellness",      slugs: ["chiropractor","massage-therapy","physical-therapy","dentist","med-spa","personal-training"] },
+  { id: "professional-services", name: "Professional Services",  slugs: ["real-estate-agent","insurance-agent","financial-advisor","attorney","cpa-tax"] },
+  { id: "real-estate-property",  name: "Real Estate & Property", slugs: ["real-estate-agent","real-estate-brokerage","property-management","home-inspector","title-escrow","mortgage-lending","real-estate-appraiser"] },
+  { id: "legal-financial",       name: "Legal & Financial",      slugs: ["real-estate-attorney","estate-planning","business-attorney","cpa-accounting","financial-advisor","insurance-agent"] },
+  { id: "design-architecture",   name: "Design & Architecture",  slugs: ["architect","interior-designer","land-surveyor","photography"] },
+];
+
+function EditMultiCategoryPicker({
+  categories,
+  initialCategoryId,
+  initialAdditionalIds,
+}: {
+  categories: Pick<Category, "id" | "name" | "slug" | "category_group">[];
+  initialCategoryId: string;
+  initialAdditionalIds: string[];
+}) {
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => {
+    const ids = [initialCategoryId, ...initialAdditionalIds].filter(Boolean);
+    return [...new Set(ids)];
+  });
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+
+  const otherCat = categories.find((c) => c.slug === "other");
+
+  const catBySlug: Record<string, Pick<Category, "id" | "name" | "slug" | "category_group">> = {};
+  for (const c of categories) catBySlug[c.slug] = c;
+
+  const groups = CATEGORY_GROUPS.map((g) => ({
+    ...g,
+    items: g.slugs.map((s) => catBySlug[s]).filter(Boolean) as Pick<Category, "id" | "name" | "slug" | "category_group">[],
+  })).filter((g) => g.items.length > 0);
+
+  const knownSlugs = new Set(CATEGORY_GROUPS.flatMap((g) => g.slugs));
+  const ungrouped = categories.filter((c) => !knownSlugs.has(c.slug) && c.slug !== "other");
+  const ungroupedByText: Record<string, typeof ungrouped> = {};
+  for (const c of ungrouped) {
+    const g = c.category_group || "Other";
+    if (!ungroupedByText[g]) ungroupedByText[g] = [];
+    ungroupedByText[g].push(c);
+  }
+  const textGroups = Object.entries(ungroupedByText).map(([name, items]) => ({
+    id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+    name,
+    slugs: [] as string[],
+    items,
+  }));
+
+  const allGroups = [...groups, ...textGroups];
+
+  function toggle(id: string) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  function toggleGroup(id: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  const primaryId = selectedIds[0] ?? "";
+  const additionalIds = selectedIds.slice(1);
+  const selectedCats = selectedIds.map((id) => categories.find((c) => c.id === id)).filter(Boolean);
+
+  return (
+    <div className="space-y-3">
+      <input type="hidden" name="category_id" value={primaryId} />
+      {additionalIds.map((id) => (
+        <input key={id} type="hidden" name="additional_category_ids" value={id} />
+      ))}
+
+      {selectedCats.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selectedCats.map((cat, i) => (
+            <span
+              key={cat!.id}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                i === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground border border-border"
+              }`}
+            >
+              {i === 0 && <span className="opacity-70">Primary:</span>}
+              {cat!.name}
+              <button
+                type="button"
+                onClick={() => toggle(cat!.id)}
+                className="opacity-60 hover:opacity-100 transition-opacity leading-none"
+                aria-label={`Remove ${cat!.name}`}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="divide-y divide-border rounded-md border border-border overflow-hidden">
+        {allGroups.map((group) => {
+          const open = openGroups.has(group.id);
+          const groupSelectedCount = group.items.filter((c) => selectedIds.includes(c.id)).length;
+          return (
+            <div key={group.id}>
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.id)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+              >
+                <span className="text-sm font-medium text-neutral-800">{group.name}</span>
+                <div className="flex items-center gap-2">
+                  {groupSelectedCount > 0 && (
+                    <span className="text-xs font-medium text-primary bg-primary/10 rounded-full px-2 py-0.5">
+                      {groupSelectedCount}
+                    </span>
+                  )}
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+                </div>
+              </button>
+              {open && (
+                <div className="px-4 pb-3 pt-1 grid grid-cols-2 gap-1 bg-muted/20">
+                  {group.items.map((cat) => {
+                    const checked = selectedIds.includes(cat.id);
+                    return (
+                      <label
+                        key={cat.id}
+                        className={`flex items-center gap-2 rounded-md px-2.5 py-2 cursor-pointer transition-colors text-sm ${
+                          checked ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted text-neutral-700"
+                        }`}
+                      >
+                        <Checkbox checked={checked} onCheckedChange={() => toggle(cat.id)} />
+                        <span>{cat.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Other */}
+        <div>
+          <button
+            type="button"
+            onClick={() => otherCat && toggle(otherCat.id)}
+            className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+          >
+            <span className="text-sm font-medium text-neutral-800">Other / Not Listed</span>
+            {otherCat && selectedIds.includes(otherCat.id) && (
+              <span className="text-xs font-medium text-primary bg-primary/10 rounded-full px-2 py-0.5">1</span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Select all trades you offer. The first selected becomes your primary category.
+      </p>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface PackageSlot {
@@ -107,13 +281,14 @@ interface PackageSlot {
 interface EditFormProps {
   contractor: Contractor & { categories: Category };
   portfolioPhotos: PortfolioPhoto[];
-  categories: Pick<Category, "id" | "name" | "slug">[];
+  categories: Pick<Category, "id" | "name" | "slug" | "category_group">[];
   packages?: ContractorPackage[];
+  backHref?: string;
 }
 
 const initialState: EditListingFormState = {};
 
-export function EditListingForm({ contractor, portfolioPhotos, categories, packages }: EditFormProps) {
+export function EditListingForm({ contractor, portfolioPhotos, categories, packages, backHref }: EditFormProps) {
   const [state, action, pending] = useActionState(updateContractor, initialState);
   const [deletepending, startDelete] = useTransition();
   const [, startPackagesTransition] = useTransition();
@@ -246,7 +421,7 @@ export function EditListingForm({ contractor, portfolioPhotos, categories, packa
       {state.success && (
         <div className="rounded-md bg-green-50 border border-green-200 px-4 py-4 text-sm text-green-700 flex items-center gap-2">
           <CheckCircle className="h-4 w-4 shrink-0" />
-          <span>Listing updated successfully. <Link href="/dashboard" className="font-medium underline underline-offset-4">Back to dashboard</Link></span>
+          <span>Listing updated successfully. <Link href={backHref ?? "/dashboard"} className="font-medium underline underline-offset-4">Back to dashboard</Link></span>
         </div>
       )}
 
@@ -269,18 +444,12 @@ export function EditListingForm({ contractor, portfolioPhotos, categories, packa
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="category_id">Trade / Category *</Label>
-          <select
-            id="category_id"
-            name="category_id"
-            defaultValue={contractor.category_id}
-            required
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+          <Label>Trades / Categories *</Label>
+          <EditMultiCategoryPicker
+            categories={categories}
+            initialCategoryId={contractor.category_id}
+            initialAdditionalIds={contractor.additional_categories ?? []}
+          />
         </div>
 
         <div className="space-y-1.5">

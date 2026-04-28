@@ -8,7 +8,7 @@ type LeadStatus = "new" | "contacted" | "won" | "lost";
 async function verifyLeadOwnership(leadId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" as const, supabase: null };
+  if (!user) return { error: "Unauthorized" as const, supabase: null, contractorId: null };
 
   const { data: lead } = await supabase
     .from("leads")
@@ -16,14 +16,14 @@ async function verifyLeadOwnership(leadId: string) {
     .eq("id", leadId)
     .single();
 
-  if (!lead) return { error: "Lead not found" as const, supabase: null };
-  if ((lead.contractors as any).user_id !== user.id) return { error: "Forbidden" as const, supabase: null };
+  if (!lead) return { error: "Lead not found" as const, supabase: null, contractorId: null };
+  if ((lead.contractors as any).user_id !== user.id) return { error: "Forbidden" as const, supabase: null, contractorId: null };
 
-  return { error: null, supabase };
+  return { error: null, supabase, contractorId: lead.contractor_id as string };
 }
 
 export async function updateLeadStatus(leadId: string, status: LeadStatus) {
-  const { error, supabase } = await verifyLeadOwnership(leadId);
+  const { error, supabase, contractorId } = await verifyLeadOwnership(leadId);
   if (error || !supabase) return { error };
 
   const { error: updateError } = await supabase
@@ -33,12 +33,12 @@ export async function updateLeadStatus(leadId: string, status: LeadStatus) {
 
   if (updateError) return { error: updateError.message };
 
-  revalidatePath("/dashboard");
+  revalidatePath(`/dashboard/${contractorId}`);
   return { success: true };
 }
 
 export async function updateLeadNotes(leadId: string, notes: string) {
-  const { error, supabase } = await verifyLeadOwnership(leadId);
+  const { error, supabase, contractorId } = await verifyLeadOwnership(leadId);
   if (error || !supabase) return { error };
 
   const { error: updateError } = await supabase
@@ -48,6 +48,6 @@ export async function updateLeadNotes(leadId: string, notes: string) {
 
   if (updateError) return { error: updateError.message };
 
-  revalidatePath("/dashboard");
+  revalidatePath(`/dashboard/${contractorId}`);
   return { success: true };
 }

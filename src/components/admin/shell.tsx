@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, X, LogOut } from 'lucide-react';
+import { Menu, X, LogOut, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { adminLogout } from '@/app/admin/login/actions';
 import { NavLinks, AdminSidebar } from '@/components/admin/sidebar';
 
@@ -53,28 +54,45 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <Menu className="w-5 h-5" />
           </button>
           <span className="text-sm font-semibold text-neutral-800">Admin</span>
-          <form action={adminLogout}>
-            <button
-              type="submit"
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
               className="text-neutral-500 hover:text-neutral-900 p-1 -mr-1 rounded flex items-center gap-1.5 text-xs"
             >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </form>
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <form action={adminLogout}>
+              <button
+                type="submit"
+                className="text-neutral-500 hover:text-neutral-900 p-1 -mr-1 rounded flex items-center gap-1.5 text-xs"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
         </header>
 
         {/* Desktop top bar */}
         <header className="hidden md:flex items-center justify-between px-6 py-3 border-b border-neutral-200 bg-white flex-shrink-0">
           <h1 className="text-sm font-semibold text-neutral-700">Source A Trade Admin</h1>
-          <form action={adminLogout}>
-            <button
-              type="submit"
-              className="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 px-2 py-1 rounded"
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 text-sm text-neutral-600 hover:text-neutral-900 px-2 py-1 rounded"
             >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </button>
-          </form>
+              <ArrowLeft className="w-4 h-4" />
+              Back to website
+            </Link>
+            <form action={adminLogout}>
+              <button
+                type="submit"
+                className="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 px-2 py-1 rounded"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            </form>
+          </div>
         </header>
 
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>

@@ -203,7 +203,8 @@ function MultiCategoryPicker({
     items,
   }));
 
-  const allGroups = [...groups, ...textGroups];
+  const existingGroupIds = new Set(groups.map((g) => g.id));
+  const allGroups = [...groups, ...textGroups.filter((g) => !existingGroupIds.has(g.id))];
 
   function toggle(id: string) {
     setSelectedIds((prev) =>

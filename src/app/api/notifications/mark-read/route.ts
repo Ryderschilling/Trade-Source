@@ -1,17 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-export async function PATCH() {
+export async function PATCH(req: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-    const { error } = await supabase
+    let id: string | null = null;
+    try {
+      const body = await req.json();
+      id = body?.id ?? null;
+    } catch {}
+
+    const query = supabase
       .from("notifications")
       .update({ read: true })
-      .eq("user_id", user.id)
-      .eq("read", false);
+      .eq("user_id", user.id);
+
+    const { error } = id
+      ? await query.eq("id", id)
+      : await query.eq("read", false);
 
     if (error) {
       console.error("mark-read error:", error);

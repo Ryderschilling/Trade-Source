@@ -4,95 +4,51 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, ExternalLink, Pencil, ImageIcon, Search, Target, CreditCard } from "lucide-react";
-import type { PortfolioPhoto } from "@/lib/supabase/types";
+import { Star, ArrowRight, Building2, Plus } from "lucide-react";
 import { AdminCRMDashboard } from "@/components/dashboard/admin-crm";
-import { QuoteRequestsCard } from "@/components/dashboard/quote-requests-card";
-import { LeadCRMTable } from "@/components/dashboard/lead-crm-table";
 import { AddressPromptModal } from "@/components/dashboard/address-prompt-modal";
 
 function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-async function ContractorDashboard({ userId }: { userId: string }) {
+async function ContractorBusinessList({ userId }: { userId: string }) {
   const supabase = await createClient();
-  const [{ data: contractor }, { data: allCategories }, { data: quoteRecipients }] = await Promise.all([
-    supabase
-      .from("contractors")
-      .select("*, categories(name), portfolio_photos(*)")
-      .eq("user_id", userId)
-      .order("sort_order", { referencedTable: "portfolio_photos", ascending: true })
-      .maybeSingle(),
-    supabase.from("categories").select("id, name"),
-    supabase
-      .from("quote_request_recipients")
-      .select("*, quote_requests(name, email, phone, description, timeline, categories(name))")
-      .order("notified_at", { ascending: false })
-      .limit(30),
-  ]);
+  const { data: contractors } = await supabase
+    .from("contractors")
+    .select("id, business_name, logo_url, status, city, state, avg_rating, review_count, categories(name)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
 
-  const contractorId = (contractor as any)?.id as string | undefined;
-  const [{ data: myLeads }, { data: recentReviews }] = await Promise.all([
-    contractorId
-      ? supabase.from("leads").select("*").eq("contractor_id", contractorId).order("created_at", { ascending: false }).limit(100)
-      : Promise.resolve({ data: [] as any[] }),
-    contractorId
-      ? supabase.from("reviews").select("*, profiles(full_name)").eq("contractor_id", contractorId).order("created_at", { ascending: false }).limit(10)
-      : Promise.resolve({ data: [] as any[] }),
-  ]);
-
-  const categoryMap = Object.fromEntries((allCategories ?? []).map((c: any) => [c.id, c.name]));
-  const allCategoryNames = [
-    (contractor as any)?.categories?.name,
-    ...((contractor as any)?.additional_categories ?? []).map((id: string) => categoryMap[id]).filter(Boolean),
-  ].filter(Boolean) as string[];
-
-  const portfolioPhotos: PortfolioPhoto[] = (contractor as any)?.portfolio_photos ?? [];
-  const myQuoteRecipients = contractor
-    ? (quoteRecipients ?? []).filter((r: any) => r.contractor_id === contractor.id)
-    : [];
-
-  const leads = myLeads ?? [];
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const newThisWeek = leads.filter((l: any) => l.status === "new" && l.created_at >= sevenDaysAgo).length;
-  const wonLeads = leads.filter((l: any) => l.status === "won").length;
-  const conversionRate = leads.length > 0 ? Math.round((wonLeads / leads.length) * 100) : null;
+  const businesses = contractors ?? [];
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
+    <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Business Dashboard</h1>
-          <div className="mt-1 flex items-center gap-2">
-            <p className="text-sm text-neutral-500">{contractor?.business_name ?? "Your Source A Trade listing"}</p>
-            {contractor?.status === "active" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                Live
-              </span>
-            )}
-          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">My Businesses</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            {businesses.length === 0
+              ? "Manage your listings on Source A Trade."
+              : businesses.length === 1
+              ? "1 listing on Source A Trade"
+              : `${businesses.length} listings on Source A Trade`}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard/billing">
-            <Button variant="outline" size="sm" className="gap-1.5"><CreditCard className="h-3.5 w-3.5" />Billing</Button>
+        {businesses.length > 0 && (
+          <Link href="/join">
+            <Button size="sm" className="bg-neutral-900 hover:bg-neutral-800 gap-1.5">
+              <Plus className="h-4 w-4" /> Add Business
+            </Button>
           </Link>
-          <Link href={`/profile/${userId}`}>
-            <Button variant="outline" size="sm" className="gap-1.5">View My Profile <ExternalLink className="h-3.5 w-3.5" /></Button>
-          </Link>
-        </div>
+        )}
       </div>
 
-      {/* No contractor yet — empty state */}
-      {!contractor && (
+      {businesses.length === 0 ? (
         <div className="space-y-8">
           <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-6 py-12 text-center">
             <Building2 className="mx-auto mb-4 h-10 w-10 text-neutral-400" />
-            <h2 className="text-xl font-semibold tracking-tight text-neutral-900">
-              List Your Business
-            </h2>
+            <h2 className="text-xl font-semibold tracking-tight text-neutral-900">List Your Business</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-500">
               Reach homeowners and property managers searching for local tradesmen on the 30A corridor.
             </p>
@@ -103,227 +59,67 @@ async function ContractorDashboard({ userId }: { userId: string }) {
               </Button>
             </Link>
           </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card className="border-neutral-200">
-              <CardHeader className="pb-3">
-                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100">
-                  <Search className="h-4 w-4 text-neutral-700" />
-                </div>
-                <CardTitle className="text-sm font-semibold text-neutral-900">Get Found Locally</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <CardDescription className="text-sm leading-relaxed text-neutral-500">
-                  Homeowners and property managers in 30A search here first. Show up when they need you.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-neutral-200">
-              <CardHeader className="pb-3">
-                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100">
-                  <Star className="h-4 w-4 text-neutral-700" />
-                </div>
-                <CardTitle className="text-sm font-semibold text-neutral-900">Build Your Reputation</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <CardDescription className="text-sm leading-relaxed text-neutral-500">
-                  Collect verified reviews from real local customers and stand out from the competition.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-neutral-200">
-              <CardHeader className="pb-3">
-                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100">
-                  <TrendingUp className="h-4 w-4 text-neutral-700" />
-                </div>
-                <CardTitle className="text-sm font-semibold text-neutral-900">Grow Your Business</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <CardDescription className="text-sm leading-relaxed text-neutral-500">
-                  List your services, show your work, and get more calls — $50/month, cancel anytime.
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </div>
         </div>
-      )}
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {businesses.map((b) => {
+            const statusColor =
+              b.status === "active"
+                ? "bg-green-100 text-green-700"
+                : b.status === "suspended"
+                ? "bg-red-100 text-red-700"
+                : "bg-amber-100 text-amber-700";
+            const statusLabel =
+              b.status === "active" ? "Live" : b.status === "suspended" ? "Suspended" : "Pending";
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
-          { label: "Total Leads",      value: leads.length,                                        icon: <Inbox className="h-4 w-4" /> },
-          { label: "New This Week",    value: newThisWeek,                                         icon: <TrendingUp className="h-4 w-4" />, hi: newThisWeek > 0 },
-          { label: "Conversion Rate",  value: conversionRate !== null ? `${conversionRate}%` : "—", icon: <Target className="h-4 w-4" /> },
-          { label: "Avg Rating",       value: contractor?.avg_rating ? Number(contractor.avg_rating).toFixed(1) : "—", icon: <Star className="h-4 w-4" /> },
-        ].map((s) => (
-          <Card key={s.label} className="border-neutral-200">
-            <CardHeader className="pb-2">
-              <CardDescription className="flex items-center gap-1.5 text-xs">{s.icon}{s.label}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className={`text-2xl font-semibold tracking-tight ${"hi" in s && s.hi ? "text-blue-600" : "text-neutral-900"}`}>{s.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Leads & Pipeline */}
-      <Card className="border-neutral-200">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold text-neutral-900">Leads &amp; Pipeline</CardTitle>
-          <CardDescription className="text-xs">Customer inquiries — track status and take notes</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <LeadCRMTable leads={leads as any} contractorSlug={contractor?.slug ?? undefined} />
-        </CardContent>
-      </Card>
-
-      {/* Quote Requests */}
-      <QuoteRequestsCard contractorId={contractor?.id} recipients={myQuoteRecipients} />
-
-      {/* Recent Reviews */}
-      <Card className="border-neutral-200">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold text-neutral-900">Recent Reviews</CardTitle>
-          <CardDescription className="text-xs">Customer reviews for your listing</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {(recentReviews ?? []).length === 0 ? (
-            <div className="px-6 py-10 text-center text-sm text-neutral-500">No reviews yet — reviews will appear here.</div>
-          ) : (
-            <div className="divide-y divide-neutral-100">
-              {(recentReviews ?? []).map((review: any) => (
-                <div key={review.id} className="px-6 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-neutral-900">{review.profiles?.full_name ?? "Anonymous"}</p>
-                      <p className="text-xs text-neutral-400 mt-0.5">{formatDate(review.created_at)}</p>
-                    </div>
-                    <div className="flex gap-0.5 shrink-0">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-neutral-200"}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {review.title && <p className="mt-2 text-sm font-medium text-neutral-800">{review.title}</p>}
-                  {review.body && <p className="mt-1 text-sm text-neutral-500 line-clamp-3">{review.body}</p>}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Listing / Profile card */}
-      {contractor && (
-        <Card className="border-neutral-200">
-          <CardHeader className="pb-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-4">
-                {contractor.logo_url ? (
-                  <Image
-                    src={contractor.logo_url}
-                    alt={contractor.business_name}
-                    width={56}
-                    height={56}
-                    className="h-14 w-14 rounded-lg object-cover border border-neutral-200 shrink-0"
-                  />
-                ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50 shrink-0">
-                    <Building2 className="h-6 w-6 text-neutral-400" />
-                  </div>
-                )}
-                <div>
-                  <CardTitle className="text-base font-semibold text-neutral-900">{contractor.business_name}</CardTitle>
-                  <CardDescription className="mt-0.5 text-xs">{allCategoryNames.join(" · ")} · {contractor.city}, {contractor.state}</CardDescription>
-                  {contractor.tagline && <p className="mt-1 text-xs text-neutral-500 italic">&ldquo;{contractor.tagline}&rdquo;</p>}
-                </div>
-              </div>
-              <Link href="/dashboard/edit">
-                <Button variant="outline" size="sm" className="gap-1.5 shrink-0 text-xs">
-                  <Pencil className="h-3.5 w-3.5" />Edit Listing
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-5 pt-0">
-            <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-              {[
-                { label: "Licensed",        value: contractor.is_licensed ? "Yes" : "No" },
-                { label: "Insured",         value: contractor.is_insured ? "Yes" : "No" },
-                { label: "Yrs Experience",  value: contractor.years_experience ?? "—" },
-                { label: "Yrs in Business", value: contractor.years_in_business ?? "—" },
-                { label: "Service Areas",   value: contractor.service_areas?.join(", ") || "30A" },
-              ].map((item) => (
-                <div key={item.label}>
-                  <p className="text-xs text-neutral-500">{item.label}</p>
-                  <p className="mt-0.5 font-medium text-neutral-900 text-sm">{item.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 border-t border-neutral-100 pt-4">
-              {[
-                { label: "Phone",   value: contractor.phone   ?? "—" },
-                { label: "Email",   value: contractor.email   ?? "—" },
-                { label: "Website", value: contractor.website ?? "—" },
-              ].map((item) => (
-                <div key={item.label}>
-                  <p className="text-xs text-neutral-500">{item.label}</p>
-                  <p className="mt-0.5 font-medium text-neutral-900 text-sm truncate">{item.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {contractor.description && (
-              <div className="border-t border-neutral-100 pt-4">
-                <p className="text-xs text-neutral-500 mb-1">About</p>
-                <p className="text-sm text-neutral-700 line-clamp-3">{contractor.description}</p>
-              </div>
-            )}
-
-            {portfolioPhotos.length > 0 ? (
-              <div className="border-t border-neutral-100 pt-4">
-                <p className="text-xs text-neutral-500 mb-2">Portfolio ({portfolioPhotos.length} photo{portfolioPhotos.length !== 1 ? "s" : ""})</p>
-                <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                  {portfolioPhotos.slice(0, 6).map((photo) => (
-                    <div key={photo.id} className="relative aspect-square rounded-md overflow-hidden bg-neutral-100">
+            return (
+              <Link key={b.id} href={`/dashboard/${b.id}`} className="group block">
+                <div className="rounded-xl border border-neutral-200 bg-white p-5 hover:border-neutral-400 hover:shadow-sm transition-all h-full flex flex-col">
+                  <div className="flex items-start gap-4 flex-1">
+                    {b.logo_url ? (
                       <Image
-                        src={photo.url}
-                        alt={photo.caption ?? `${contractor.business_name} photo`}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 25vw, 16vw"
+                        src={b.logo_url}
+                        alt={b.business_name}
+                        width={48}
+                        height={48}
+                        className="h-12 w-12 rounded-lg object-cover border border-neutral-200 shrink-0"
                       />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50 shrink-0">
+                        <Building2 className="h-5 w-5 text-neutral-400" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-neutral-900 truncate">{b.business_name}</p>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor}`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-sm text-neutral-500 truncate">
+                        {(b.categories as any)?.name} · {b.city}, {b.state}
+                      </p>
+                      {b.avg_rating ? (
+                        <p className="mt-1 text-xs text-neutral-400 flex items-center gap-0.5">
+                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          {Number(b.avg_rating).toFixed(1)} ({b.review_count} review{b.review_count !== 1 ? "s" : ""})
+                        </p>
+                      ) : null}
                     </div>
-                  ))}
-                  {portfolioPhotos.length > 6 && (
-                    <div className="relative aspect-square rounded-md overflow-hidden bg-neutral-100 flex items-center justify-center">
-                      <span className="text-xs font-medium text-neutral-500">+{portfolioPhotos.length - 6}</span>
-                    </div>
-                  )}
+                  </div>
+                  <div className="mt-4 flex items-center justify-between text-xs text-neutral-400 border-t border-neutral-100 pt-3">
+                    <span>Manage listing</span>
+                    <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="border-t border-neutral-100 pt-4 flex items-center gap-2 text-xs text-neutral-400">
-                <ImageIcon className="h-4 w-4" />
-                <span>No portfolio photos yet — <Link href="/dashboard/edit" className="text-neutral-700 underline underline-offset-4">add some</Link> to stand out.</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </Link>
+            );
+          })}
+        </div>
       )}
     </div>
   );
 }
-
 
 async function HomeownerDashboard({ userId, name, hasAddress }: { userId: string; email: string; name: string; hasAddress: boolean }) {
   const supabase = await createClient();
@@ -406,7 +202,7 @@ export default async function DashboardPage() {
         {profile.role === "admin"
           ? <AdminCRMDashboard />
           : profile.role === "contractor"
-            ? <ContractorDashboard userId={user.id} />
+            ? <ContractorBusinessList userId={user.id} />
             : <HomeownerDashboard userId={user.id} email={user.email ?? ""} name={profile.full_name ?? user.email ?? "there"} hasAddress={!!profile.address} />
         }
       </div>

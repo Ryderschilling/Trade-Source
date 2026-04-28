@@ -7,16 +7,15 @@ import { ADDON_PRICE_MAP } from "@/lib/stripe/products";
 
 type AddonType = "verified_badge" | "lead_notifications" | "homepage_slider" | "featured_email";
 
-async function getContractorForUser() {
+async function getContractorById(contractorId: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" as const, supabase: null, contractor: null };
 
   const { data: contractor } = await supabase
     .from("contractors")
     .select("id, user_id, stripe_subscription_id")
+    .eq("id", contractorId)
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -25,8 +24,8 @@ async function getContractorForUser() {
   return { error: null, supabase, contractor };
 }
 
-export async function pauseListing() {
-  const { error, supabase, contractor } = await getContractorForUser();
+export async function pauseListing(contractorId: string) {
+  const { error, supabase, contractor } = await getContractorById(contractorId);
   if (error || !supabase || !contractor) return { error };
 
   const { error: updateError } = await supabase
@@ -35,12 +34,12 @@ export async function pauseListing() {
     .eq("id", contractor.id);
 
   if (updateError) return { error: updateError.message };
-  revalidatePath("/dashboard/billing");
+  revalidatePath(`/dashboard/${contractorId}/billing`);
   return { success: true };
 }
 
-export async function resumeListing() {
-  const { error, supabase, contractor } = await getContractorForUser();
+export async function resumeListing(contractorId: string) {
+  const { error, supabase, contractor } = await getContractorById(contractorId);
   if (error || !supabase || !contractor) return { error };
 
   const { error: updateError } = await supabase
@@ -49,14 +48,14 @@ export async function resumeListing() {
     .eq("id", contractor.id);
 
   if (updateError) return { error: updateError.message };
-  revalidatePath("/dashboard/billing");
+  revalidatePath(`/dashboard/${contractorId}/billing`);
   return { success: true };
 }
 
-export async function requestVerification(licenseNumber: string) {
+export async function requestVerification(contractorId: string, licenseNumber: string) {
   if (!licenseNumber.trim()) return { error: "License number is required" };
 
-  const { error, supabase, contractor } = await getContractorForUser();
+  const { error, supabase, contractor } = await getContractorById(contractorId);
   if (error || !supabase || !contractor) return { error };
 
   const { data: existing } = await supabase
@@ -77,12 +76,12 @@ export async function requestVerification(licenseNumber: string) {
   });
 
   if (insertError) return { error: insertError.message };
-  revalidatePath("/dashboard/billing");
+  revalidatePath(`/dashboard/${contractorId}/billing`);
   return { success: true };
 }
 
-export async function enableLeadNotifications() {
-  const { error, supabase, contractor } = await getContractorForUser();
+export async function enableLeadNotifications(contractorId: string) {
+  const { error, supabase, contractor } = await getContractorById(contractorId);
   if (error || !supabase || !contractor) return { error };
 
   const { data: existing } = await supabase
@@ -132,12 +131,12 @@ export async function enableLeadNotifications() {
     return { error: insertError.message };
   }
 
-  revalidatePath("/dashboard/billing");
+  revalidatePath(`/dashboard/${contractorId}/billing`);
   return { success: true };
 }
 
-export async function joinHomepageSlider(asWaitlist: boolean) {
-  const { error, supabase, contractor } = await getContractorForUser();
+export async function joinHomepageSlider(contractorId: string, asWaitlist: boolean) {
+  const { error, supabase, contractor } = await getContractorById(contractorId);
   if (error || !supabase || !contractor) return { error };
 
   const { data: existing } = await supabase
@@ -156,7 +155,7 @@ export async function joinHomepageSlider(asWaitlist: boolean) {
       status: "waitlisted",
     });
     if (insertError) return { error: insertError.message };
-    revalidatePath("/dashboard/billing");
+    revalidatePath(`/dashboard/${contractorId}/billing`);
     return { success: true };
   }
 
@@ -198,6 +197,6 @@ export async function joinHomepageSlider(asWaitlist: boolean) {
     return { error: insertError.message };
   }
 
-  revalidatePath("/dashboard/billing");
+  revalidatePath(`/dashboard/${contractorId}/billing`);
   return { success: true };
 }

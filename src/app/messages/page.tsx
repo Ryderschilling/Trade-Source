@@ -51,6 +51,24 @@ export default async function MessagesPage() {
         : Promise.resolve({ data: [] }),
     ]);
 
+  // Fetch business names for all other participants
+  const otherUserIds = [
+    ...new Set(
+      (coParticipants ?? []).map((p: any) => p.user_id).filter(Boolean)
+    ),
+  ];
+  const { data: contractorRows } =
+    otherUserIds.length > 0
+      ? await service
+          .from("contractors")
+          .select("user_id, business_name")
+          .in("user_id", otherUserIds)
+      : { data: [] };
+  const businessNameMap: Record<string, string> = {};
+  for (const row of contractorRows ?? []) {
+    if ((row as any).user_id) businessNameMap[(row as any).user_id] = (row as any).business_name;
+  }
+
   // Build the last-message-per-conversation map
   const lastMessageMap: Record<string, any> = {};
   for (const msg of allMessages ?? []) {
@@ -76,7 +94,12 @@ export default async function MessagesPage() {
       updated_at: c.updated_at,
       last_read_at: participation?.last_read_at ?? c.updated_at,
       quote_request: c.quote_requests ?? null,
-      other_user: (otherParticipant as any)?.profiles ?? null,
+      other_user: (otherParticipant as any)?.profiles
+        ? {
+            ...(otherParticipant as any).profiles,
+            business_name: businessNameMap[(otherParticipant as any).user_id] ?? null,
+          }
+        : null,
       last_message: lastMsg
         ? {
             body: lastMsg.body,

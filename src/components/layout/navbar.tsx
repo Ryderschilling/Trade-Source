@@ -78,7 +78,7 @@ function UserMenu({ userEmail, userId, hasBusiness, unreadMessages, onSignOut }:
               className="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent transition-colors"
             >
               <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-              Dashboard
+              Business Dashboard
             </Link>
           )}
           {userId && (
@@ -247,7 +247,7 @@ export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0
                     <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
                       <Button variant="ghost" size="sm" className="w-full justify-start">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
-                        Dashboard
+                        Business Dashboard
                       </Button>
                     </Link>
                   )}

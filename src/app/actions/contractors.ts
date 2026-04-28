@@ -406,6 +406,8 @@ export async function updateContractor(
   const contractorId = formData.get("contractor_id") as string;
   if (!contractorId) return { error: "Invalid request." };
 
+  const additionalCategoryIds = formData.getAll("additional_category_ids") as string[];
+
   const serviceClient = await createServiceClient();
 
   // Verify ownership
@@ -562,6 +564,7 @@ export async function updateContractor(
       business_name: parsed.data.business_name,
       owner_name: parsed.data.owner_name ?? null,
       category_id: parsed.data.category_id,
+      additional_categories: additionalCategoryIds.filter((id) => id && id !== parsed.data.category_id),
       tagline: parsed.data.tagline ?? null,
       description: parsed.data.description ?? null,
       phone: parsed.data.phone ?? null,

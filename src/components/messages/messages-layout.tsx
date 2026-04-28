@@ -21,6 +21,7 @@ interface OtherUser {
   full_name: string | null;
   email: string;
   avatar_url: string | null;
+  business_name?: string | null;
 }
 
 interface ConversationItem {
@@ -56,10 +57,9 @@ function initials(name: string | null | undefined, email: string) {
 }
 
 function displayName(user: OtherUser | null, quoteRequest: ConversationItem["quote_request"]) {
-  if (user?.full_name) return user.full_name;
-  if (user?.email) return user.email;
-  if (quoteRequest?.name) return quoteRequest.name;
-  return "Unknown";
+  const name = user?.full_name || user?.email || quoteRequest?.name || "Unknown";
+  if (user?.business_name) return `${name} / ${user.business_name}`;
+  return name;
 }
 
 function formatConversationTime(ts: string) {
@@ -643,9 +643,20 @@ export function MessagesLayout({
         .select("conversation_id, user_id, profiles(id, full_name, email, avatar_url)")
         .eq("conversation_id", selectedId)
         .neq("user_id", currentUserId),
-    ]).then(([{ data: convoData }, { data: coParticipants }]) => {
+    ]).then(async ([{ data: convoData }, { data: coParticipants }]) => {
       if (!convoData) return;
       const otherParticipant = (coParticipants ?? [])[0];
+      const otherUserId = (otherParticipant as any)?.user_id;
+      let businessName: string | null = null;
+      if (otherUserId) {
+        const { data: contractor } = await client
+          .from("contractors")
+          .select("business_name")
+          .eq("user_id", otherUserId)
+          .maybeSingle();
+        businessName = (contractor as any)?.business_name ?? null;
+      }
+      const baseProfile = (otherParticipant as any)?.profiles ?? null;
       const item: ConversationItem = {
         id: convoData.id,
         subject: (convoData as any).subject ?? null,
@@ -653,7 +664,7 @@ export function MessagesLayout({
         updated_at: (convoData as any).updated_at,
         last_read_at: new Date().toISOString(),
         quote_request: (convoData as any).quote_requests ?? null,
-        other_user: (otherParticipant as any)?.profiles ?? null,
+        other_user: baseProfile ? { ...baseProfile, business_name: businessName } : null,
         last_message: null,
       };
       setConversations((prev) => {
