@@ -91,6 +91,25 @@ export async function signUp(
   redirect("/dashboard");
 }
 
+export async function updatePassword(
+  _prev: AuthFormState,
+  formData: FormData
+): Promise<AuthFormState> {
+  const password = formData.get("password") as string;
+  if (!password || password.length < 8) {
+    return { error: "Password must be at least 8 characters." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  redirect("/dashboard");
+}
+
 export async function resetPassword(
   _prev: AuthFormState,
   formData: FormData
