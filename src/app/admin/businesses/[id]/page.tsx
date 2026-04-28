@@ -11,6 +11,7 @@ import { ChevronLeft, Star } from 'lucide-react';
 import {
   updateContractorField,
   updateContractorStatus,
+  updateContractorCategory,
   deleteBusiness,
   syncFromStripe,
   cancelSub,
@@ -18,6 +19,7 @@ import {
   toggleReviewVerified,
   toggleReviewAnonymous,
 } from './actions';
+import { CategorySelect } from './category-select';
 
 const TABS = [
   { id: 'profile',  label: 'Profile'  },
@@ -78,11 +80,14 @@ export default async function AdminBusinessDetailPage({
   const supabase = createAdminClient();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: biz, error } = await (supabase as any)
-    .from('contractors')
-    .select('*, categories(name), profiles(email, full_name)')
-    .eq('id', id)
-    .single();
+  const [{ data: biz, error }, { data: allCategories }] = await Promise.all([
+    (supabase as any)
+      .from('contractors')
+      .select('*, categories(name), profiles(email, full_name)')
+      .eq('id', id)
+      .single(),
+    supabase.from('categories').select('id, name').order('name', { ascending: true }),
+  ]);
 
   if (error || !biz) notFound();
 
@@ -91,6 +96,8 @@ export default async function AdminBusinessDetailPage({
   const categoryName: string | null = b.categories?.name ?? null;
   const ownerEmail: string | null = b.profiles?.email ?? null;
   const ownerName: string | null = b.profiles?.full_name ?? null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const categories: { id: string; name: string }[] = (allCategories as any[]) ?? [];
 
   // Tab-specific data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -229,7 +236,12 @@ export default async function AdminBusinessDetailPage({
             <EditField value={b.owner_name} onSave={fieldAction('owner_name')} />
           </Row>
           <Row label="Category">
-            {categoryName ?? <Nil />}
+            <CategorySelect
+              currentId={b.category_id}
+              currentName={categoryName}
+              categories={categories}
+              onSave={updateContractorCategory.bind(null, id)}
+            />
           </Row>
           <Row label="Tagline">
             <EditField value={b.tagline} onSave={fieldAction('tagline')} />

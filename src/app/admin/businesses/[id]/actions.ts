@@ -30,6 +30,20 @@ export async function updateContractorField(
   revalidatePath(`/admin/businesses/${id}`);
 }
 
+export async function updateContractorCategory(id: string, categoryId: string) {
+  const ctx = await requireAdmin();
+  id$.parse(id);
+  const db = createAdminClient();
+  const { error } = await db
+    .from('contractors')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update({ category_id: (categoryId || null) as any })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+  void audit({ action: 'contractors.update_category', targetTable: 'contractors', targetId: id, ...ctx });
+  revalidatePath(`/admin/businesses/${id}`);
+}
+
 export async function updateContractorStatus(id: string, status: string) {
   const ctx = await requireAdmin();
   id$.parse(id);

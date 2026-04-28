@@ -517,6 +517,13 @@ function AccountStep({ onComplete }: { onComplete: () => void }) {
     <form action={action} className="space-y-5">
       <input type="hidden" name="role" value="contractor" />
 
+      <div>
+        <h2 className="text-lg font-semibold">Create your personal account</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Your business listing will be managed under this account. Use your own name and email — you can add your business details in the next step.
+        </p>
+      </div>
+
       {state.error && (
         <div className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
           {state.error}
