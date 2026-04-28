@@ -284,11 +284,12 @@ interface EditFormProps {
   categories: Pick<Category, "id" | "name" | "slug" | "category_group">[];
   packages?: ContractorPackage[];
   backHref?: string;
+  savedSuccess?: boolean;
 }
 
 const initialState: EditListingFormState = {};
 
-export function EditListingForm({ contractor, portfolioPhotos, categories, packages, backHref }: EditFormProps) {
+export function EditListingForm({ contractor, portfolioPhotos, categories, packages, backHref, savedSuccess }: EditFormProps) {
   const [state, action, pending] = useActionState(updateContractor, initialState);
   const [deletepending, startDelete] = useTransition();
   const [, startPackagesTransition] = useTransition();
@@ -418,7 +419,7 @@ export function EditListingForm({ contractor, portfolioPhotos, categories, packa
           {state.error}
         </div>
       )}
-      {state.success && (
+      {(state.success || savedSuccess) && (
         <div className="rounded-md bg-green-50 border border-green-200 px-4 py-4 text-sm text-green-700 flex items-center gap-2">
           <CheckCircle className="h-4 w-4 shrink-0" />
           <span>Listing updated successfully. <Link href={backHref ?? "/dashboard"} className="font-medium underline underline-offset-4">Back to dashboard</Link></span>

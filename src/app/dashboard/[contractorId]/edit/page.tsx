@@ -7,10 +7,14 @@ import type { Category, Contractor, ContractorPackage, PortfolioPhoto } from "@/
 
 export const metadata = { title: "Edit Listing" };
 
-type PageProps = { params: Promise<{ contractorId: string }> };
+type PageProps = {
+  params: Promise<{ contractorId: string }>;
+  searchParams: Promise<{ saved?: string }>;
+};
 
-export default async function EditListingPage({ params }: PageProps) {
+export default async function EditListingPage({ params, searchParams }: PageProps) {
   const { contractorId } = await params;
+  const { saved } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -52,6 +56,7 @@ export default async function EditListingPage({ params }: PageProps) {
           categories={(categories ?? []) as Pick<Category, "id" | "name" | "slug" | "category_group">[]}
           packages={(packages ?? []) as ContractorPackage[]}
           backHref={`/dashboard/${contractorId}`}
+          savedSuccess={saved === "1"}
         />
       </div>
     </main>

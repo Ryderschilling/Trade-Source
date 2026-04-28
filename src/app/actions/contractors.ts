@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import slugify from "slugify";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -589,7 +590,8 @@ export async function updateContractor(
     return { error: "Failed to update listing. Please try again." };
   }
 
-  return { success: true };
+  revalidatePath(`/dashboard/${contractorId}/edit`);
+  redirect(`/dashboard/${contractorId}/edit?saved=1`);
 }
 
 // ─── Resume checkout for an existing pending contractor ──────────────────────
