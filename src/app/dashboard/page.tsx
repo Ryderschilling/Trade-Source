@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Star, TrendingUp, Users, Inbox, ArrowRight, Building2, ExternalLink, Pencil, ImageIcon, Search, Target, CreditCard } from "lucide-react";
 import type { PortfolioPhoto } from "@/lib/supabase/types";
 import { AdminCRMDashboard } from "@/components/dashboard/admin-crm";
-import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { QuoteRequestsCard } from "@/components/dashboard/quote-requests-card";
 import { LeadCRMTable } from "@/components/dashboard/lead-crm-table";
 import { AddressPromptModal } from "@/components/dashboard/address-prompt-modal";
@@ -18,7 +17,7 @@ function formatDate(ts: string) {
 
 async function ContractorDashboard({ userId }: { userId: string }) {
   const supabase = await createClient();
-  const [{ data: contractor }, { data: allCategories }, { data: quoteRecipients }, { data: unreadNotifs }, { data: recentNotifs }] = await Promise.all([
+  const [{ data: contractor }, { data: allCategories }, { data: quoteRecipients }] = await Promise.all([
     supabase
       .from("contractors")
       .select("*, categories(name), portfolio_photos(*)")
@@ -31,17 +30,6 @@ async function ContractorDashboard({ userId }: { userId: string }) {
       .select("*, quote_requests(name, email, phone, description, timeline, categories(name))")
       .order("notified_at", { ascending: false })
       .limit(30),
-    supabase
-      .from("notifications")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("read", false),
-    supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(20),
   ]);
 
   const contractorId = (contractor as any)?.id as string | undefined;
@@ -64,7 +52,6 @@ async function ContractorDashboard({ userId }: { userId: string }) {
   const myQuoteRecipients = contractor
     ? (quoteRecipients ?? []).filter((r: any) => r.contractor_id === contractor.id)
     : [];
-  const unreadCount = (unreadNotifs ?? []).length;
 
   const leads = myLeads ?? [];
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -89,11 +76,6 @@ async function ContractorDashboard({ userId }: { userId: string }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <NotificationBell
-            userId={userId}
-            initialCount={unreadCount}
-            initialNotifications={recentNotifs ?? []}
-          />
           <Link href="/dashboard/billing">
             <Button variant="outline" size="sm" className="gap-1.5"><CreditCard className="h-3.5 w-3.5" />Billing</Button>
           </Link>

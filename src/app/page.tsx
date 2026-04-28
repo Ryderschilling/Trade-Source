@@ -163,6 +163,9 @@ export default async function HomePage() {
 
       <Hero />
 
+      {/* Highlighted trades & businesses */}
+      <FeaturedBusinesses />
+
       {/* Category Grid */}
       <section id="categories" className="py-12 sm:py-20 bg-background">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6">
@@ -190,9 +193,6 @@ export default async function HomePage() {
           </ScrollReveal>
         </div>
       </section>
-
-      {/* Highlighted trades & businesses */}
-      <FeaturedBusinesses />
 
       {/* How it works */}
       <section

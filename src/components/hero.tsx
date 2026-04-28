@@ -35,7 +35,7 @@ export function Hero() {
   return (
     <section className="bg-white pt-10 pb-14 sm:pt-[4.5rem] sm:pb-24 md:pt-20 md:pb-32">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="max-w-3xl">
+        <div className="mx-auto max-w-5xl text-center">
           {/* Eyebrow */}
           <p
             className="mb-4 text-xs font-medium uppercase tracking-widest text-neutral-500 sm:mb-6 sm:text-sm"
@@ -54,7 +54,7 @@ export function Hero() {
 
           {/* Subcopy */}
           <p
-            className="mt-4 max-w-xl text-base leading-relaxed text-neutral-600 sm:mt-6 sm:text-xl"
+            className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-neutral-600 sm:mt-6 sm:text-xl"
             style={anim(300)}
           >
             Vetted electricians, plumbers, HVAC pros, and handymen serving the
@@ -90,7 +90,7 @@ export function Hero() {
             </div>
 
             {/* Desktop — single pill */}
-            <div className="hidden h-14 max-w-2xl items-stretch overflow-hidden rounded-full border border-neutral-200 bg-white shadow-sm sm:flex">
+            <div className="mx-auto hidden h-14 max-w-3xl items-stretch overflow-hidden rounded-full border border-neutral-200 bg-white shadow-sm sm:flex">
               {/* Trade input */}
               <label className="flex min-w-0 flex-1 cursor-text items-center gap-3 pl-6">
                 <Search className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />

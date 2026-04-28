@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 interface Notification {
   id: string;
   user_id: string;
+  type: string | null;
   title: string;
   body: string | null;
   link: string | null;
@@ -22,6 +23,16 @@ interface Props {
 
 function formatDate(ts: string) {
   return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function resolveLink(n: Notification): string {
+  const isMessageRelated =
+    n.type === "message" ||
+    (n.type === "lead" && n.title.toLowerCase().startsWith("new message from"));
+  if (isMessageRelated) {
+    return n.link && n.link !== "/dashboard" ? n.link : "/messages";
+  }
+  return n.link ?? "/dashboard";
 }
 
 export function NotificationBell({ userId, initialCount, initialNotifications }: Props) {
@@ -112,7 +123,7 @@ export function NotificationBell({ userId, initialCount, initialNotifications }:
                 notifications.slice(0, 20).map((n) => (
                   <a
                     key={n.id}
-                    href={n.link ?? "/dashboard"}
+                    href={resolveLink(n)}
                     className={`block px-4 py-3 hover:bg-neutral-50 border-b border-neutral-50 last:border-0 transition-colors ${!n.read ? "bg-blue-50/50" : ""}`}
                   >
                     <p className="text-sm font-medium text-neutral-900 leading-snug">{n.title}</p>

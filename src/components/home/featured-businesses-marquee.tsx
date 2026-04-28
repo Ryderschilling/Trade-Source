@@ -117,9 +117,6 @@ export function FeaturedMarquee({ contractors }: Props) {
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          Hover to pause · drag to browse · {contractors.length} verified local businesses
-        </p>
       </div>
 
       <style jsx>{`
