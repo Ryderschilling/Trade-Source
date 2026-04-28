@@ -15,8 +15,17 @@ export function Footer() {
               <Image src="/logo-wordmark.svg" alt={APP_NAME} width={150} height={26} />
             </Link>
             <p className="mt-2 hidden text-sm text-muted-foreground leading-relaxed sm:block sm:mt-3">
-              The trusted local directory for tradesmen serving the 30A corridor
-              and Northwest Florida.
+              The trusted local directory for tradesmen serving the{" "}
+              <a
+                href="https://www.co.walton.fl.us/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:no-underline transition-colors"
+              >
+                30A corridor
+              </a>
+              {" "}— Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach,
+              Seagrove, and Inlet Beach — and Northwest Florida.
             </p>
           </div>
 
@@ -55,7 +64,7 @@ export function Footer() {
 
         <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:gap-4 sm:text-sm">
           <p>&copy; {year} {APP_NAME}. All rights reserved.</p>
-          <p className="hidden sm:block">Serving the 30A corridor &amp; Northwest Florida</p>
+          <p className="hidden sm:block">Serving 30A, Walton County &amp; Northwest Florida — Santa Rosa Beach, Seaside, Rosemary Beach, Destin &amp; beyond</p>
           <Link href="/admin" className="hover:text-foreground transition-colors">Admin</Link>
         </div>
       </div>

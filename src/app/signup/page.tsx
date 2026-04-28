@@ -27,7 +27,7 @@ export default function SignupPage() {
           </Link>
         </p>
         <p className="text-center text-sm text-muted-foreground">
-          Are you a contractor?{" "}
+          Are you a business owner?{" "}
           <Link href="/join" className="text-primary hover:underline font-medium">
             Register your business →
           </Link>

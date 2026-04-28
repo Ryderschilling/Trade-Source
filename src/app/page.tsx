@@ -9,6 +9,7 @@ import { HowItWorksSteps } from "@/components/home/how-it-works-steps";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import TradeMapClient from "@/components/trade-map-client";
 import { getContractorPins } from "@/lib/map-pins";
+import { FAQSection } from "@/components/home/faq-section";
 
 export const metadata: Metadata = {
   title: "Source A Trade | Find Trusted Local Contractors Near 30A & NW Florida",
@@ -75,19 +76,22 @@ export default async function HomePage() {
                 "Local contractor directory serving 30A and Northwest Florida",
               areaServed: [
                 "30A",
+                "Walton County",
                 "Santa Rosa Beach",
                 "Destin",
                 "Fort Walton Beach",
+                "Northwest Florida",
+                "Seaside",
+                "Rosemary Beach",
+                "Alys Beach",
+                "Grayton Beach",
+                "Seagrove",
+                "Inlet Beach",
                 "Niceville",
                 "Miramar Beach",
                 "Panama City Beach",
                 "Pensacola",
                 "Navarre",
-                "Grayton Beach",
-                "Seaside",
-                "Rosemary Beach",
-                "Alys Beach",
-                "Inlet Beach",
                 "WaterColor",
                 "Watersound",
                 "Sandestin",
@@ -95,6 +99,34 @@ export default async function HomePage() {
                 "Freeport",
               ],
               sameAs: ["https://sourceatrade.com"],
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "LocalBusiness",
+              name: "Source A Trade",
+              url: "https://sourceatrade.com",
+              description:
+                "The hyper-local contractor directory for 30A and Northwest Florida — find licensed and verified tradesmen serving Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach, Seagrove, Inlet Beach, Destin, Fort Walton Beach, and the Emerald Coast.",
+              areaServed: [
+                "30A",
+                "Walton County",
+                "Santa Rosa Beach",
+                "Seaside",
+                "Rosemary Beach",
+                "Alys Beach",
+                "Grayton Beach",
+                "Seagrove",
+                "Inlet Beach",
+                "Destin",
+                "Fort Walton Beach",
+                "Navarre",
+                "Northwest Florida",
+              ],
+              address: {
+                "@type": "PostalAddress",
+                addressRegion: "FL",
+                addressCountry: "US",
+              },
             },
             {
               "@context": "https://schema.org",
@@ -110,52 +142,6 @@ export default async function HomePage() {
                 },
                 "query-input": "required name=search_term_string",
               },
-            },
-            {
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              mainEntity: [
-                {
-                  "@type": "Question",
-                  name: "How do I find a contractor near 30A?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Browse Source A Trade by trade category or use the search bar to find local contractors serving 30A, Destin, Fort Walton Beach, and the Emerald Coast.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "Is Source A Trade free to use?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Yes — homeowners can browse and contact any contractor completely free. Contractors pay a monthly fee to be listed on the platform. There are no premium tiers or pay-to-rank upgrades; every listed contractor gets equal visibility",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "What trades are listed on Source A Trade?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Source A Trade covers plumbers, electricians, HVAC technicians, roofers, painters, landscapers, pool service, pressure washing, general contractors, flooring, tile, remodeling, pest control, house cleaning, and 20+ more categories.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "What areas does Source A Trade serve?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "We focus on 30A and Northwest Florida — including Santa Rosa Beach, Destin, Fort Walton Beach, Niceville, Miramar Beach, Panama City Beach, Pensacola, and surrounding Emerald Coast communities.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "How is Source A Trade different from Angi or HomeAdvisor?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Source A Trade is hyper-local — built specifically for 30A and NW Florida. We don't sell your contact info as leads. All reviews are from verified local users, not imported data.",
-                  },
-                },
-              ],
             },
           ]),
         }}
@@ -223,8 +209,18 @@ export default async function HomePage() {
               </h2>
               <p className="mt-2 text-muted-foreground text-base sm:mt-3 sm:text-lg max-w-2xl mx-auto">
                 Every business on Source A Trade serves your community. Browse
-                contractors covering Destin, Santa Rosa Beach, Fort Walton
-                Beach, Panama City, and every neighborhood in between.
+                contractors covering Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach,
+                Grayton Beach, Seagrove, Inlet Beach, Destin, Fort Walton Beach, and the greater
+                Emerald Coast — serving all of{" "}
+                <a
+                  href="https://www.co.walton.fl.us/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:no-underline transition-colors"
+                >
+                  Walton County
+                </a>{" "}
+                and beyond.
               </p>
             </div>
 
@@ -251,8 +247,9 @@ export default async function HomePage() {
             Are you a local tradesman?
           </h2>
           <p className="mt-3 text-muted-foreground text-base max-w-2xl mx-auto leading-relaxed sm:mt-4 sm:text-lg">
-            Get your business in front of homeowners across 30A and the
-            Emerald Coast. — we built this for the community.
+            Get your business in front of homeowners across 30A — Santa Rosa Beach,
+            Seaside, Rosemary Beach, Alys Beach, Grayton Beach, Seagrove, and Inlet Beach
+            — and the Emerald Coast. We built this for the community.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/join">
@@ -269,6 +266,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* FAQ */}
+      <FAQSection />
     </>
   );
 }

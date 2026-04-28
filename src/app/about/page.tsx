@@ -8,7 +8,7 @@ import { PageWrapper } from "@/components/ui/page-wrapper";
 export const metadata: Metadata = {
   title: `About | ${APP_NAME}`,
   description:
-    "Source A Trade is the hyper-local contractor directory built for the 30A corridor and Northwest Florida Panhandle. We connect homeowners with trusted, vetted tradesmen who actually live and work here.",
+    "Source A Trade is the hyper-local contractor directory built for the 30A corridor — Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach, Seagrove, and Inlet Beach — and the Northwest Florida Panhandle. We connect homeowners with trusted, vetted tradesmen who actually live and work here.",
 };
 
 export default function AboutPage() {
@@ -20,7 +20,17 @@ export default function AboutPage() {
         <div className="container mx-auto max-w-4xl px-4 sm:px-6">
           <h1 className="text-3xl font-bold tracking-tight">About Source A Trade</h1>
           <p className="mt-3 text-muted-foreground text-lg">
-            Built for the 30A corridor and the Florida Panhandle, by people who live here.
+            Built for the{" "}
+            <a
+              href="https://www.co.walton.fl.us/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:no-underline transition-colors"
+            >
+              30A corridor
+            </a>
+            {" "}— Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach,
+            Seagrove, and Inlet Beach — and the Florida Panhandle, by people who live here.
           </p>
         </div>
       </div>
@@ -33,8 +43,16 @@ export default function AboutPage() {
           <p className="text-muted-foreground leading-relaxed text-base">
             Finding a reliable contractor along the 30A corridor — or anywhere across Northwest
             Florida — shouldn&apos;t require a leap of faith. Source A Trade exists to solve the one
-            problem every homeowner and property manager here knows too well: you need a trusted
-            plumber, electrician, or roofer — fast — and you don&apos;t know who to call.
+            problem every homeowner and property manager here knows too well: you need a trusted{" "}
+            <a
+              href="https://www.myfloridalicense.com/DBPR/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:no-underline transition-colors"
+            >
+              plumber, electrician, or roofer
+            </a>
+            {" "}— fast — and you don&apos;t know who to call.
           </p>
           <p className="mt-4 text-muted-foreground leading-relaxed text-base">
             We built a hyper-local directory where every listing is a real, local business — not a

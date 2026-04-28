@@ -13,7 +13,7 @@ import * as LucideIcons from "lucide-react";
 export const metadata: Metadata = {
   title: "Find a Contractor",
   description:
-    "Browse local tradesmen and contractors serving 30A and Northwest Florida. Filter by trade, read reviews, and request quotes.",
+    "Browse local tradesmen and contractors serving 30A — Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach, Seagrove, Inlet Beach, Destin, and Fort Walton Beach — and Northwest Florida. Filter by trade, read reviews, and request quotes.",
 };
 
 interface PageProps {
@@ -356,6 +356,40 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {activeCategory && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Service",
+              name: `${(activeCategory as any).name} Services — 30A & Northwest Florida`,
+              description: `Find local ${(activeCategory as any).name} contractors serving 30A, Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach, Seagrove, Inlet Beach, Destin, Fort Walton Beach, and Northwest Florida.`,
+              provider: {
+                "@type": "LocalBusiness",
+                name: "Source A Trade",
+                url: "https://sourceatrade.com",
+              },
+              areaServed: [
+                "30A",
+                "Walton County",
+                "Santa Rosa Beach",
+                "Seaside",
+                "Rosemary Beach",
+                "Alys Beach",
+                "Grayton Beach",
+                "Seagrove",
+                "Inlet Beach",
+                "Destin",
+                "Fort Walton Beach",
+                "Northwest Florida",
+              ],
+              serviceType: (activeCategory as any).name,
+              url: `https://sourceatrade.com/contractors?category=${categorySlug}`,
+            }),
+          }}
+        />
+      )}
       {/* Page header */}
       <div className="bg-muted/40 border-b border-border py-8">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6">
@@ -366,8 +400,22 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
               : zipTerm
               ? `Showing all contractors serving ${zipTerm}.`
               : activeCategory
-              ? `${(activeCategory as any).description ?? ""} Serving 30A and Northwest Florida.`
-              : "Browse trusted local tradesmen serving 30A and Northwest Florida."}
+              ? `${(activeCategory as any).description ?? ""} Serving 30A — Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Destin, and the Emerald Coast.`
+              : (
+                <>
+                  Browse trusted local tradesmen serving{" "}
+                  <a
+                    href="https://www.co.walton.fl.us/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:no-underline transition-colors"
+                  >
+                    30A
+                  </a>
+                  {" "}— Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach,
+                  Seagrove, and Inlet Beach — and Northwest Florida.
+                </>
+              )}
           </p>
           <ContractorSearchBar defaultValue={searchTerm} defaultZip={zipTerm} />
         </div>

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import {
   ArrowRight, Star, MapPin, Users, TrendingUp,
@@ -8,13 +10,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { APP_NAME } from "@/lib/constants";
 
+interface Benefit {
+  icon: LucideIcon;
+  title: string;
+  description: ReactNode;
+}
+
 export const metadata: Metadata = {
   title: `List Your Business | ${APP_NAME}`,
   description:
     "Get your trade business in front of homeowners across 30A and the Emerald Coast. No middlemen, direct leads — built for local tradesmen.",
 };
 
-const BENEFITS = [
+const BENEFITS: Benefit[] = [
   {
     icon: MapPin,
     title: "Hyper-local exposure",
@@ -42,14 +50,26 @@ const BENEFITS = [
   {
     icon: TrendingUp,
     title: "Your own profile page",
-    description:
-      "Showcase your services, photos, licensing, service areas, and contact info in one place. Your profile ranks in search results.",
+    description: (
+      <>
+        Showcase your services, photos,{" "}
+        <a
+          href="https://www.myfloridalicense.com/DBPR/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 hover:no-underline transition-colors"
+        >
+          licensing
+        </a>
+        , service areas, and contact info in one place. Your profile ranks in search results.
+      </>
+    ),
   },
   {
     icon: Shield,
     title: "Built for this market",
     description:
-      "30A has a unique mix of vacation rentals, second homes, and full-time residents. We know the market. This platform is built for it.",
+      "The 30A corridor — Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach, Seagrove, and Inlet Beach — has a unique mix of vacation rentals, second homes, and full-time residents. We know the market. This platform is built for it.",
   },
 ];
 
@@ -91,7 +111,8 @@ export default function ForTradiesPage() {
             </h1>
             <p className="mt-6 text-xl text-slate-300 leading-relaxed max-w-2xl">
               Source A Trade is the only contractor directory built specifically for the 30A corridor
-              and Emerald Coast. Direct leads. No middlemen.
+              — Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach, Seagrove,
+              Inlet Beach, and Destin — and the Emerald Coast. Direct leads. No middlemen.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4">
               <Link href="/join">
@@ -216,9 +237,27 @@ export default function ForTradiesPage() {
             <div>
               <h3 className="font-semibold mb-2">What trades are accepted?</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Any licensed trade or home service serving the 30A corridor and Northwest Florida.
-                Roofing, electrical, plumbing, HVAC, painting, landscaping, pool service, flooring,
-                cleaning, pest control, moving — if you serve this market, we want you listed.
+                Any{" "}
+                <a
+                  href="https://www.myfloridalicense.com/DBPR/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:no-underline transition-colors"
+                >
+                  licensed trade
+                </a>
+                {" "}or home service serving the{" "}
+                <a
+                  href="https://www.co.walton.fl.us/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:no-underline transition-colors"
+                >
+                  30A corridor
+                </a>
+                {" "}and Northwest Florida. Roofing, electrical, plumbing, HVAC, painting,
+                landscaping, pool service, flooring, cleaning, pest control, moving — if you serve
+                this market, we want you listed.
               </p>
             </div>
             <div>
@@ -244,8 +283,9 @@ export default function ForTradiesPage() {
           <Clock className="h-10 w-10 text-primary mx-auto mb-4" />
           <h2 className="text-3xl font-bold tracking-tight">Takes 5 minutes to get listed</h2>
           <p className="mt-4 text-muted-foreground text-lg leading-relaxed">
-            Fill out the form, we review it, your business goes live. Start reaching 30A homeowners
-            this week.
+            Fill out the form, we review it, your business goes live. Start reaching homeowners
+            across 30A — Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach,
+            Seagrove, Inlet Beach, Destin, and the Emerald Coast — this week.
           </p>
           <div className="mt-8">
             <Link href="/join">
