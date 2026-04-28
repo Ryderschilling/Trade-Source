@@ -29,6 +29,9 @@ const CATEGORY_GROUPS = [
   { id: "automotive",           name: "Automotive",            slugs: ["auto-repair","auto-body-paint","oil-change","tire-shop","car-detailing","towing","golf-cart-repair"] },
   { id: "health-wellness",      name: "Health & Wellness",     slugs: ["chiropractor","massage-therapy","physical-therapy","dentist","med-spa","personal-training"] },
   { id: "professional-services",name: "Professional Services", slugs: ["real-estate-agent","insurance-agent","financial-advisor","attorney","cpa-tax"] },
+  { id: "real-estate-property", name: "Real Estate & Property", slugs: ["real-estate-agent","real-estate-brokerage","property-management","home-inspector","title-escrow","mortgage-lending","real-estate-appraiser"] },
+  { id: "legal-financial",      name: "Legal & Financial",      slugs: ["real-estate-attorney","estate-planning","business-attorney","cpa-accounting","financial-advisor","insurance-agent"] },
+  { id: "design-architecture",  name: "Design & Architecture",  slugs: ["architect","interior-designer","land-surveyor","photography"] },
 ];
 
 const CLIENT_MAX_LOGO_BYTES = 5 * 1024 * 1024;
@@ -169,6 +172,11 @@ function MultiCategoryPicker({
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const [showOtherForm, setShowOtherForm] = useState(false);
+  const [customTradeName, setCustomTradeName] = useState("");
+  const [customTradeDesc, setCustomTradeDesc] = useState("");
+
+  const otherCat = categories.find((c) => c.slug === "other");
 
   const catBySlug: Record<string, Pick<Category, "id" | "name" | "slug" | "category_group">> = {};
   for (const c of categories) catBySlug[c.slug] = c;
@@ -211,6 +219,22 @@ function MultiCategoryPicker({
     });
   }
 
+  function toggleOther() {
+    const nextShow = !showOtherForm;
+    setShowOtherForm(nextShow);
+    if (otherCat) {
+      setSelectedIds((prev) =>
+        nextShow
+          ? prev.includes(otherCat.id) ? prev : [...prev, otherCat.id]
+          : prev.filter((id) => id !== otherCat.id)
+      );
+    }
+    if (!nextShow) {
+      setCustomTradeName("");
+      setCustomTradeDesc("");
+    }
+  }
+
   const primaryId = selectedIds[0] ?? "";
   const additionalIds = selectedIds.slice(1);
   const selectedCats = selectedIds.map((id) => categories.find((c) => c.id === id)).filter(Boolean);
@@ -221,6 +245,12 @@ function MultiCategoryPicker({
       {additionalIds.map((id) => (
         <input key={id} type="hidden" name="additional_category_ids" value={id} />
       ))}
+      {showOtherForm && (
+        <>
+          <input type="hidden" name="custom_trade_name" value={customTradeName} />
+          <input type="hidden" name="custom_trade_description" value={customTradeDesc} />
+        </>
+      )}
 
       {/* Selected tags */}
       {selectedCats.length > 0 && (
@@ -295,6 +325,55 @@ function MultiCategoryPicker({
             </div>
           );
         })}
+
+        {/* Other / Not Listed */}
+        <div>
+          <button
+            type="button"
+            onClick={toggleOther}
+            className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+          >
+            <span className="text-sm font-medium text-neutral-800">Other / Not Listed</span>
+            <div className="flex items-center gap-2">
+              {showOtherForm && (
+                <span className="text-xs font-medium text-primary bg-primary/10 rounded-full px-2 py-0.5">
+                  1
+                </span>
+              )}
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${showOtherForm ? "rotate-180" : ""}`}
+              />
+            </div>
+          </button>
+          {showOtherForm && (
+            <div className="px-4 pb-4 pt-2 space-y-3 bg-muted/20">
+              <p className="text-xs text-muted-foreground">
+                Don&apos;t see your trade? Tell us what you do and we&apos;ll add you to the right category.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="other_trade_name">Your trade / category *</Label>
+                <Input
+                  id="other_trade_name"
+                  placeholder="e.g. Dog Training, Boat Detailing, Aerial Photography"
+                  value={customTradeName}
+                  onChange={(e) => setCustomTradeName(e.target.value)}
+                  maxLength={80}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="other_trade_desc">Describe your services</Label>
+                <Textarea
+                  id="other_trade_desc"
+                  placeholder="What do you offer? Any specialties or details that help homeowners understand your work..."
+                  rows={3}
+                  value={customTradeDesc}
+                  onChange={(e) => setCustomTradeDesc(e.target.value)}
+                  maxLength={500}
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground">

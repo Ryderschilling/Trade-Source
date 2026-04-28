@@ -192,6 +192,9 @@ export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0
             </>
           ) : (
             <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm">Log in</Button>
+              </Link>
               <Link href="/signup">
                 <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
                   Sign Up
@@ -286,6 +289,11 @@ export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0
                 </>
               ) : (
                 <>
+                  <Link href="/login" onClick={() => setMobileOpen(false)}>
+                    <Button variant="ghost" size="sm" className="w-full">
+                      Log in
+                    </Button>
+                  </Link>
                   <Link href="/signup" onClick={() => setMobileOpen(false)}>
                     <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                       Sign Up

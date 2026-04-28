@@ -15,7 +15,7 @@ const MAX_PHOTO_COUNT = 8;
 const joinSchema = z.object({
   business_name: z.string().min(2, "Business name is required"),
   owner_name: z.string().optional(),
-  category_id: z.string().uuid("Please select a category"),
+  category_id: z.union([z.string().uuid(), z.literal("")]).optional(),
   tagline: z.string().max(120).optional(),
   description: z.string().max(2000).optional(),
   phone: z.string().optional(),
@@ -86,12 +86,14 @@ export async function joinAsContractor(
     category_id: formData.get("category_id") as string,
     tagline: (formData.get("tagline") as string) || undefined,
     description: (() => {
-      const base = (formData.get("description") as string) || "";
-      const customTrade = (formData.get("custom_trade") as string) || "";
-      if (customTrade) {
-        return customTrade + (base ? `\n\n${base}` : "");
-      }
-      return base || undefined;
+      const base = (formData.get("description") as string)?.trim() || "";
+      const tradeName = (formData.get("custom_trade_name") as string)?.trim() || "";
+      const tradeDesc = (formData.get("custom_trade_description") as string)?.trim() || "";
+      const parts: string[] = [];
+      if (tradeName) parts.push(`Trade: ${tradeName}`);
+      if (tradeDesc) parts.push(tradeDesc);
+      if (base) parts.push(base);
+      return parts.join("\n\n") || undefined;
     })(),
     phone: (formData.get("phone") as string) || undefined,
     email: formData.get("email") as string,
@@ -116,6 +118,34 @@ export async function joinAsContractor(
   if (!parsed.success) {
     const firstError = Object.values(parsed.error.flatten().fieldErrors)[0]?.[0];
     return { error: firstError ?? "Please fix the form errors." };
+  }
+
+  const customTradeName = (formData.get("custom_trade_name") as string)?.trim() || "";
+  if (!parsed.data.category_id && !customTradeName) {
+    return { error: "Please select a category, or choose \"Other\" and enter your trade name." };
+  }
+
+  // Resolve category_id: if empty (Other selected), look up or create the "other" row
+  let resolvedCategoryId = parsed.data.category_id || "";
+  if (!resolvedCategoryId && customTradeName) {
+    const serviceClient2 = await createServiceClient();
+    const { data: otherCat } = await serviceClient2
+      .from("categories")
+      .select("id")
+      .eq("slug", "other")
+      .maybeSingle();
+    if (otherCat) {
+      resolvedCategoryId = otherCat.id;
+    } else {
+      // Ensure "other" exists
+      const { data: inserted } = await serviceClient2
+        .from("categories")
+        .insert({ name: "Other", slug: "other", sort_order: 9999 })
+        .select("id")
+        .single();
+      if (!inserted) return { error: "Could not resolve category. Please try again." };
+      resolvedCategoryId = inserted.id;
+    }
   }
 
   if (logoFile) {
@@ -216,7 +246,7 @@ export async function joinAsContractor(
       slug,
       business_name: parsed.data.business_name,
       owner_name: parsed.data.owner_name ?? null,
-      category_id: parsed.data.category_id,
+      category_id: resolvedCategoryId,
       tagline: parsed.data.tagline ?? null,
       description: parsed.data.description ?? null,
       phone: parsed.data.phone ?? null,
@@ -227,7 +257,7 @@ export async function joinAsContractor(
       state: parsed.data.state,
       zip: parsed.data.zip ?? null,
       service_areas: serviceAreasList,
-      additional_categories: additionalCategoryIds.filter((id) => id && id !== parsed.data.category_id),
+      additional_categories: additionalCategoryIds.filter((id) => id && id !== resolvedCategoryId),
       logo_url: logoUrl,
       license_number: parsed.data.license_number ?? null,
       is_licensed: parsed.data.is_licensed,

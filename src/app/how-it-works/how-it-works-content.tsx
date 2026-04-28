@@ -20,18 +20,19 @@ interface MapPin {
 const TOPO_PATHS: string[] = Array.from({ length: 32 }).map((_, row) => {
   const baseY = -20 + row * 19;
   const xs = [0, 80, 160, 240, 320, 400, 480, 560, 640, 720, 800, 880, 960, 1040, 1120, 1200, 1280, 1360, 1440, 1500];
+  const r = (n: number) => Math.round(n * 100) / 100;
   const ys = xs.map((x) => {
     const v =
       22 * Math.sin(x * 0.005 + row * 0.62) +
       12 * Math.sin(x * 0.013 + row * 1.1 + 1.8) +
       7  * Math.sin(x * 0.028 + row * 0.38 + 3.3) +
       4  * Math.sin(x * 0.048 + row * 1.7 + 0.9);
-    return baseY + v;
+    return r(baseY + v);
   });
   let d = `M${xs[0]},${ys[0]}`;
   for (let i = 1; i < xs.length; i++) {
     const w = xs[i] - xs[i - 1];
-    d += ` C${xs[i-1] + w * 0.35},${ys[i-1]} ${xs[i-1] + w * 0.65},${ys[i]} ${xs[i]},${ys[i]}`;
+    d += ` C${r(xs[i-1] + w * 0.35)},${ys[i-1]} ${r(xs[i-1] + w * 0.65)},${ys[i]} ${xs[i]},${ys[i]}`;
   }
   return d;
 });
@@ -231,7 +232,7 @@ export function HowItWorksContent({ mapPins = [] }: { mapPins?: MapPin[] }) {
               The local way to find a tradesman you can trust.
             </h1>
             <p className="mt-5 text-lg text-blue-300 leading-relaxed max-w-2xl mx-auto">
-              Source A Trade connects 30A homeowners with verified local contractors — no algorithms, no middlemen.
+              Source A Trade connects Florida homeowners with verified local contractors — no algorithms, no middlemen.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/contractors">

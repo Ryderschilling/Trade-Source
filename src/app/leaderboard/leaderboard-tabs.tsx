@@ -3,13 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
 import { TabsContent } from "@/components/ui/tabs";
-import { Eye, Star, MessageSquare, Users } from "lucide-react";
+import { Eye, Star, MessageSquare } from "lucide-react";
 
 const TAB_ITEMS = [
   { value: "most-viewed", label: "Most Viewed", short: "Viewed", Icon: Eye },
   { value: "top-rated", label: "Top Rated", short: "Rated", Icon: Star },
   { value: "most-reviewed", label: "Most Reviewed", short: "Reviewed", Icon: MessageSquare },
-  { value: "most-active", label: "Most Active", short: "Active", Icon: Users },
 ] as const;
 
 type TabValue = (typeof TAB_ITEMS)[number]["value"];

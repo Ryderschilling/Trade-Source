@@ -8,7 +8,7 @@ import { PageWrapper } from "@/components/ui/page-wrapper";
 export const metadata: Metadata = {
   title: `About | ${APP_NAME}`,
   description:
-    "Source A Trade is the hyper-local contractor directory built for the 30A community. We connect homeowners with trusted, vetted tradesmen who actually live and work here.",
+    "Source A Trade is the hyper-local contractor directory built for the 30A corridor and Northwest Florida Panhandle. We connect homeowners with trusted, vetted tradesmen who actually live and work here.",
 };
 
 export default function AboutPage() {
@@ -20,7 +20,7 @@ export default function AboutPage() {
         <div className="container mx-auto max-w-4xl px-4 sm:px-6">
           <h1 className="text-3xl font-bold tracking-tight">About Source A Trade</h1>
           <p className="mt-3 text-muted-foreground text-lg">
-            Built for the 30A community, by people who live here.
+            Built for the 30A corridor and the Florida Panhandle, by people who live here.
           </p>
         </div>
       </div>
@@ -31,10 +31,10 @@ export default function AboutPage() {
         <section>
           <h2 className="text-2xl font-bold tracking-tight mb-4">Our mission</h2>
           <p className="text-muted-foreground leading-relaxed text-base">
-            Finding a reliable contractor on the 30A corridor shouldn&apos;t require a leap of faith.
-            Source A Trade exists to solve the one problem every homeowner and property manager here
-            knows too well: you need a trusted plumber, electrician, or roofer — fast — and you
-            don&apos;t know who to call.
+            Finding a reliable contractor along the 30A corridor — or anywhere across Northwest
+            Florida — shouldn&apos;t require a leap of faith. Source A Trade exists to solve the one
+            problem every homeowner and property manager here knows too well: you need a trusted
+            plumber, electrician, or roofer — fast — and you don&apos;t know who to call.
           </p>
           <p className="mt-4 text-muted-foreground leading-relaxed text-base">
             We built a hyper-local directory where every listing is a real, local business — not a
@@ -47,7 +47,7 @@ export default function AboutPage() {
         <section>
           <h2 className="text-2xl font-bold tracking-tight mb-4">Why we built this</h2>
           <p className="text-muted-foreground leading-relaxed text-base">
-          Most lead platforms send your request to contractors in three states. You get a call from someone who has never been to 30A and doesn't know the difference between Rosemary Beach and Inlet Beach. That's not good enough for a community with the service demands of vacation rentals, second homes, and year-round residents.
+          Most lead platforms send your request to contractors in three states. You get a call from someone who has never set foot on 30A and doesn&apos;t know the difference between Rosemary Beach and Inlet Beach — let alone the layout of Destin, Fort Walton Beach, or Pensacola. That&apos;s not good enough for a region built on vacation rentals, second homes, and year-round residents who depend on local pros.
         
           </p>
           <p className="mt-4 text-muted-foreground leading-relaxed text-base">

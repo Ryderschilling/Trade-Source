@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LeaderboardTabs, TabsContent } from "./leaderboard-tabs";
-import { Star, Eye, MessageSquare, Users } from "lucide-react";
+import { Star, Eye, MessageSquare } from "lucide-react";
 
 export const revalidate = 14400; // 4 hours
 
@@ -19,13 +19,6 @@ type LeaderboardContractor = {
   categories: { name: string } | null;
 };
 
-type TopReviewer = {
-  user_id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  city: string | null;
-  review_count: number;
-};
 
 function initials(name: string) {
   return name
@@ -83,42 +76,6 @@ function ContractorRow({
   );
 }
 
-function ReviewerRow({ reviewer, rank }: { reviewer: TopReviewer; rank: number }) {
-  const name = reviewer.full_name ?? "Community Member";
-  const avatarInitials = name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  return (
-    <Link
-      href={`/profile/${reviewer.user_id}`}
-      className="flex items-center gap-3 lg:gap-4 rounded-lg border border-neutral-100 bg-white px-4 py-3 lg:px-6 lg:py-4 transition-colors hover:border-neutral-200 hover:bg-neutral-50"
-    >
-      <RankBadge rank={rank} />
-      <Avatar className="h-10 w-10 lg:h-13 lg:w-13 rounded-full shrink-0">
-        <AvatarImage src={reviewer.avatar_url ?? undefined} alt={name} />
-        <AvatarFallback className="bg-neutral-100 text-neutral-600 text-sm lg:text-base font-semibold">
-          {avatarInitials}
-        </AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0">
-        <p className="truncate font-medium text-neutral-900 text-sm lg:text-base">{name}</p>
-        {reviewer.city && (
-          <p className="truncate text-xs lg:text-sm text-neutral-400">{reviewer.city}</p>
-        )}
-      </div>
-      <div className="shrink-0 text-right">
-        <div className="flex items-center gap-1 text-xs lg:text-sm text-neutral-500">
-          <MessageSquare className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-          {reviewer.review_count} {reviewer.review_count === 1 ? "review" : "reviews"}
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 export default async function LeaderboardPage() {
   const supabase = await createClient();
@@ -133,7 +90,6 @@ export default async function LeaderboardPage() {
     { data: mostViewedRaw },
     { data: topRatedCandidates },
     { data: mostReviewedRaw },
-    { data: allReviews },
   ] = await Promise.all([
     supabase
       .from("contractors")
@@ -154,10 +110,6 @@ export default async function LeaderboardPage() {
       .eq("status", "active")
       .order("review_count", { ascending: false })
       .limit(10),
-    supabase
-      .from("reviews")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .select("user_id, profiles!reviews_user_id_fkey(full_name, avatar_url, city)" as any),
   ]);
 
   const mostViewed = (mostViewedRaw ?? []) as unknown as LeaderboardContractor[];
@@ -170,26 +122,6 @@ export default async function LeaderboardPage() {
       score: (c.avg_rating ?? 0) * Math.log(c.review_count + 1),
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 10);
-
-  // Aggregate top reviewers by user_id
-  const reviewerMap = new Map<string, TopReviewer>();
-  for (const r of (allReviews ?? []) as unknown as { user_id: string; profiles: { full_name: string | null; avatar_url: string | null; city: string | null } | null }[]) {
-    const existing = reviewerMap.get(r.user_id);
-    if (existing) {
-      existing.review_count++;
-    } else {
-      reviewerMap.set(r.user_id, {
-        user_id: r.user_id,
-        full_name: r.profiles?.full_name ?? null,
-        avatar_url: r.profiles?.avatar_url ?? null,
-        city: r.profiles?.city ?? null,
-        review_count: 1,
-      });
-    }
-  }
-  const topReviewers = Array.from(reviewerMap.values())
-    .sort((a, b) => b.review_count - a.review_count)
     .slice(0, 10);
 
   return (
@@ -280,21 +212,6 @@ export default async function LeaderboardPage() {
             )}
           </TabsContent>
 
-          {/* Most Active Customers */}
-          <TabsContent value="most-active">
-            <p className="mb-3 text-xs text-neutral-400">
-              Community members ranked by total reviews written.
-            </p>
-            {topReviewers.length === 0 ? (
-              <p className="text-sm text-neutral-400 py-6 text-center">No reviews yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {topReviewers.map((r, i) => (
-                  <ReviewerRow key={r.user_id} reviewer={r} rank={i + 1} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
         </LeaderboardTabs>
 
         {/* Footer note */}

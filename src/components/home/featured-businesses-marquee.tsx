@@ -17,6 +17,7 @@ export function FeaturedMarquee({ contractors }: Props) {
   const track = [...contractors, ...contractors];
 
   const trackRef    = useRef<HTMLDivElement>(null);
+  const wrapRef     = useRef<HTMLDivElement>(null);
   const animRef     = useRef<number>(0);
   const posRef      = useRef(0);
   const pausedRef   = useRef(false);
@@ -49,6 +50,25 @@ export function FeaturedMarquee({ contractors }: Props) {
     animRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animRef.current);
   }, [animate]);
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (!pausedRef.current || !trackRef.current) return;
+      e.preventDefault();
+      const half = trackRef.current.scrollWidth / 2;
+      if (half <= 0) return;
+      const delta = Math.abs(e.deltaX) >= Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      let p = posRef.current + delta;
+      if (p < 0) p += half;
+      if (p >= half) p -= half;
+      posRef.current = p;
+      trackRef.current.style.transform = `translateX(-${p}px)`;
+    };
+    wrap.addEventListener("wheel", handleWheel, { passive: false });
+    return () => wrap.removeEventListener("wheel", handleWheel);
+  }, []);
 
   const pointerDownRef = useRef(false);
 
@@ -101,6 +121,7 @@ export function FeaturedMarquee({ contractors }: Props) {
         </div>
 
         <div
+          ref={wrapRef}
           className="ts-marquee-wrap relative overflow-hidden"
           style={{ cursor: "grab", touchAction: "pan-y" }}
           onMouseEnter={() => { pausedRef.current = true; }}

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Home, Zap, Droplets, Thermometer, Trees, Waves,
   Grid3x3, Bug, Sparkles, ShieldAlert, Anchor, Wind,
-  Car, Building2, Wrench, ArrowRight, type LucideIcon,
+  Car, Building2, Wrench, Camera, ArrowRight, type LucideIcon,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -31,6 +31,7 @@ const CATEGORIES: TradeCategory[] = [
   { name: "Pressure Washing",                  slug: "pressure-washing",  icon: Wind },
   { name: "Auto Repair",                       slug: "auto-repair",       icon: Car },
   { name: "Property Management",               slug: "property-management", icon: Building2 },
+  { name: "Photography",                       slug: "photography",         icon: Camera },
 ];
 
 const POPULAR: TradeCategory[] = [
