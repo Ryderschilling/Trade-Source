@@ -94,6 +94,45 @@ export function Footer() {
           <Link href="/admin" className="hover:text-foreground transition-colors">Admin</Link>
         </div>
       </div>
+      <div className="border-t border-border py-4 bg-muted/30">
+        <p className="text-center text-xs text-muted-foreground px-4">
+          All contractors can be verified through the{" "}
+          <a
+            href="https://www.myfloridalicense.com/DBPR/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:no-underline"
+          >
+            Florida DBPR license portal
+          </a>
+          {" · "}
+          <a
+            href="https://www.co.walton.fl.us/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:no-underline"
+          >
+            Walton County, FL
+          </a>
+          {" · "}
+          <a
+            href="https://floridabuilding.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:no-underline"
+          >
+            Florida Building Commission
+          </a>
+          {" · "}
+          <Link href="/about" className="underline underline-offset-2 hover:no-underline">
+            About Source A Trade
+          </Link>
+          {" · "}
+          <Link href="/privacy" className="underline underline-offset-2 hover:no-underline">
+            Privacy Policy
+          </Link>
+        </p>
+      </div>
     </footer>
   );
 }

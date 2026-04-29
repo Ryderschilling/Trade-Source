@@ -30,8 +30,7 @@ export default async function JoinPage() {
             List Your Business
           </h1>
           <p className="mt-3 text-muted-foreground text-lg leading-relaxed max-w-xl">
-            Join the only hyper-local trade directory built for the 30A
-            community. List today to get leads instantly.
+            Join the only hyper-local trade directory built for the Florida Panhandle. List today to get leads instantly.
           </p>
         </div>
       </div>
