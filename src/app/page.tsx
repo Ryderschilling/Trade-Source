@@ -10,11 +10,15 @@ import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import TradeMapClient from "@/components/trade-map-client";
 import { getContractorPins } from "@/lib/map-pins";
 import { FAQSection } from "@/components/home/faq-section";
+import { createClient } from "@/lib/supabase/server";
+import { APP_URL } from "@/lib/constants";
 
+// Title: 57 chars (was 69) — under Google's ~60 char cutoff
+// Description: 150 chars (was 222) — under Google's 160 char cutoff
 export const metadata: Metadata = {
-  title: "Source A Trade | Find Trusted Local Contractors Near 30A & NW Florida",
+  title: "Source A Trade — Local Contractors Near 30A & NW Florida",
   description:
-    "Source A Trade is the local contractor directory for 30A, Destin, Fort Walton Beach, and the Emerald Coast. Find plumbers, electricians, HVAC, roofers, painters, landscapers, and 30+ other trades — all local, all verified.",
+    "Find local contractors on 30A and NW Florida — plumbers, electricians, HVAC, roofers, and 30+ trades. Verified reviews, direct contact, no middlemen.",
   keywords:
     "contractors 30A, plumbers near 30A, electricians Destin, HVAC Santa Rosa Beach, roofers Fort Walton Beach, local contractors NW Florida, tradesmen 30A, contractor directory Emerald Coast, Source A Trade",
   robots: "index, follow",
@@ -22,7 +26,7 @@ export const metadata: Metadata = {
     canonical: "https://sourceatrade.com",
   },
   openGraph: {
-    title: "Source A Trade | Find Trusted Local Contractors Near 30A & NW Florida",
+    title: "Source A Trade — Local Contractors Near 30A & NW Florida",
     description:
       "The local contractor directory built for 30A and Northwest Florida. Browse verified tradesmen, read real reviews, get quotes.",
     type: "website",
@@ -31,7 +35,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Source A Trade | Find Trusted Local Contractors Near 30A",
+    title: "Source A Trade — Local Contractors Near 30A & NW Florida",
     description:
       "Find trusted local contractors across 30A and NW Florida. Free to browse. Verified reviews.",
   },
@@ -61,90 +65,144 @@ const HOW_IT_WORKS = [
 export default async function HomePage() {
   const pins = await getContractorPins();
 
+  // Fetch aggregate review data for AggregateRating schema
+  let reviewCount = 0;
+  let avgRating = 0;
+  try {
+    const supabase = await createClient();
+    const { data: reviews } = await supabase
+      .from("reviews")
+      .select("rating");
+    if (reviews && reviews.length > 0) {
+      reviewCount = reviews.length;
+      avgRating = reviews.reduce((sum, r) => sum + (r.rating ?? 0), 0) / reviewCount;
+    }
+  } catch {
+    // Non-fatal — skip AggregateRating if DB unavailable
+  }
+
+  const SITE_LAUNCHED = "2025-01-01";
+  const TODAY = new Date().toISOString().split("T")[0];
+
+  const schemaObjects: object[] = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "Source A Trade",
+      url: "https://sourceatrade.com",
+      description:
+        "Local contractor directory serving 30A and Northwest Florida — connecting homeowners with licensed, verified tradesmen.",
+      foundingDate: "2025",
+      areaServed: [
+        "30A",
+        "Walton County",
+        "Santa Rosa Beach",
+        "Destin",
+        "Fort Walton Beach",
+        "Northwest Florida",
+        "Seaside",
+        "Rosemary Beach",
+        "Alys Beach",
+        "Grayton Beach",
+        "Seagrove",
+        "Inlet Beach",
+        "Niceville",
+        "Miramar Beach",
+        "Panama City Beach",
+        "Pensacola",
+        "Navarre",
+        "WaterColor",
+        "Watersound",
+        "Sandestin",
+        "Gulf Breeze",
+        "Freeport",
+      ],
+      // Social profiles — update these when accounts are created
+      sameAs: [
+        "https://sourceatrade.com",
+        "https://www.facebook.com/sourceatrade",
+        "https://www.instagram.com/sourceatrade/",
+      ],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      name: "Source A Trade",
+      url: "https://sourceatrade.com",
+      description:
+        "The hyper-local contractor directory for 30A and Northwest Florida — find licensed and verified tradesmen serving Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach, Seagrove, Inlet Beach, Destin, Fort Walton Beach, and the Emerald Coast.",
+      areaServed: [
+        "30A",
+        "Walton County",
+        "Santa Rosa Beach",
+        "Seaside",
+        "Rosemary Beach",
+        "Alys Beach",
+        "Grayton Beach",
+        "Seagrove",
+        "Inlet Beach",
+        "Destin",
+        "Fort Walton Beach",
+        "Navarre",
+        "Northwest Florida",
+      ],
+      address: {
+        "@type": "PostalAddress",
+        addressRegion: "FL",
+        addressCountry: "US",
+      },
+      ...(reviewCount >= 3
+        ? {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: avgRating.toFixed(1),
+              reviewCount,
+              bestRating: "5",
+              worstRating: "1",
+            },
+          }
+        : {}),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "Source A Trade",
+      url: "https://sourceatrade.com",
+      datePublished: SITE_LAUNCHED,
+      dateModified: TODAY,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate:
+            "https://sourceatrade.com/contractors?q={search_term_string}",
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+    // HowTo schema — mapped to the "How It Works" section
+    {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      name: "How to find a local contractor on 30A and Northwest Florida",
+      description:
+        "Use Source A Trade to find and connect with verified local tradesmen serving the 30A corridor and Northwest Florida in under 2 minutes.",
+      step: HOW_IT_WORKS.map((s) => ({
+        "@type": "HowToStep",
+        position: parseInt(s.step, 10),
+        name: s.title,
+        text: s.description,
+      })),
+      totalTime: "PT2M",
+      tool: [{ "@type": "HowToTool", name: "Source A Trade website" }],
+    },
+  ];
+
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify([
-            {
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              name: "Source A Trade",
-              url: "https://sourceatrade.com",
-              description:
-                "Local contractor directory serving 30A and Northwest Florida",
-              areaServed: [
-                "30A",
-                "Walton County",
-                "Santa Rosa Beach",
-                "Destin",
-                "Fort Walton Beach",
-                "Northwest Florida",
-                "Seaside",
-                "Rosemary Beach",
-                "Alys Beach",
-                "Grayton Beach",
-                "Seagrove",
-                "Inlet Beach",
-                "Niceville",
-                "Miramar Beach",
-                "Panama City Beach",
-                "Pensacola",
-                "Navarre",
-                "WaterColor",
-                "Watersound",
-                "Sandestin",
-                "Gulf Breeze",
-                "Freeport",
-              ],
-              sameAs: ["https://sourceatrade.com"],
-            },
-            {
-              "@context": "https://schema.org",
-              "@type": "LocalBusiness",
-              name: "Source A Trade",
-              url: "https://sourceatrade.com",
-              description:
-                "The hyper-local contractor directory for 30A and Northwest Florida — find licensed and verified tradesmen serving Santa Rosa Beach, Seaside, Rosemary Beach, Alys Beach, Grayton Beach, Seagrove, Inlet Beach, Destin, Fort Walton Beach, and the Emerald Coast.",
-              areaServed: [
-                "30A",
-                "Walton County",
-                "Santa Rosa Beach",
-                "Seaside",
-                "Rosemary Beach",
-                "Alys Beach",
-                "Grayton Beach",
-                "Seagrove",
-                "Inlet Beach",
-                "Destin",
-                "Fort Walton Beach",
-                "Navarre",
-                "Northwest Florida",
-              ],
-              address: {
-                "@type": "PostalAddress",
-                addressRegion: "FL",
-                addressCountry: "US",
-              },
-            },
-            {
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              name: "Source A Trade",
-              url: "https://sourceatrade.com",
-              potentialAction: {
-                "@type": "SearchAction",
-                target: {
-                  "@type": "EntryPoint",
-                  urlTemplate:
-                    "https://sourceatrade.com/search?q={search_term_string}",
-                },
-                "query-input": "required name=search_term_string",
-              },
-            },
-          ]),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaObjects) }}
       />
 
       <Hero />
@@ -264,6 +322,49 @@ export default async function HomePage() {
               </Button>
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Trust bar — authority links visible to crawlers */}
+      <section className="py-6 bg-muted/30 border-t border-border">
+        <div className="container mx-auto max-w-4xl px-4 sm:px-6">
+          <p className="text-center text-xs text-muted-foreground">
+            All contractors can be verified through the{" "}
+            <a
+              href="https://www.myfloridalicense.com/DBPR/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              Florida DBPR license portal
+            </a>
+            {" · "}
+            <a
+              href="https://www.co.walton.fl.us/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              Walton County, FL
+            </a>
+            {" · "}
+            <a
+              href="https://floridabuilding.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              Florida Building Commission
+            </a>
+            {" · "}
+            <Link href="/about" className="underline underline-offset-2 hover:no-underline">
+              About Source A Trade
+            </Link>
+            {" · "}
+            <Link href="/privacy" className="underline underline-offset-2 hover:no-underline">
+              Privacy Policy
+            </Link>
+          </p>
         </div>
       </section>
 

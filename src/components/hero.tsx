@@ -38,7 +38,7 @@ export function Hero() {
       {/* Background image */}
       <Image
         src="/images/alys-beach-hero.jpg"
-        alt=""
+        alt="Alys Beach along Florida's 30A — the Emerald Coast"
         fill
         style={{ objectFit: "cover", objectPosition: "center" }}
         priority
