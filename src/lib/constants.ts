@@ -1,5 +1,5 @@
 export const APP_NAME = "Source A Trade";
-export const APP_TAGLINE = "Find trusted local tradesmen on 30A";
+export const APP_TAGLINE = "Find trusted local tradesmen in Northwest Florida";
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://sourceatrade.com";
 
 export const SERVICE_AREAS = [

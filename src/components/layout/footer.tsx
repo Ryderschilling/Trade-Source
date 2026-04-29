@@ -15,7 +15,7 @@ export function Footer() {
               <Image src="/logo-wordmark.svg" alt={APP_NAME} width={150} height={26} />
             </Link>
             <p className="mt-2 hidden text-sm text-muted-foreground leading-relaxed sm:block sm:mt-3">
-              The trusted local directory for tradesmen serving the{" "}
+              The trusted local directory for Businesses serving the{" "}
               <a
                 href="https://www.co.walton.fl.us/"
                 target="_blank"
@@ -41,7 +41,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold mb-2 sm:text-sm sm:mb-3">For Tradesmen</h3>
+            <h3 className="text-xs font-semibold mb-2 sm:text-sm sm:mb-3">For Business Owners</h3>
             <ul className="space-y-1.5 text-xs text-muted-foreground sm:space-y-2 sm:text-sm">
               <li><Link href="/join" className="hover:text-foreground transition-colors">List Your Business</Link></li>
               <li><Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link></li>
