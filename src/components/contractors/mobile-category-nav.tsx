@@ -15,6 +15,7 @@ interface CategoryItem {
   id: string;
   slug: string;
   name: string;
+  description?: string | null;
 }
 
 interface SidebarGroup {
@@ -111,10 +112,17 @@ export function MobileCategoryNav({
                             : "text-neutral-700 hover:bg-muted hover:text-neutral-900 active:bg-muted"
                         }`}
                       >
-                        <span>{cat.name}</span>
+                        <span className="flex flex-col min-w-0">
+                          <span className="truncate">{cat.name}</span>
+                          {group.id === "other" && cat.description && (
+                            <span className={`truncate text-xs ${isActive ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                              {cat.description}
+                            </span>
+                          )}
+                        </span>
                         {count > 0 && (
                           <span
-                            className={`text-xs tabular-nums ${isActive ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                            className={`ml-2 shrink-0 text-xs tabular-nums ${isActive ? "text-primary-foreground/70" : "text-muted-foreground"}`}
                           >
                             {count}
                           </span>

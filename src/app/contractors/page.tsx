@@ -83,6 +83,9 @@ async function ContractorGrid({ searchTerm, zipTerm, activeCategory, allCategori
     const orParts = [
       `business_name.ilike.%${searchTerm}%`,
       `tagline.ilike.%${searchTerm}%`,
+      `description.ilike.%${searchTerm}%`,
+      `city.ilike.%${searchTerm}%`,
+      `owner_name.ilike.%${searchTerm}%`,
     ];
     if (matchingCatIds.length > 0) {
       orParts.push(`category_id.in.(${matchingCatIds.join(",")})`);
@@ -342,6 +345,22 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
     })).filter((g) => g.categories.length > 0);
   }
 
+  // Always move the "other" slug category out of any group so it lands in its own "Other" section
+  const otherSlugCat = (allCategories ?? []).find((c: any) => c.slug === "other");
+  if (otherSlugCat) {
+    for (const g of sidebarGroups) {
+      g.categories = g.categories.filter((c: any) => c.id !== otherSlugCat.id);
+    }
+    sidebarGroups = sidebarGroups.filter((g) => g.categories.length > 0);
+  }
+
+  // Append "Other" group for categories not in any group (always includes the "other" slug category)
+  const includedCatIds = new Set(sidebarGroups.flatMap((g) => g.categories.map((c: any) => c.id)));
+  const otherCats = (allCategories ?? []).filter((c: any) => !includedCatIds.has(c.id));
+  if (otherCats.length > 0) {
+    sidebarGroups.push({ id: "other", name: "Other", icon: "Folder", categories: otherCats });
+  }
+
   let activeGroupId: string | undefined;
   if (hasGroups) {
     const gid = (activeCategory as any)?.group_id;
@@ -352,6 +371,10 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
     }
   } else {
     activeGroupId = FALLBACK_GROUPS.find((g) => g.slugs.includes(categorySlug ?? ""))?.id;
+  }
+  // If the active category landed in the "Other" group, open it
+  if (!activeGroupId && activeCategory && otherCats.some((c: any) => c.id === activeCategory.id)) {
+    activeGroupId = "other";
   }
 
   return (
@@ -456,7 +479,14 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                             }`}
                           >
-                            <span className="truncate">{cat.name}</span>
+                            <span className="flex flex-col min-w-0 flex-1">
+                              <span className="truncate">{cat.name}</span>
+                              {group.id === "other" && cat.description && (
+                                <span className={`truncate text-xs ${isActive ? "text-primary-foreground/60" : "text-muted-foreground/70"}`}>
+                                  {cat.description}
+                                </span>
+                              )}
+                            </span>
                             {count > 0 && (
                               <span className={`ml-2 shrink-0 text-xs ${isActive ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                                 {count}
