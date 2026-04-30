@@ -21,7 +21,7 @@ const joinSchema = z.object({
   description: z.string().max(2000).optional(),
   phone: z.string().optional(),
   email: z.string().email("Valid email required"),
-  website: z.string().url("Enter a valid URL (include https://)").optional().or(z.literal("")),
+  website: z.string().optional(),
   address: z.string().optional(),
   city: z.string().min(2, "City is required"),
   state: z.string().default("FL"),

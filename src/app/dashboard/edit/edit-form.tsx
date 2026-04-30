@@ -486,7 +486,7 @@ export function EditListingForm({ contractor, portfolioPhotos, categories, packa
 
         <div className="space-y-1.5">
           <Label htmlFor="website">Website</Label>
-          <Input id="website" name="website" type="url" defaultValue={contractor.website ?? ""} placeholder="https://yourwebsite.com" />
+          <Input id="website" name="website" type="text" defaultValue={contractor.website ?? ""} placeholder="https://yourwebsite.com" />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">

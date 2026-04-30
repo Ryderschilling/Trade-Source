@@ -858,7 +858,7 @@ function BusinessDetailsStep({
           <Input
             id="website"
             name="website"
-            type="url"
+            type="text"
             placeholder="https://yourwebsite.com"
           />
         </div>
