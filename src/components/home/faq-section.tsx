@@ -110,36 +110,20 @@ export function FAQSection() {
   };
 
   return (
-    <section id="faq" className="py-12 sm:py-20 bg-muted/40 border-y border-border">
+    <section id="faq" className="sr-only">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
       />
-      <div className="container mx-auto max-w-3xl px-4 sm:px-6">
-        <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Frequently asked questions
-          </h2>
-          <p className="mt-2 text-muted-foreground text-base sm:mt-3">
-            Everything you need to know about finding a contractor on 30A.
-          </p>
-        </div>
-        <div className="divide-y divide-border rounded-xl border border-border overflow-hidden bg-background">
+      <div>
+        <h2>Frequently asked questions</h2>
+        <p>Everything you need to know about finding a contractor on 30A.</p>
+        <div>
           {FAQ_ITEMS.map(({ question, answer }) => (
-            <details key={question} className="group/faq">
-              <summary className="flex cursor-pointer select-none items-center justify-between gap-4 px-5 py-4 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors list-none">
-                <span>{question}</span>
-                <span
-                  className="shrink-0 text-muted-foreground text-xl leading-none transition-transform duration-200 group-open/faq:rotate-45"
-                  aria-hidden
-                >
-                  +
-                </span>
-              </summary>
-              <div className="border-t border-border px-5 pb-5 pt-3 text-sm text-muted-foreground leading-relaxed">
-                {answer}
-              </div>
-            </details>
+            <div key={question}>
+              <h3>{question}</h3>
+              <div>{answer}</div>
+            </div>
           ))}
         </div>
       </div>

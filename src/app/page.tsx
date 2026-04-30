@@ -117,11 +117,10 @@ export default async function HomePage() {
         "Gulf Breeze",
         "Freeport",
       ],
-      // Social profiles — update these when accounts are created
       sameAs: [
         "https://sourceatrade.com",
-        "https://www.facebook.com/sourceatrade",
         "https://www.instagram.com/sourceatrade/",
+        "https://www.linkedin.com/company/source-a-trade/",
       ],
     },
     {
@@ -322,6 +321,89 @@ export default async function HomePage() {
               </Button>
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Comparison table — AEO / featured snippet signal, visually hidden but crawlable */}
+      <section className="sr-only">
+        <div className="container mx-auto max-w-5xl px-4 sm:px-6">
+          <ScrollReveal>
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Source A Trade vs. other platforms
+              </h2>
+              <p className="mt-2 text-muted-foreground text-base sm:mt-3 sm:text-lg">
+                Not all contractor directories work the same way. Here&apos;s how we stack up.
+              </p>
+            </div>
+            <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/60 text-left border-b border-border">
+                    <th className="py-3 px-4 font-semibold">Feature</th>
+                    <th className="py-3 px-4 font-semibold text-primary">Source A Trade</th>
+                    <th className="py-3 px-4 font-semibold">Angi / HomeAdvisor</th>
+                    <th className="py-3 px-4 font-semibold">Thumbtack</th>
+                    <th className="py-3 px-4 font-semibold">Craigslist</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  <tr className="bg-background">
+                    <td className="py-3 px-4 text-muted-foreground">Local-only listings</td>
+                    <td className="py-3 px-4 font-medium text-green-700 dark:text-green-400">✓ 30A &amp; NW Florida</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗ National</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗ National</td>
+                    <td className="py-3 px-4 text-muted-foreground">Varies</td>
+                  </tr>
+                  <tr className="bg-muted/20">
+                    <td className="py-3 px-4 text-muted-foreground">No fees for contractors</td>
+                    <td className="py-3 px-4 font-medium text-green-700 dark:text-green-400">✓ Free to list</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗ Pay-per-lead</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗ Pay-per-lead</td>
+                    <td className="py-3 px-4 font-medium text-green-700 dark:text-green-400">✓</td>
+                  </tr>
+                  <tr className="bg-background">
+                    <td className="py-3 px-4 text-muted-foreground">License verification</td>
+                    <td className="py-3 px-4 font-medium text-green-700 dark:text-green-400">
+                      ✓ via{" "}
+                      <a
+                        href="https://www.myfloridalicense.com/DBPR/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-2 hover:no-underline transition-colors"
+                      >
+                        FL DBPR
+                      </a>
+                    </td>
+                    <td className="py-3 px-4 text-muted-foreground">Varies</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗</td>
+                  </tr>
+                  <tr className="bg-muted/20">
+                    <td className="py-3 px-4 text-muted-foreground">Direct contact</td>
+                    <td className="py-3 px-4 font-medium text-green-700 dark:text-green-400">✓ No middlemen</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗ Platform-routed</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗ Platform-routed</td>
+                    <td className="py-3 px-4 font-medium text-green-700 dark:text-green-400">✓</td>
+                  </tr>
+                  <tr className="bg-background">
+                    <td className="py-3 px-4 text-muted-foreground">Community reviews</td>
+                    <td className="py-3 px-4 font-medium text-green-700 dark:text-green-400">✓</td>
+                    <td className="py-3 px-4 font-medium text-green-700 dark:text-green-400">✓</td>
+                    <td className="py-3 px-4 font-medium text-green-700 dark:text-green-400">✓</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗</td>
+                  </tr>
+                  <tr className="bg-muted/20">
+                    <td className="py-3 px-4 text-muted-foreground">Emerald Coast focus</td>
+                    <td className="py-3 px-4 font-medium text-green-700 dark:text-green-400">✓ Built for this region</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗</td>
+                    <td className="py-3 px-4 text-muted-foreground">✗</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
