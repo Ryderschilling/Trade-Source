@@ -207,14 +207,23 @@ export function Navbar({ userEmail, userId, hasBusiness = false, unreadCount = 0
           )}
         </div>
 
-        {/* Mobile menu toggle */}
-        <button
-          className="md:hidden p-2 text-muted-foreground hover:text-foreground"
-          onClick={() => setMobileOpen((o) => !o)}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {/* Mobile: sign up button (unauthenticated only) + menu toggle */}
+        <div className="md:hidden flex items-center gap-2">
+          {!userEmail && (
+            <Link href="/signup">
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                Sign Up
+              </Button>
+            </Link>
+          )}
+          <button
+            className="p-2 text-muted-foreground hover:text-foreground"
+            onClick={() => setMobileOpen((o) => !o)}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
