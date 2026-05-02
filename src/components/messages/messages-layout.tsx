@@ -526,7 +526,8 @@ function ChatWindow({
       {/* Input */}
       <form
         onSubmit={handleSend}
-        className="flex items-end gap-2 px-4 py-3 border-t border-neutral-200 bg-white"
+        className="flex items-end gap-2 px-4 pt-3 border-t border-neutral-200 bg-white"
+        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
         <textarea
           ref={inputRef}
@@ -537,17 +538,18 @@ function ChatWindow({
             e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
           }}
           onKeyDown={handleKeyDown}
+          enterKeyHint="send"
           placeholder="Type a message"
           rows={1}
           className="flex-1 resize-none rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm outline-none focus:border-neutral-300 focus:bg-white transition-colors placeholder:text-neutral-400 leading-relaxed overflow-hidden"
-          style={{ minHeight: "42px" }}
+          style={{ minHeight: "44px" }}
         />
         <Button
           type="submit"
           size="icon"
           disabled={!text.trim() || sending}
           className={cn(
-            "h-9 w-9 flex-shrink-0 rounded-full transition-all",
+            "h-11 w-11 flex-shrink-0 rounded-full transition-all",
             text.trim()
               ? "bg-blue-500 hover:bg-blue-600 text-white"
               : "bg-neutral-200 text-neutral-400 cursor-not-allowed"
@@ -750,8 +752,8 @@ export function MessagesLayout({
   }, [currentUserId, initialConversations, supabase]);
 
   return (
-    // Fills the space between navbar (h-16 = 4rem) and viewport bottom
-    <div className="flex h-[calc(100dvh-4rem)] overflow-hidden bg-white">
+    // Fills the space between navbar and viewport bottom, accounting for safe area
+    <div className="flex overflow-hidden bg-white" style={{ height: "calc(100dvh - 4rem - env(safe-area-inset-top))" }}>
       {/* Sidebar */}
       <Sidebar
         conversations={deduped}
