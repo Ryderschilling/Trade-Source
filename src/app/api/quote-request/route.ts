@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
+import { buildEmailHtml } from "@/lib/email-template";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
@@ -135,24 +136,19 @@ export async function POST(req: NextRequest) {
             to: contractor.email,
             replyTo: email,
             subject: `New quote request — ${categoryName}`,
-            html: `
-              <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-                <h2>New quote request on Source A Trade</h2>
-                <p>A homeowner is looking for a <strong>${categoryName}</strong> contractor.</p>
-                <table style="width:100%;border-collapse:collapse;margin:16px 0">
-                  <tr><td style="padding:6px 0;color:#64748b;width:120px">Name</td><td style="padding:6px 0;font-weight:500">${name}</td></tr>
-                  <tr><td style="padding:6px 0;color:#64748b">Email</td><td style="padding:6px 0"><a href="mailto:${email}">${email}</a></td></tr>
-                  ${phone ? `<tr><td style="padding:6px 0;color:#64748b">Phone</td><td style="padding:6px 0">${phone}</td></tr>` : ""}
-                  <tr><td style="padding:6px 0;color:#64748b">Timeline</td><td style="padding:6px 0">${timelineLabel}</td></tr>
-                </table>
-                <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0">
-                  <p style="margin:0;color:#374151;font-size:15px">${description}</p>
-                </div>
-                <p style="color:#64748b;font-size:13px">Reply directly to this email to respond to ${name}.</p>
-                <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-                <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
-              </div>
-            `,
+            html: buildEmailHtml({
+              heading: `New quote request — ${categoryName}`,
+              intro: `A homeowner is looking for a <strong>${categoryName}</strong> contractor.`,
+              details: [
+                { label: "Name", value: name },
+                { label: "Email", value: email },
+                phone ? { label: "Phone", value: phone } : null,
+                { label: "Timeline", value: timelineLabel },
+              ],
+              messageLabel: "Project description",
+              message: description,
+              footerNote: `Reply directly to this email to respond to ${name}.`,
+            }),
             kind: "transactional:quote_request",
             meta: { contractor_id: contractor.id, quote_request_id: quoteRequest.id },
           });
@@ -161,28 +157,20 @@ export async function POST(req: NextRequest) {
     );
 
     const businessNames = (contractors ?? []).map((c) => c.business_name).filter(Boolean);
-    const businessList = businessNames.length
-      ? businessNames.map((n) => `<li>${n}</li>`).join("")
-      : "<li>your selected contractors</li>";
+    const contractorListHtml = businessNames.length
+      ? businessNames.join(", ")
+      : "your selected contractors"
 
     await sendEmail({
       to: email,
       subject: `Your quote request has been sent — Source A Trade`,
-      html: `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-          <h2>Quote request received, ${name}!</h2>
-          <p>Your request for <strong>${categoryName}</strong> work has been sent to ${businessNames.length} contractor${businessNames.length !== 1 ? "s" : ""}:</p>
-          <ul style="padding-left:20px;line-height:1.8">${businessList}</ul>
-          <p>Each contractor will review your request and reach out to you directly at <strong>${email}</strong>${phone ? ` or <strong>${phone}</strong>` : ""}.</p>
-          <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0">
-            <p style="margin:0 0 8px 0;font-size:13px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Your project description</p>
-            <p style="margin:0;color:#374151;font-size:15px">${description}</p>
-          </div>
-          <p style="color:#64748b;font-size:13px">Timeline: ${timelineLabel}</p>
-          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-          <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
-        </div>
-      `,
+      html: buildEmailHtml({
+        heading: `Quote request received, ${name}!`,
+        intro: `Your request for <strong>${categoryName}</strong> work has been sent to ${contractorListHtml}. Each contractor will review and reach out to you directly at <strong>${email}</strong>${phone ? ` or <strong>${phone}</strong>` : ""}.`,
+        messageLabel: "Your project description",
+        message: description,
+        footerNote: `Timeline: ${timelineLabel}`,
+      }),
       kind: "transactional:quote_request:confirmation",
       meta: { quote_request_id: quoteRequest.id },
     });

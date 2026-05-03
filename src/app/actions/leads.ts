@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
+import { buildEmailHtml } from "@/lib/email-template";
 
 const leadSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name must be 100 characters or fewer"),
@@ -140,24 +141,20 @@ export async function submitLead(
     await sendEmail({
       to: contractor.email,
       subject: `New quote request from ${parsed.data.name} — Source A Trade`,
-      html: `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-          <h2>New Quote Request</h2>
-          <p>You have a new quote request on <strong>Source A Trade</strong> for <strong>${contractor.business_name}</strong>.</p>
-          <hr />
-          <p><strong>From:</strong> ${parsed.data.name}</p>
-          <p><strong>Email:</strong> ${parsed.data.email}</p>
-          ${parsed.data.phone ? `<p><strong>Phone:</strong> ${parsed.data.phone}</p>` : ""}
-          <p><strong>Description:</strong></p>
-          <blockquote style="border-left:3px solid #e2e8f0;margin:0;padding:8px 16px;color:#64748b">
-            ${parsed.data.message.replace(/\n/g, "<br/>")}
-          </blockquote>
-          <hr />
-          <p style="color:#64748b;font-size:14px">
-            Log into your <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">contractor dashboard</a> to manage this lead.
-          </p>
-        </div>
-      `,
+      html: buildEmailHtml({
+        heading: "New quote request",
+        intro: `You have a new quote request on Source A Trade for <strong>${contractor.business_name}</strong>.`,
+        details: [
+          { label: "From", value: parsed.data.name },
+          { label: "Email", value: parsed.data.email },
+          parsed.data.phone ? { label: "Phone", value: parsed.data.phone } : null,
+          parsed.data.service_type ? { label: "Service", value: parsed.data.service_type } : null,
+        ],
+        messageLabel: "Project description",
+        message: parsed.data.message,
+        ctaText: "View in dashboard",
+        ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+      }),
       kind: "transactional:lead",
       meta: { contractor_id: parsed.data.contractor_id },
     });
@@ -167,19 +164,12 @@ export async function submitLead(
     to: parsed.data.email,
     replyTo: contractor?.email ?? undefined,
     subject: `Quote request sent to ${contractor?.business_name ?? "contractor"} — Source A Trade`,
-    html: `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-        <h2>Request received, ${parsed.data.name}!</h2>
-        <p>Your quote request has been sent to <strong>${contractor?.business_name ?? "the contractor"}</strong> on Source A Trade.</p>
-        <p>They will review your project and reach out to you directly at <strong>${parsed.data.email}</strong>${parsed.data.phone ? ` or <strong>${parsed.data.phone}</strong>` : ""}.</p>
-        <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0">
-          <p style="margin:0 0 8px 0;font-size:13px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Your message</p>
-          <p style="margin:0;color:#374151;font-size:15px">${parsed.data.message.replace(/\n/g, "<br/>")}</p>
-        </div>
-        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-        <p style="color:#94a3b8;font-size:12px">Source A Trade — sourceatrade.com</p>
-      </div>
-    `,
+    html: buildEmailHtml({
+      heading: `Request received, ${parsed.data.name}!`,
+      intro: `Your quote request has been sent to <strong>${contractor?.business_name ?? "the contractor"}</strong>. They'll review your project and reach out at <strong>${parsed.data.email}</strong>${parsed.data.phone ? ` or <strong>${parsed.data.phone}</strong>` : ""}.`,
+      messageLabel: "Your message",
+      message: parsed.data.message,
+    }),
     kind: "transactional:lead:confirmation",
     meta: { contractor_id: parsed.data.contractor_id },
   });
@@ -315,23 +305,17 @@ export async function submitMessage(
     await sendEmail({
       to: contractor.email,
       subject: `New message from ${parsed.data.name} — Source A Trade`,
-      html: `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-          <h2>New Message</h2>
-          <p>Someone reached out to <strong>${contractor.business_name}</strong> on Source A Trade.</p>
-          <hr />
-          <p><strong>From:</strong> ${parsed.data.name}</p>
-          <p><strong>Email:</strong> <a href="mailto:${parsed.data.email}">${parsed.data.email}</a></p>
-          <p><strong>Message:</strong></p>
-          <blockquote style="border-left:3px solid #e2e8f0;margin:0;padding:8px 16px;color:#64748b">
-            ${parsed.data.message.replace(/\n/g, "<br/>")}
-          </blockquote>
-          <hr />
-          <p style="color:#64748b;font-size:14px">
-            Reply directly to <a href="mailto:${parsed.data.email}">${parsed.data.email}</a> or log into your <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">dashboard</a>.
-          </p>
-        </div>
-      `,
+      html: buildEmailHtml({
+        heading: "New message",
+        intro: `Someone reached out to <strong>${contractor.business_name}</strong> on Source A Trade.`,
+        details: [
+          { label: "From", value: parsed.data.name },
+          { label: "Email", value: parsed.data.email },
+        ],
+        messageLabel: "Message",
+        message: parsed.data.message,
+        footerNote: `Reply directly to ${parsed.data.email} to respond.`,
+      }),
       kind: "transactional:lead",
       meta: { contractor_id: parsed.data.contractor_id },
     });
@@ -465,25 +449,20 @@ export async function submitPackageRequest(
     await sendEmail({
       to: contractor.email,
       subject: `New service request: ${package_name} — Source A Trade`,
-      html: `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-          <h2>New Service Request</h2>
-          <p>You have a new service request on <strong>Source A Trade</strong> for <strong>${contractor.business_name}</strong>.</p>
-          <p><strong>Package:</strong> ${package_name}</p>
-          <hr />
-          <p><strong>From:</strong> ${name}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
-          <p><strong>Description:</strong></p>
-          <blockquote style="border-left:3px solid #e2e8f0;margin:0;padding:8px 16px;color:#64748b">
-            ${message.replace(/\n/g, "<br/>")}
-          </blockquote>
-          <hr />
-          <p style="color:#64748b;font-size:14px">
-            Log into your <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">contractor dashboard</a> to manage this lead.
-          </p>
-        </div>
-      `,
+      html: buildEmailHtml({
+        heading: "New service request",
+        intro: `You have a new service request on Source A Trade for <strong>${contractor.business_name}</strong>.`,
+        details: [
+          { label: "Package", value: package_name },
+          { label: "From", value: name },
+          { label: "Email", value: email },
+          phone ? { label: "Phone", value: phone } : null,
+        ],
+        messageLabel: "Project description",
+        message,
+        ctaText: "View in dashboard",
+        ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+      }),
       kind: "transactional:package_request",
       meta: { contractor_id },
     });
