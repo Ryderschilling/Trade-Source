@@ -121,6 +121,7 @@ export default async function HomePage() {
         "https://sourceatrade.com",
         "https://www.instagram.com/sourceatrade/",
         "https://www.linkedin.com/company/source-a-trade/",
+        "https://www.linkedin.com/company/source-a-trade/posts/?feedView=all",
       ],
     },
     {
