@@ -17,21 +17,21 @@ import type { Category } from "@/lib/supabase/types";
 const initialJoinState: JoinFormState = {};
 const initialAuthState: AuthFormState = {};
 
-// Group structure for the multi-category picker (mirrors DB groups, used as fallback)
+// Group structure for the multi-category picker (mirrors DB groups exactly)
 const CATEGORY_GROUPS = [
-  { id: "exterior-structure",   name: "Exterior & Structure",  slugs: ["roofing","siding","windows-doors","gutters","painting-exterior","pressure-washing","driveway-paving","foundation-structural","stucco"] },
-  { id: "mechanical-systems",   name: "Mechanical Systems",    slugs: ["plumbing","hvac","electrical","solar","generator","water-treatment","gas-lines"] },
-  { id: "interior-remodel",     name: "Interior & Remodel",    slugs: ["painting-interior","flooring","drywall","insulation","carpentry-trim","cabinetry-countertops","tile-stone","kitchen-remodel","bathroom-remodel"] },
-  { id: "outdoor-landscape",    name: "Outdoor & Landscape",   slugs: ["landscaping","lawn-care","irrigation","tree-service","pool-spa","outdoor-lighting","fencing","decks-patios","outdoor-kitchen"] },
-  { id: "coastal-marine",       name: "Coastal & Marine",      slugs: ["dock-boathouse","seawall-bulkhead","hurricane-shutters","flood-mitigation"] },
-  { id: "property-services",    name: "Property Services",     slugs: ["property-management","home-watch","pest-control","security-systems","locksmith","handyman","junk-removal","house-cleaning"] },
-  { id: "vacation-rentals",     name: "Vacation Rentals",      slugs: ["rental-management","turnover-cleaning","linen-service","rental-photography","staging-rentals"] },
-  { id: "automotive",           name: "Automotive",            slugs: ["auto-repair","auto-body-paint","oil-change","tire-shop","car-detailing","towing","golf-cart-repair"] },
-  { id: "health-wellness",      name: "Health & Wellness",     slugs: ["chiropractor","massage-therapy","physical-therapy","dentist","med-spa","personal-training"] },
-  { id: "professional-services",name: "Professional Services", slugs: ["real-estate-agent","insurance-agent","financial-advisor","attorney","cpa-tax"] },
+  { id: "exterior-structure",   name: "Exterior & Structure",   slugs: ["general-contractor","roofing","siding","windows-doors","gutters","painting-exterior","pressure-washing","driveway-paving","foundation-structural","stucco","garage-doors","screen-enclosures"] },
+  { id: "mechanical-systems",   name: "Mechanical Systems",     slugs: ["plumbing","hvac","electrical","solar","generator","water-treatment","gas-lines"] },
+  { id: "interior-remodel",     name: "Interior & Remodel",     slugs: ["painting-interior","flooring","drywall","insulation","carpentry-trim","cabinetry-countertops","tile-stone","kitchen-remodel","bathroom-remodel"] },
+  { id: "outdoor-landscape",    name: "Outdoor & Landscape",    slugs: ["landscaping","lawn-care","irrigation","tree-service","pool-spa","outdoor-lighting","fencing","decks-patios","outdoor-kitchen"] },
+  { id: "coastal-marine",       name: "Coastal & Marine",       slugs: ["dock-boathouse","seawall-bulkhead","hurricane-shutters","flood-mitigation","beach-service"] },
+  { id: "property-services",    name: "Property Services",      slugs: ["home-watch","pest-control","security-systems","locksmith","handyman","junk-removal","house-cleaning"] },
+  { id: "vacation-rentals",     name: "Vacation Rentals",       slugs: ["rental-management","turnover-cleaning","linen-service","rental-photography","staging-rentals"] },
+  { id: "automotive",           name: "Automotive",             slugs: ["auto-repair","auto-body-paint","oil-change","tire-shop","car-detailing","towing","golf-cart-repair"] },
+  { id: "health-wellness",      name: "Health & Wellness",      slugs: ["chiropractor","massage-therapy","physical-therapist","dentist","med-spa","personal-training","primary-care","mental-health"] },
+  { id: "professional-services",name: "Professional Services",  slugs: ["fractional-cfo"] },
   { id: "real-estate-property", name: "Real Estate & Property", slugs: ["real-estate-agent","real-estate-brokerage","property-management","home-inspector","title-escrow","mortgage-lending","real-estate-appraiser"] },
   { id: "legal-financial",      name: "Legal & Financial",      slugs: ["real-estate-attorney","estate-planning","business-attorney","cpa-accounting","financial-advisor","insurance-agent"] },
-  { id: "design-architecture",  name: "Design & Architecture",  slugs: ["architect","interior-designer","land-surveyor","photography"] },
+  { id: "design-architecture",  name: "Design & Architecture",  slugs: ["architect","interior-design","land-surveyor","photography"] },
 ];
 
 const CLIENT_MAX_LOGO_BYTES = 5 * 1024 * 1024;

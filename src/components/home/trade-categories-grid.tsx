@@ -3,9 +3,9 @@
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  Home, Zap, Droplets, Thermometer, Trees, Waves,
-  Grid3x3, Bug, Sparkles, ShieldAlert, Anchor, Wind,
-  Car, Building2, Wrench, Camera, Umbrella, Palette, ArrowRight, type LucideIcon,
+  Home, Zap, Trees, Waves,
+  Sparkles, Anchor, Car, Heart, Building2,
+  Scale, PenTool, Key, ArrowRight, type LucideIcon,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -15,33 +15,28 @@ interface TradeCategory {
   icon: LucideIcon;
 }
 
+// 12 broad groups — each links to the most representative sub-category slug
 const CATEGORIES: TradeCategory[] = [
-  { name: "Roofing",                           slug: "roofing",           icon: Home },
-  { name: "Electrical",                        slug: "electrical",        icon: Zap },
-  { name: "Plumbing",                          slug: "plumbing",          icon: Droplets },
-  { name: "HVAC",                              slug: "hvac",              icon: Thermometer },
-  { name: "Landscaping",                       slug: "landscaping",       icon: Trees },
-  { name: "Pool & Spa",                        slug: "pool-spa",          icon: Waves },
-  { name: "Flooring",                          slug: "flooring",          icon: Grid3x3 },
-  { name: "Pest Control",                      slug: "pest-control",      icon: Bug },
-  { name: "Handyman",                          slug: "handyman",          icon: Wrench },
-  { name: "House Cleaning",                    slug: "house-cleaning",    icon: Sparkles },
-  { name: "Hurricane Shutters & Impact Windows", slug: "hurricane-shutters", icon: ShieldAlert },
-  { name: "Dock & Boathouse",                  slug: "dock-boathouse",    icon: Anchor },
-  { name: "Pressure Washing",                  slug: "pressure-washing",  icon: Wind },
-  { name: "Auto Repair",                       slug: "auto-repair",       icon: Car },
-  { name: "Property Management",               slug: "property-management", icon: Building2 },
-  { name: "Photography",                       slug: "photography",         icon: Camera },
-  { name: "Beach Service",                     slug: "beach-service",       icon: Umbrella },
-  { name: "Interior Design",                   slug: "interior-design",     icon: Palette },
+  { name: "Exterior & Structure",   slug: "roofing",             icon: Home },
+  { name: "Mechanical Systems",     slug: "electrical",          icon: Zap },
+  { name: "Interior & Remodel",     slug: "flooring",            icon: Building2 },
+  { name: "Outdoor & Landscape",    slug: "landscaping",         icon: Trees },
+  { name: "Coastal & Marine",       slug: "dock-boathouse",      icon: Anchor },
+  { name: "Property Services",      slug: "handyman",            icon: Sparkles },
+  { name: "Vacation Rentals",       slug: "rental-management",   icon: Key },
+  { name: "Automotive",             slug: "auto-repair",         icon: Car },
+  { name: "Health & Wellness",      slug: "med-spa",             icon: Heart },
+  { name: "Real Estate & Property", slug: "property-management", icon: Building2 },
+  { name: "Legal & Financial",      slug: "cpa-accounting",      icon: Scale },
+  { name: "Design & Architecture",  slug: "interior-design",     icon: PenTool },
 ];
 
 const POPULAR: TradeCategory[] = [
-  { name: "Electrical",  slug: "electrical",  icon: Zap },
-  { name: "Plumbing",    slug: "plumbing",    icon: Droplets },
-  { name: "HVAC",        slug: "hvac",        icon: Thermometer },
-  { name: "Roofing",     slug: "roofing",     icon: Home },
-  { name: "Landscaping", slug: "landscaping", icon: Trees },
+  { name: "Exterior & Structure", slug: "roofing",        icon: Home },
+  { name: "Mechanical Systems",   slug: "electrical",     icon: Zap },
+  { name: "Outdoor & Landscape",  slug: "landscaping",    icon: Trees },
+  { name: "Property Services",    slug: "handyman",       icon: Sparkles },
+  { name: "Coastal & Marine",     slug: "dock-boathouse", icon: Anchor },
 ];
 
 export function TradeCategoriesGrid() {

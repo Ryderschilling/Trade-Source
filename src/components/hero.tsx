@@ -75,7 +75,7 @@ export function Hero() {
               className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/80 sm:mt-6 sm:text-xl"
               style={anim(300)}
             >
-              Vetted electricians, landscapers, cleaners, photographers, and every pro in between. One search. Real reviews. No lead-gen spam.
+              The trusted directory for 30A homeowners. Find vetted local tradesmen — real reviews, real businesses, ready when you need them.
             </p>
 
             {/* Search form */}
