@@ -621,16 +621,8 @@ function BusinessDetailsStep({
     }
 
     if (file.type === "image/svg+xml") {
-      if (file.size > CLIENT_MAX_LOGO_BYTES) {
-        setClientUploadError("SVG logos must be 5MB or smaller.");
-        input.value = "";
-        return;
-      }
-
-      const url = URL.createObjectURL(file);
-      if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
-      setLogoPreviewUrl(url);
-      setLogoFile(file);
+      setClientUploadError("SVG logos aren't supported. Please use JPEG, PNG, or WebP.");
+      input.value = "";
       return;
     }
 
@@ -928,7 +920,7 @@ function BusinessDetailsStep({
             id="logo"
             name="logo"
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             onChange={handleLogoChange}
             disabled={isPreparingUploads}
             className="sr-only"
@@ -990,7 +982,7 @@ function BusinessDetailsStep({
           <input
             ref={photoPickerRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             onChange={handlePhotoPickerChange}
             disabled={isPreparingUploads}
             className="sr-only"

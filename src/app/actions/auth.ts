@@ -1,7 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { z } from "zod";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 import { createClient } from "@/lib/supabase/server";
 
 const signInSchema = z.object({
@@ -16,6 +19,24 @@ const signUpSchema = z.object({
   address: z.string().optional(),
 });
 
+const roleSchema = z.enum(["homeowner", "contractor"]).catch("homeowner");
+
+const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  : null;
+
+const signInLimit = redis ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, "1 m"), prefix: "rl:auth:signin" }) : null;
+const signUpLimit = redis ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, "1 h"), prefix: "rl:auth:signup" }) : null;
+const resetLimit = redis ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, "1 h"), prefix: "rl:auth:reset" }) : null;
+
+async function clientIp(): Promise<string> {
+  const h = await headers();
+  return (h.get("x-forwarded-for")?.split(",")[0]?.trim()) || h.get("x-real-ip") || "unknown";
+}
+
 export type AuthFormState = {
   error?: string;
   success?: boolean;
@@ -25,6 +46,11 @@ export async function signIn(
   _prev: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
+  if (signInLimit) {
+    const { success } = await signInLimit.limit(await clientIp());
+    if (!success) return { error: "Too many sign-in attempts. Please try again in a minute." };
+  }
+
   const parsed = signInSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -51,6 +77,11 @@ export async function signUp(
   _prev: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
+  if (signUpLimit) {
+    const { success } = await signUpLimit.limit(await clientIp());
+    if (!success) return { error: "Too many sign-up attempts from this address. Please try again later." };
+  }
+
   const parsed = signUpSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -63,7 +94,7 @@ export async function signUp(
     return { error: firstError ?? "Please fix the errors above." };
   }
 
-  const role = (formData.get("role") as string) || "homeowner";
+  const role = roleSchema.parse(formData.get("role") ?? "homeowner");
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
@@ -117,6 +148,17 @@ export async function resetPassword(
   const email = formData.get("email") as string;
   if (!email || !z.string().email().safeParse(email).success) {
     return { error: "A valid email is required." };
+  }
+
+  if (resetLimit) {
+    const ip = await clientIp();
+    const [ipResult, emailResult] = await Promise.all([
+      resetLimit.limit(`ip:${ip}`),
+      resetLimit.limit(`email:${email.toLowerCase()}`),
+    ]);
+    if (!ipResult.success || !emailResult.success) {
+      return { error: "Too many reset requests. Please try again in an hour." };
+    }
   }
 
   const supabase = await createClient();

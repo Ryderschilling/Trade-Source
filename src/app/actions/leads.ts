@@ -1,9 +1,43 @@
 "use server";
 
 import { z } from "zod";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
 import { buildEmailHtml } from "@/lib/email-template";
+
+const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  : null;
+
+const leadContactLimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, "1 d"), prefix: "rl:lead:contact" })
+  : null;
+
+type ContractorContactRow = { user_id: string | null; business_name: string | null; email: string | null };
+
+async function loadActiveContractor(
+  service: Awaited<ReturnType<typeof createServiceClient>>,
+  contractorId: string,
+): Promise<ContractorContactRow | null> {
+  const { data } = await service
+    .from("contractors")
+    .select("user_id, business_name, email, status")
+    .eq("id", contractorId)
+    .maybeSingle();
+  if (!data || data.status !== "active") return null;
+  return { user_id: data.user_id, business_name: data.business_name, email: data.email };
+}
+
+async function checkContactRateLimit(userId: string, contractorId: string): Promise<boolean> {
+  if (!leadContactLimit) return true;
+  const { success } = await leadContactLimit.limit(`${userId}:${contractorId}`);
+  return success;
+}
 
 const leadSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name must be 100 characters or fewer"),
@@ -52,11 +86,14 @@ export async function submitLead(
 
   const supabase = await createServiceClient();
 
-  const { data: contractor } = await supabase
-    .from("contractors")
-    .select("user_id, business_name, email")
-    .eq("id", parsed.data.contractor_id)
-    .single();
+  const contractor = await loadActiveContractor(supabase, parsed.data.contractor_id);
+  if (!contractor) {
+    return { success: false, error: "This contractor isn't accepting requests right now." };
+  }
+
+  if (!(await checkContactRateLimit(user.id, parsed.data.contractor_id))) {
+    return { success: false, error: "You've contacted this contractor recently. Please wait a day before sending another request." };
+  }
 
   const { error: insertError } = await supabase.from("leads").insert({
     contractor_id: parsed.data.contractor_id,
@@ -216,11 +253,14 @@ export async function submitMessage(
 
   const supabase = await createServiceClient();
 
-  const { data: contractor } = await supabase
-    .from("contractors")
-    .select("user_id, business_name, email")
-    .eq("id", parsed.data.contractor_id)
-    .single();
+  const contractor = await loadActiveContractor(supabase, parsed.data.contractor_id);
+  if (!contractor) {
+    return { success: false, error: "This contractor isn't accepting messages right now." };
+  }
+
+  if (!(await checkContactRateLimit(user.id, parsed.data.contractor_id))) {
+    return { success: false, error: "You've messaged this contractor recently. Please wait a day before sending another message." };
+  }
 
   const { error: insertError } = await supabase.from("leads").insert({
     contractor_id: parsed.data.contractor_id,
@@ -359,11 +399,14 @@ export async function submitPackageRequest(
 
   const supabase = await createServiceClient();
 
-  const { data: contractor } = await supabase
-    .from("contractors")
-    .select("user_id, business_name, email")
-    .eq("id", contractor_id)
-    .single();
+  const contractor = await loadActiveContractor(supabase, contractor_id);
+  if (!contractor) {
+    return { success: false, error: "This contractor isn't accepting requests right now." };
+  }
+
+  if (!(await checkContactRateLimit(user.id, contractor_id))) {
+    return { success: false, error: "You've already requested a package from this contractor recently. Please wait a day before sending another." };
+  }
 
   const { error: insertError } = await supabase.from("leads").insert({
     contractor_id,

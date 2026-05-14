@@ -29,6 +29,18 @@ export async function POST(req: NextRequest) {
 
   const service = await createServiceClient();
 
+  // Authz: caller must be a contractor listed as a recipient of this quote request.
+  const { data: recipient } = await service
+    .from("quote_request_recipients")
+    .select("contractor_id, contractors!inner(user_id)")
+    .eq("quote_request_id", quote_request_id)
+    .eq("contractors.user_id", user.id)
+    .maybeSingle();
+
+  if (!recipient) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   // Fetch the quote request
   const { data: quote } = await service
     .from("quote_requests")
