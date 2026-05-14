@@ -46,9 +46,8 @@ export function NearbyBusinesses({ profileCity, profileUserId }: Props) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query = (supabase as any)
-      .from("contractors")
+      .from("public_contractors")
       .select("id, slug, business_name, city, state, categories(name)")
-      .eq("status", "active")
       .limit(6);
 
     if (targetCity) {

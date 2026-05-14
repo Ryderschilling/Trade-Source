@@ -530,7 +530,7 @@ export type Database = {
       }
       conversations: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           quote_request_id: string | null
           subject: string | null
@@ -789,7 +789,7 @@ export type Database = {
         Row: {
           category: string
           contractor_id: string
-          created_at: string | null
+          created_at: string
           id: string
           metric_value: number
           rank: number
@@ -902,7 +902,7 @@ export type Database = {
         Row: {
           body: string
           conversation_id: string
-          created_at: string | null
+          created_at: string
           id: string
           sender_id: string
         }
@@ -1280,7 +1280,69 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          address: string | null
+          avatar_url: string | null
+          bio: string | null
+          city: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          is_public: boolean
+          role: string
+          updated_at: string
+        }
+        Relationships: []
+      }
+      public_contractors: {
+        Row: {
+          additional_categories: string[]
+          address: string | null
+          avg_rating: number | null
+          billing_plan: string
+          billing_status: string
+          business_name: string
+          cancel_at: string | null
+          cancel_pending: boolean
+          category_id: string
+          city: string
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_claimed: boolean
+          is_featured: boolean
+          is_insured: boolean
+          is_licensed: boolean
+          lat: number | null
+          license_number: string | null
+          listing_status: string
+          lng: number | null
+          logo_url: string | null
+          next_billing_date: string | null
+          owner_name: string | null
+          payment_last4: string | null
+          phone: string | null
+          review_count: number
+          service_areas: string[]
+          slug: string
+          state: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string
+          tagline: string | null
+          updated_at: string
+          user_id: string | null
+          view_count: number
+          website: string | null
+          years_experience: number | null
+          years_in_business: number | null
+          zip: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       increment_view_count: {

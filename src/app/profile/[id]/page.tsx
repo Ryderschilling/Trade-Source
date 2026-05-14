@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("full_name, avatar_url, bio")
     .eq("id", id)
     .single();
@@ -49,7 +49,9 @@ export default async function ProfilePage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   const isOwner = user?.id === id;
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", id).single();
+  const { data: profile } = isOwner
+    ? await supabase.from("profiles").select("*").eq("id", id).single()
+    : await supabase.from("public_profiles").select("*").eq("id", id).single();
   if (!profile) notFound();
 
   if ((profile as any).is_public === false && !isOwner) {
@@ -70,7 +72,7 @@ export default async function ProfilePage({ params }: Props) {
     { data: contractor },
   ] = await Promise.all([
     supabase.from("reviews").select("*, contractors(business_name, slug, city)").eq("user_id", id).order("created_at", { ascending: false }).limit(20),
-    supabase.from("contractors").select("*, categories(name)").eq("user_id", id).eq("status", "active").maybeSingle(),
+    supabase.from("public_contractors").select("*, categories(name)").eq("user_id", id).maybeSingle(),
   ]);
 
   return (
@@ -82,7 +84,7 @@ export default async function ProfilePage({ params }: Props) {
               userId={id}
               initialAvatarUrl={profile.avatar_url}
               name={profile.full_name}
-              email={profile.email}
+              email={(profile as { email?: string }).email ?? ""}
             />
           ) : profile.avatar_url ? (
             <img src={profile.avatar_url} alt={profile.full_name ?? ""} className="h-16 w-16 rounded-full object-cover ring-2 ring-neutral-100 sm:h-20 sm:w-20" />
@@ -104,7 +106,7 @@ export default async function ProfilePage({ params }: Props) {
             </div>
             {isOwner && (
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-neutral-400">
-                <span>{profile.email}</span>
+                <span>{(profile as { email?: string }).email}</span>
                 {(profile as any).phone && <span>{(profile as any).phone}</span>}
               </div>
             )}
