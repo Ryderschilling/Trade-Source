@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LeaderboardTabs, TabsContent } from "./leaderboard-tabs";
-import { Star, Eye, MessageSquare } from "lucide-react";
+import { Star } from "lucide-react";
 
 export const revalidate = 14400; // 4 hours
 
@@ -146,12 +146,7 @@ export default async function LeaderboardPage() {
                     key={c.id}
                     contractor={c}
                     rank={i + 1}
-                    metric={
-                      <div className="flex items-center gap-1 text-xs lg:text-sm text-neutral-500">
-                        <Eye className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                        {c.view_count.toLocaleString()}
-                      </div>
-                    }
+                    metric={null}
                   />
                 ))}
               </div>
@@ -197,12 +192,7 @@ export default async function LeaderboardPage() {
                     key={c.id}
                     contractor={c}
                     rank={i + 1}
-                    metric={
-                      <div className="flex items-center gap-1 text-xs lg:text-sm text-neutral-500">
-                        <MessageSquare className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                        {c.review_count}
-                      </div>
-                    }
+                    metric={null}
                   />
                 ))}
               </div>
