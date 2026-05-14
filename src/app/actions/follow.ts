@@ -1,7 +1,19 @@
 "use server";
 
+import { Ratelimit } from "@upstash/ratelimit";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
+import { redis } from "@/lib/upstash";
+
+const followLimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, "1 h"), prefix: "rl:follow:user" })
+  : null;
+
+async function checkFollowLimit(userId: string): Promise<boolean> {
+  if (!followLimit) return true;
+  const { success } = await followLimit.limit(userId);
+  return success;
+}
 
 export async function sendFollowRequest(
   followingId: string
@@ -10,6 +22,10 @@ export async function sendFollowRequest(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated" };
   if (user.id === followingId) return { success: false, error: "Cannot follow yourself" };
+
+  if (!(await checkFollowLimit(user.id))) {
+    return { success: false, error: "Too many follow actions. Please try again later." };
+  }
 
   const { data: existing } = await supabase
     .from("user_follows")
@@ -104,6 +120,10 @@ export async function unfollowUser(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated" };
+
+  if (!(await checkFollowLimit(user.id))) {
+    return { success: false, error: "Too many follow actions. Please try again later." };
+  }
 
   const serviceClient = await createServiceClient();
   const { error } = await serviceClient

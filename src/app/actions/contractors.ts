@@ -5,9 +5,26 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import slugify from "slugify";
 import { fileTypeFromBuffer } from "file-type";
+import { Ratelimit } from "@upstash/ratelimit";
+import { headers } from "next/headers";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
 import { SERVICE_AREAS } from "@/lib/constants";
+import { redis } from "@/lib/upstash";
+
+const logoUploadLimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, "1 h"), prefix: "rl:contractor:logo" })
+  : null;
+const photoUploadLimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, "1 h"), prefix: "rl:contractor:photo" })
+  : null;
+
+async function uploadActor(userId: string | null | undefined, fallback?: string | null): Promise<string> {
+  if (userId) return `user:${userId}`;
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+  return fallback ? `anon:${fallback.toLowerCase()}` : `ip:${ip}`;
+}
 const LOGO_BUCKET = "contractor-logos";
 const PORTFOLIO_BUCKET = "portfolio-photos";
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
@@ -157,6 +174,11 @@ export async function joinAsContractor(
     if (logoFile.size > MAX_LOGO_BYTES) {
       return { error: "Logo must be 5MB or smaller." };
     }
+    if (logoUploadLimit) {
+      const key = await uploadActor(user?.id, parsed.data.email);
+      const { success } = await logoUploadLimit.limit(key);
+      if (!success) return { error: "Too many logo uploads. Please try again later." };
+    }
     const result = await sniffImage(logoFile, "logo");
     if ("error" in result) return { error: result.error };
     sniffedLogo = result;
@@ -164,6 +186,12 @@ export async function joinAsContractor(
 
   if (photoFiles.length > MAX_PHOTO_COUNT) {
     return { error: `You can upload up to ${MAX_PHOTO_COUNT} photos.` };
+  }
+
+  if (photoFiles.length > 0 && photoUploadLimit) {
+    const key = await uploadActor(user?.id, parsed.data.email);
+    const { success } = await photoUploadLimit.limit(key);
+    if (!success) return { error: "Too many photo uploads. Please try again later." };
   }
 
   const sniffedPhotos: SniffedImage[] = [];
@@ -475,6 +503,10 @@ export async function updateContractor(
     if (logoFile.size > MAX_LOGO_BYTES) {
       return { error: "Logo must be 5MB or smaller." };
     }
+    if (logoUploadLimit) {
+      const { success } = await logoUploadLimit.limit(`user:${user.id}`);
+      if (!success) return { error: "Too many logo uploads. Please try again later." };
+    }
     const result = await sniffImage(logoFile, "logo");
     if ("error" in result) return { error: result.error };
     sniffedLogo = result;
@@ -482,6 +514,11 @@ export async function updateContractor(
 
   if (photoFiles.length > MAX_PHOTO_COUNT) {
     return { error: `You can upload up to ${MAX_PHOTO_COUNT} new photos at a time.` };
+  }
+
+  if (photoFiles.length > 0 && photoUploadLimit) {
+    const { success } = await photoUploadLimit.limit(`user:${user.id}`);
+    if (!success) return { error: "Too many photo uploads. Please try again later." };
   }
 
   const sniffedPhotos: SniffedImage[] = [];
