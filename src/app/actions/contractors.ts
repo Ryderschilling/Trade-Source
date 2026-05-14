@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import slugify from "slugify";
+import { fileTypeFromBuffer } from "file-type";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
 import { SERVICE_AREAS } from "@/lib/constants";
@@ -12,6 +13,28 @@ const PORTFOLIO_BUCKET = "portfolio-photos";
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 const MAX_PHOTO_COUNT = 8;
+const ALLOWED_IMAGE_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MIME_TO_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+type SniffedImage = { buffer: ArrayBuffer; mime: string; ext: string };
+
+async function sniffImage(file: File, label: "logo" | "photo"): Promise<SniffedImage | { error: string }> {
+  const buffer = await file.arrayBuffer();
+  const sniff = await fileTypeFromBuffer(new Uint8Array(buffer));
+  if (!sniff || !ALLOWED_IMAGE_MIMES.has(sniff.mime)) {
+    return {
+      error:
+        label === "logo"
+          ? "Logo must be a JPEG, PNG, or WebP image."
+          : "Portfolio photos must be JPEG, PNG, or WebP images.",
+    };
+  }
+  return { buffer, mime: sniff.mime, ext: MIME_TO_EXT[sniff.mime] };
+}
 
 const joinSchema = z.object({
   business_name: z.string().min(2, "Business name is required"),
@@ -39,26 +62,6 @@ export type JoinFormState = {
   success?: boolean;
   slug?: string;
 };
-
-function getFileExtension(file: File) {
-  const fromName = file.name.split(".").pop()?.toLowerCase();
-  if (fromName && /^[a-z0-9]+$/.test(fromName)) {
-    return fromName;
-  }
-
-  switch (file.type) {
-    case "image/png":
-      return "png";
-    case "image/jpeg":
-      return "jpg";
-    case "image/webp":
-      return "webp";
-    case "image/svg+xml":
-      return "svg";
-    default:
-      return "bin";
-  }
-}
 
 function normalizeFile(file: FormDataEntryValue | null) {
   return file instanceof File && file.size > 0 ? file : null;
@@ -149,26 +152,28 @@ export async function joinAsContractor(
     }
   }
 
+  let sniffedLogo: SniffedImage | null = null;
   if (logoFile) {
-    if (!logoFile.type.startsWith("image/")) {
-      return { error: "Logo must be an image file." };
-    }
     if (logoFile.size > MAX_LOGO_BYTES) {
       return { error: "Logo must be 5MB or smaller." };
     }
+    const result = await sniffImage(logoFile, "logo");
+    if ("error" in result) return { error: result.error };
+    sniffedLogo = result;
   }
 
   if (photoFiles.length > MAX_PHOTO_COUNT) {
     return { error: `You can upload up to ${MAX_PHOTO_COUNT} photos.` };
   }
 
+  const sniffedPhotos: SniffedImage[] = [];
   for (const photo of photoFiles) {
-    if (!photo.type.startsWith("image/")) {
-      return { error: "Only image files are accepted for portfolio photos." };
-    }
     if (photo.size > MAX_PHOTO_BYTES) {
       return { error: "Each photo must be 10MB or smaller." };
     }
+    const result = await sniffImage(photo, "photo");
+    if ("error" in result) return { error: result.error };
+    sniffedPhotos.push(result);
   }
 
   // Generate unique slug
@@ -202,12 +207,12 @@ export async function joinAsContractor(
 
   let logoUrl: string | null = null;
 
-  if (logoFile) {
-    const logoPath = `${contractorId}/${Date.now()}-logo.${getFileExtension(logoFile)}`;
+  if (sniffedLogo) {
+    const logoPath = `${contractorId}/${Date.now()}-logo.${sniffedLogo.ext}`;
     const { error: uploadError } = await serviceClient.storage
       .from(LOGO_BUCKET)
-      .upload(logoPath, await logoFile.arrayBuffer(), {
-        contentType: logoFile.type || "application/octet-stream",
+      .upload(logoPath, sniffedLogo.buffer, {
+        contentType: sniffedLogo.mime,
         upsert: false,
       });
 
@@ -221,12 +226,12 @@ export async function joinAsContractor(
   }
 
   const uploadedPhotoUrls: string[] = [];
-  for (const [index, photo] of photoFiles.entries()) {
-    const photoPath = `${contractorId}/${Date.now()}-${index + 1}.${getFileExtension(photo)}`;
+  for (const [index, photo] of sniffedPhotos.entries()) {
+    const photoPath = `${contractorId}/${Date.now()}-${index + 1}.${photo.ext}`;
     const { error: uploadError } = await serviceClient.storage
       .from(PORTFOLIO_BUCKET)
-      .upload(photoPath, await photo.arrayBuffer(), {
-        contentType: photo.type || "application/octet-stream",
+      .upload(photoPath, photo.buffer, {
+        contentType: photo.mime,
         upsert: false,
       });
 
@@ -465,26 +470,28 @@ export async function updateContractor(
     return { error: firstError ?? "Please fix the form errors." };
   }
 
+  let sniffedLogo: SniffedImage | null = null;
   if (logoFile) {
-    if (!logoFile.type.startsWith("image/")) {
-      return { error: "Logo must be an image file." };
-    }
     if (logoFile.size > MAX_LOGO_BYTES) {
       return { error: "Logo must be 5MB or smaller." };
     }
+    const result = await sniffImage(logoFile, "logo");
+    if ("error" in result) return { error: result.error };
+    sniffedLogo = result;
   }
 
   if (photoFiles.length > MAX_PHOTO_COUNT) {
     return { error: `You can upload up to ${MAX_PHOTO_COUNT} new photos at a time.` };
   }
 
+  const sniffedPhotos: SniffedImage[] = [];
   for (const photo of photoFiles) {
-    if (!photo.type.startsWith("image/")) {
-      return { error: "Only image files are accepted for portfolio photos." };
-    }
     if (photo.size > MAX_PHOTO_BYTES) {
       return { error: "Each photo must be 10MB or smaller." };
     }
+    const result = await sniffImage(photo, "photo");
+    if ("error" in result) return { error: result.error };
+    sniffedPhotos.push(result);
   }
 
   const serviceAreasList = parsed.data.service_areas
@@ -497,12 +504,12 @@ export async function updateContractor(
 
   // Upload new logo if provided
   let logoUrl = existing.logo_url;
-  if (logoFile) {
-    const logoPath = `${contractorId}/${Date.now()}-logo.${getFileExtension(logoFile)}`;
+  if (sniffedLogo) {
+    const logoPath = `${contractorId}/${Date.now()}-logo.${sniffedLogo.ext}`;
     const { error: uploadError } = await serviceClient.storage
       .from(LOGO_BUCKET)
-      .upload(logoPath, await logoFile.arrayBuffer(), {
-        contentType: logoFile.type || "application/octet-stream",
+      .upload(logoPath, sniffedLogo.buffer, {
+        contentType: sniffedLogo.mime,
         upsert: false,
       });
     if (uploadError) {
@@ -522,14 +529,14 @@ export async function updateContractor(
   }
 
   // Upload and insert new portfolio photos
-  if (photoFiles.length > 0) {
+  if (sniffedPhotos.length > 0) {
     const uploadedPhotoUrls: string[] = [];
-    for (const [index, photo] of photoFiles.entries()) {
-      const photoPath = `${contractorId}/${Date.now()}-new-${index + 1}.${getFileExtension(photo)}`;
+    for (const [index, photo] of sniffedPhotos.entries()) {
+      const photoPath = `${contractorId}/${Date.now()}-new-${index + 1}.${photo.ext}`;
       const { error: uploadError } = await serviceClient.storage
         .from(PORTFOLIO_BUCKET)
-        .upload(photoPath, await photo.arrayBuffer(), {
-          contentType: photo.type || "application/octet-stream",
+        .upload(photoPath, photo.buffer, {
+          contentType: photo.mime,
           upsert: false,
         });
       if (uploadError) {

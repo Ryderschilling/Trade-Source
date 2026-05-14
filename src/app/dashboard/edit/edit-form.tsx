@@ -353,8 +353,8 @@ export function EditListingForm({ contractor, portfolioPhotos, categories, packa
     setClientError(null); setLogoStatus(null);
     if (!file) return;
     if (file.type === "image/svg+xml") {
-      if (file.size > CLIENT_MAX_LOGO_BYTES) { setClientError("SVG logos must be 5MB or smaller."); input.value = ""; return; }
-      setLogoStatus(`Logo ready: ${file.name} (${formatBytes(file.size)})`);
+      setClientError("SVG logos aren't supported. Please use JPEG, PNG, or WebP.");
+      input.value = "";
       return;
     }
     setPreparing(true);
@@ -549,7 +549,7 @@ export function EditListingForm({ contractor, portfolioPhotos, categories, packa
                 id="logo"
                 name="logo"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handleLogoChange}
                 disabled={preparing}
               />
@@ -597,7 +597,7 @@ export function EditListingForm({ contractor, portfolioPhotos, categories, packa
             id="photos"
             name="photos"
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             multiple
             onChange={handlePhotosChange}
             disabled={preparing}
