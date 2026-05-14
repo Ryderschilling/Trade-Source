@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="400" height="240" role="img" aria-label="Trade Source intro lockup">
+  <rect width="400" height="240" fill="#000"></rect>
+  <text x="200" y="140" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="108" font-weight="900" letter-spacing="-5" fill="#ffffff" text-anchor="middle">TS</text>
+  <text x="200" y="175" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="10" font-weight="300" letter-spacing="4.8" fill="rgba(255,255,255,0.8)" text-anchor="middle">TRADE SOURCE</text>
+  <line x1="140" y1="200" x2="260" y2="200" stroke="rgba(255,255,255,0.12)" stroke-width="1"></line>
+  <line x1="140" y1="200" x2="220" y2="200" stroke="#fff" stroke-width="1"></line>
+</svg>
