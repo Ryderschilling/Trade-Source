@@ -1,13 +1,19 @@
 "use server";
 
 import { z } from "zod";
+import { Ratelimit } from "@upstash/ratelimit";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { redis } from "@/lib/upstash";
 
 const packageSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   description: z.string().max(500).optional(),
   price_label: z.string().max(100).optional(),
 });
+
+const packageMutationLimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, "1 h"), prefix: "rl:packages:mutate" })
+  : null;
 
 export async function savePackages(
   contractorId: string,
@@ -16,6 +22,11 @@ export async function savePackages(
   const authClient = await createClient();
   const { data: { user } } = await authClient.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated." };
+
+  if (packageMutationLimit) {
+    const { success } = await packageMutationLimit.limit(user.id);
+    if (!success) return { success: false, error: "Too many package updates. Please try again later." };
+  }
 
   if (packages.length > 4) return { success: false, error: "Maximum 4 packages allowed." };
 

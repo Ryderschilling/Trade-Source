@@ -2,8 +2,18 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { Ratelimit } from "@upstash/ratelimit";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
+import { redis } from "@/lib/upstash";
+
+const reviewDailyLimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, "1 d"), prefix: "rl:review:user" })
+  : null;
+
+const reviewPerContractorLimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(1, "1 h"), prefix: "rl:review:user-contractor" })
+  : null;
 
 const reviewSchema = z.object({
   contractor_id: z.string().uuid(),
@@ -28,6 +38,22 @@ export async function submitReview(
 
   if (!user) {
     return { success: false, error: "You must be signed in to leave a review." };
+  }
+
+  const contractorIdForLimit = (formData.get("contractor_id") as string) || "";
+
+  if (reviewDailyLimit) {
+    const { success } = await reviewDailyLimit.limit(user.id);
+    if (!success) {
+      return { success: false, error: "You've submitted too many reviews today. Please try again tomorrow." };
+    }
+  }
+
+  if (reviewPerContractorLimit && contractorIdForLimit) {
+    const { success } = await reviewPerContractorLimit.limit(`${user.id}:${contractorIdForLimit}`);
+    if (!success) {
+      return { success: false, error: "Please wait before submitting another review for this business." };
+    }
   }
 
   const raw = {

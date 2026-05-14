@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import { createClient } from "@/lib/supabase/server";
+import { redis } from "@/lib/upstash";
 
 const signInSchema = z.object({
   email: z.string().email(),
@@ -20,13 +20,6 @@ const signUpSchema = z.object({
 });
 
 const roleSchema = z.enum(["homeowner", "contractor"]).catch("homeowner");
-
-const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    })
-  : null;
 
 const signInLimit = redis ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, "1 m"), prefix: "rl:auth:signin" }) : null;
 const signUpLimit = redis ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, "1 h"), prefix: "rl:auth:signup" }) : null;
