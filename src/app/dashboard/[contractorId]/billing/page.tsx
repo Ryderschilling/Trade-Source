@@ -54,9 +54,8 @@ export default async function BillingPage({ params }: PageProps) {
       .eq("addon_type", "featured_email")
       .in("status", ["active", "pending_review"]),
     supabase
-      .from("contractors")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "active"),
+      .from("public_contractors")
+      .select("id", { count: "exact", head: true }),
   ]);
 
   const reservedMonths = (reservedMonthRows ?? [])

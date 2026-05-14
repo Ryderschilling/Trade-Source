@@ -92,22 +92,19 @@ export default async function LeaderboardPage() {
     { data: mostReviewedRaw },
   ] = await Promise.all([
     supabase
-      .from("contractors")
+      .from("public_contractors")
       .select(select)
-      .eq("status", "active")
       .order("view_count", { ascending: false })
       .limit(10),
     supabase
-      .from("contractors")
+      .from("public_contractors")
       .select(select)
-      .eq("status", "active")
       .gte("review_count", 3)
       .not("avg_rating", "is", null)
       .limit(50),
     supabase
-      .from("contractors")
+      .from("public_contractors")
       .select(select)
-      .eq("status", "active")
       .order("review_count", { ascending: false })
       .limit(10),
   ]);

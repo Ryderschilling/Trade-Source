@@ -92,15 +92,14 @@ async function ContractorGrid({ searchTerm, zipTerm, activeCategory, allCategori
     }
 
     const { data } = await supabase
-      .from("contractors")
+      .from("public_contractors")
       .select("*, categories(*)")
-      .eq("status", "active")
       .or(orParts.join(","))
       .order("is_featured", { ascending: false })
       .order("avg_rating", { ascending: false, nullsFirst: false })
       .order("review_count", { ascending: false });
 
-    const all = (data ?? []) as ContractorWithCategory[];
+    const all = (data ?? []) as unknown as ContractorWithCategory[];
 
     if (zipTerm) {
       const inZip = all.filter((c) => (c.service_areas ?? []).includes(zipTerm));
@@ -111,24 +110,22 @@ async function ContractorGrid({ searchTerm, zipTerm, activeCategory, allCategori
     }
   } else if (zipTerm) {
     const { data } = await supabase
-      .from("contractors")
+      .from("public_contractors")
       .select("*, categories(*)")
-      .eq("status", "active")
       .contains("service_areas", [zipTerm])
       .order("is_featured", { ascending: false })
       .order("avg_rating", { ascending: false, nullsFirst: false })
       .order("review_count", { ascending: false });
-    contractors = (data ?? []) as ContractorWithCategory[];
+    contractors = (data ?? []) as unknown as ContractorWithCategory[];
   } else if (activeCategory) {
     const { data } = await supabase
-      .from("contractors")
+      .from("public_contractors")
       .select("*, categories(*)")
-      .eq("status", "active")
       .or(`category_id.eq.${activeCategory.id},additional_categories.cs.{${activeCategory.id}}`)
       .order("is_featured", { ascending: false })
       .order("avg_rating", { ascending: false, nullsFirst: false })
       .order("review_count", { ascending: false });
-    contractors = (data ?? []) as ContractorWithCategory[];
+    contractors = (data ?? []) as unknown as ContractorWithCategory[];
   }
 
   if (searchTerm) {
@@ -276,7 +273,7 @@ export default async function ContractorsPage({ searchParams }: PageProps) {
   ] = await Promise.all([
     supabase.from("category_groups").select("*").order("sort_order"),
     supabase.from("categories").select("*").order("sort_order"),
-    supabase.from("contractors").select("category_id, additional_categories").eq("status", "active"),
+    supabase.from("public_contractors").select("category_id, additional_categories"),
     user
       ? supabase.from("profiles").select("full_name, email, phone").eq("id", user.id).single()
       : Promise.resolve({ data: null }),

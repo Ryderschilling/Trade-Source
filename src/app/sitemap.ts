@@ -6,9 +6,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
 
   const { data: contractors } = await supabase
-    .from("contractors")
-    .select("slug, updated_at")
-    .eq("status", "active");
+    .from("public_contractors")
+    .select("slug, updated_at");
 
   const contractorUrls: MetadataRoute.Sitemap = (contractors ?? []).map((c) => ({
     url: `${APP_URL}/contractors/${c.slug}`,

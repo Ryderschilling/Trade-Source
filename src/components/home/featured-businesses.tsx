@@ -6,21 +6,19 @@ export async function FeaturedBusinesses() {
   const supabase = await createClient();
 
   const { data: featured } = await supabase
-    .from("contractors")
+    .from("public_contractors")
     .select("*, categories(*)")
-    .eq("status", "active")
     .eq("is_featured", true)
     .order("avg_rating", { ascending: false, nullsFirst: false })
     .limit(12);
 
-  let rows: ContractorWithCategory[] = (featured ?? []) as ContractorWithCategory[];
+  let rows: ContractorWithCategory[] = (featured ?? []) as unknown as ContractorWithCategory[];
 
   if (rows.length < 6) {
     const excludeIds = rows.map((r) => r.id);
     const q = supabase
-      .from("contractors")
+      .from("public_contractors")
       .select("*, categories(*)")
-      .eq("status", "active")
       .order("avg_rating", { ascending: false, nullsFirst: false })
       .order("review_count", { ascending: false })
       .limit(12 - rows.length);
@@ -29,7 +27,7 @@ export async function FeaturedBusinesses() {
       ? await q.not("id", "in", `(${excludeIds.join(",")})`)
       : await q;
 
-    rows = [...rows, ...((topUp ?? []) as ContractorWithCategory[])];
+    rows = [...rows, ...((topUp ?? []) as unknown as ContractorWithCategory[])];
   }
 
   if (!rows.length) return null;

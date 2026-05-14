@@ -45,10 +45,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const supabase = await createClient();
   const { data: contractor } = await supabase
-    .from("contractors")
+    .from("public_contractors")
     .select("business_name, tagline, city, state, categories(name)")
     .eq("slug", slug)
-    .eq("status", "active")
     .single();
 
   if (!contractor) return { title: "Contractor Not Found" };
@@ -69,7 +68,7 @@ export default async function ContractorProfilePage({ params, searchParams }: Pa
 
   const [{ data: contractor }, { data: { user } }] = await Promise.all([
     supabase
-      .from("contractors")
+      .from("public_contractors")
       .select(`
         *,
         categories(*),
@@ -77,7 +76,6 @@ export default async function ContractorProfilePage({ params, searchParams }: Pa
         portfolio_photos(*)
       `)
       .eq("slug", slug)
-      .eq("status", "active")
       .order("created_at", { referencedTable: "reviews", ascending: false })
       .order("sort_order", { referencedTable: "portfolio_photos", ascending: true })
       .single(),
